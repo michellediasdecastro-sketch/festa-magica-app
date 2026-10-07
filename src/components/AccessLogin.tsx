@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Sparkles, KeyRound } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { supabase } from "../lib/supabase";
 
 interface AccessLoginProps {
@@ -23,7 +22,6 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
     setErrorMessage("");
 
     try {
-      // Consulta real na tabela access_codes ligada à tabela parties
       const { data: accessData, error: accessError } = await supabase
         .from("access_codes")
         .select(`
@@ -46,7 +44,6 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
         return;
       }
 
-      // Verificar validade de 1 ano (expires_at)
       const now = new Date();
       const expiryDate = new Date(accessData.expires_at);
       if (now > expiryDate) {
@@ -55,7 +52,6 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
         return;
       }
 
-      // Se tudo estiver correto, passa os dados da festa para o App principal
       onLoginSuccess({
         partyName: accessData.parties.party_name,
         birthdayChildName: accessData.parties.birthday_child_name,
@@ -98,13 +94,13 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
           <p className="text-sm text-red-400 font-medium">{errorMessage}</p>
         )}
 
-        <Button 
+        <button 
           type="submit" 
           disabled={loading}
-          className="w-full h-12 text-base font-bold bg-lime text-forest hover:bg-lime/90 transition-all mt-2"
+          className="w-full h-12 text-base font-bold bg-lime text-forest hover:bg-lime/90 transition-all mt-2 flex items-center justify-center rounded-xl cursor-pointer disabled:opacity-50"
         >
           {loading ? "A verificar no Supabase..." : "Entrar na Festa"} <Sparkles className="size-4 ml-2" />
-        </Button>
+        </button>
       </form>
     </div>
   );
