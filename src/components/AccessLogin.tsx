@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Sparkles, KeyRound } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
