@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Sparkles, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "../lib/supabase";
 
 interface AccessLoginProps {
   onLoginSuccess: (partyData: any) => void;
@@ -22,25 +23,53 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
     setErrorMessage("");
 
     try {
-      // Simulação rápida de validação (na próxima etapa ligamos ao Supabase real)
-      // Aqui vamos buscar a festa correspondente ao token introduzido
-      setTimeout(() => {
-        if (token === "teste123") {
-          onLoginSuccess({
-            partyName: "O Aniversário do Lucas",
-            birthdayChildName: "Lucas",
-            childAge: 5,
-            theme: "Dinossauros",
-            characterName: "T-Rex Amigável",
-            ageGroup: "4-5"
-          });
-        } else {
-          setErrorMessage("Código inválido ou expirado. Verifique o seu convite!");
-        }
+      // Consulta real na tabela access_codes ligada à tabela parties
+      const { data: accessData, error: accessError } = await supabase
+        .from("access_codes")
+        .select(`
+          *,
+          parties (
+            party_name,
+            birthday_child_name,
+            child_age,
+            theme,
+            character_name,
+            photo_url
+          )
+        `)
+        .eq("code_token", token.trim())
+        .single();
+
+      if (accessError || !accessData) {
+        setErrorMessage("Código inválido. Verifique o seu convite!");
         setLoading(false);
-      }, 1000);
+        return;
+      }
+
+      // Verificar validade de 1 ano (expires_at)
+      const now = new Date();
+      const expiryDate = new Date(accessData.expires_at);
+      if (now > expiryDate) {
+        setErrorMessage("Este código de acesso expirou após 1 ano.");
+        setLoading(false);
+        return;
+      }
+
+      // Se tudo estiver correto, passa os dados da festa para o App principal
+      onLoginSuccess({
+        partyName: accessData.parties.party_name,
+        birthdayChildName: accessData.parties.birthday_child_name,
+        childAge: accessData.parties.child_age,
+        theme: accessData.parties.theme,
+        characterName: accessData.parties.character_name,
+        ageGroup: accessData.age_group,
+        photoUrl: accessData.parties.photo_url
+      });
+
     } catch (err) {
+      console.error(err);
       setErrorMessage("Ocorreu um erro ao validar o acesso. Tente novamente.");
+    } finally {
       setLoading(false);
     }
   }
@@ -61,7 +90,7 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
           type="text"
           value={token}
           onChange={(e) => setToken(e.target.value)}
-          placeholder="Ex: teste123"
+          placeholder="Insira o seu código"
           className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-cream placeholder:text-cream/40 focus:outline-none focus:border-lime text-center font-bold tracking-widest text-lg"
         />
 
@@ -74,7 +103,7 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
           disabled={loading}
           className="w-full h-12 text-base font-bold bg-lime text-forest hover:bg-lime/90 transition-all mt-2"
         >
-          {loading ? "A verificar convite..." : "Entrar na Festa"} <Sparkles className="size-4 ml-2" />
+          {loading ? "A verificar no Supabase..." : "Entrar na Festa"} <Sparkles className="size-4 ml-2" />
         </Button>
       </form>
     </div>
