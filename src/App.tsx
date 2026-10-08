@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AccessLogin } from "./components/AccessLogin";
-import { Sparkles, Cake, Users, ShieldAlert } from "lucide-react";
+import { Sparkles, Cake, Users } from "lucide-react";
 
 export function App() {
   const [partyData, setPartyData] = useState<any>(null);
@@ -17,8 +17,8 @@ export function App() {
             <Sparkles className="size-4" /> Tema: {partyData.theme}
           </div>
 
-          <h1 className="font-display text-4xl md:text-5xl font-bold text-cream">
-            Bem-vindo à festa de {partyData.birthdayChildName}! 🎉
+          <h1 className="font-display text-3xl md:text-4xl font-bold text-cream flex items-center justify-center gap-2 flex-wrap">
+            <span>🎉 Bem-vindo à festa de {partyData.birthdayChildName}!</span>
           </h1>
 
           <div className="flex flex-wrap justify-center gap-4 my-2">
