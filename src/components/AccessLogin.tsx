@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Sparkles, KeyRound } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
@@ -11,7 +11,7 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  async function handleAccess(e: React.FormEvent) {
+  async function handleAccess(e: FormEvent) {
     e.preventDefault();
     if (!token.trim()) {
       setErrorMessage("Por favor, insira o seu código de acesso.");
