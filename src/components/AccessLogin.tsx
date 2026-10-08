@@ -22,21 +22,12 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
     setErrorMessage("");
 
     try {
+      // 1. Procura o token na tabela access_codes
       const { data: accessData, error: accessError } = await supabase
         .from("access_codes")
-        .select(`
-          *,
-          parties (
-            party_name,
-            birthday_child_name,
-            child_age,
-            theme,
-            character_name,
-            photo_url
-          )
-        `)
+        .select("*")
         .eq("code_token", token.trim())
-        .single();
+        .maybeSingle();
 
       if (accessError || !accessData) {
         setErrorMessage("Código inválido. Verifique o seu convite!");
@@ -44,22 +35,37 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
         return;
       }
 
+      // 2. Verifica se expirou
       const now = new Date();
       const expiryDate = new Date(accessData.expires_at);
       if (now > expiryDate) {
-        setErrorMessage("Este código de acesso expirou após 1 ano.");
+        setErrorMessage("Este código de acesso expirou.");
         setLoading(false);
         return;
       }
 
+      // 3. Vai buscar os dados da festa usando o party_id
+      const { data: partyData, error: partyError } = await supabase
+        .from("parties")
+        .select("*")
+        .eq("id", accessData.party_id)
+        .maybeSingle();
+
+      if (partyError || !partyData) {
+        setErrorMessage("Erro ao carregar os dados da festa.");
+        setLoading(false);
+        return;
+      }
+
+      // Sucesso! Passa os dados para a aplicação
       onLoginSuccess({
-        partyName: accessData.parties.party_name,
-        birthdayChildName: accessData.parties.birthday_child_name,
-        childAge: accessData.parties.child_age,
-        theme: accessData.parties.theme,
-        characterName: accessData.parties.character_name,
+        partyName: partyData.party_name,
+        birthdayChildName: partyData.birthday_child_name,
+        childAge: partyData.child_age,
+        theme: partyData.theme,
+        characterName: partyData.character_name,
         ageGroup: accessData.age_group,
-        photoUrl: accessData.parties.photo_url
+        photoUrl: partyData.photo_url
       });
 
     } catch (err) {
@@ -99,7 +105,7 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
           disabled={loading}
           className="w-full h-12 text-base font-bold bg-lime text-forest hover:bg-lime/90 transition-all mt-2 flex items-center justify-center rounded-xl cursor-pointer disabled:opacity-50"
         >
-          {loading ? "A verificar no Supabase..." : "Entrar na Festa"} <Sparkles className="size-4 ml-2" />
+          {loading ? "A verificar..." : "Entrar na Festa"} <Sparkles className="size-4 ml-2" />
         </button>
       </form>
     </div>
