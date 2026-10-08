@@ -22,41 +22,54 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
     setErrorMessage("");
 
     try {
-      console.log("A procurar o token:", token.trim());
-
+      // 1. Procura o token na tabela access_codes
       const { data: accessData, error: accessError } = await supabase
         .from("access_codes")
         .select("*")
         .eq("code_token", token.trim())
         .maybeSingle();
 
-      if (accessError) {
-        console.error("Erro do Supabase:", accessError);
-        setErrorMessage(`Erro na base de dados: ${accessError.message}`);
+      if (accessError || !accessData) {
+        setErrorMessage("Código inválido. Verifique o seu convite!");
         setLoading(false);
         return;
       }
 
-      if (!accessData) {
-        setErrorMessage("Código não encontrado na base de dados.");
+      // 2. Verifica se expirou
+      const now = new Date();
+      const expiryDate = new Date(accessData.expires_at);
+      if (now > expiryDate) {
+        setErrorMessage("Este código de acesso expirou.");
         setLoading(false);
         return;
       }
 
-      console.log("Token encontrado:", accessData);
+      // 3. Vai buscar os dados reais da festa usando o party_id
+      const { data: partyData, error: partyError } = await supabase
+        .from("parties")
+        .select("*")
+        .eq("id", accessData.party_id)
+        .maybeSingle();
 
+      if (partyError || !partyData) {
+        setErrorMessage("Erro ao carregar os dados da festa.");
+        setLoading(false);
+        return;
+      }
+
+      // Sucesso! Passa os dados reais para a aplicação
       onLoginSuccess({
-        partyName: "Festa",
-        birthdayChildName: "Aniversariante",
-        childAge: 5,
-        theme: "Tema",
-        characterName: "Personagem",
+        partyName: partyData.party_name,
+        birthdayChildName: partyData.birthday_child_name,
+        childAge: partyData.child_age,
+        theme: partyData.theme,
+        characterName: partyData.character_name,
         ageGroup: accessData.age_group,
-        photoUrl: ""
+        photoUrl: partyData.photo_url
       });
 
     } catch (err) {
-      console.error("Erro inesperado:", err);
+      console.error(err);
       setErrorMessage("Ocorreu um erro inesperado ao validar.");
     } finally {
       setLoading(false);
