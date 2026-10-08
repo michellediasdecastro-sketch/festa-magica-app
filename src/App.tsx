@@ -9,7 +9,6 @@ export function App() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [themeBackgrounds, setThemeBackgrounds] = useState<Record<string, string>>({});
 
-  // Carregar os fundos associados aos temas da tabela 'themes'
   useEffect(() => {
     async function fetchThemeBackgrounds() {
       const { data } = await supabase.from("themes").select("theme_name, background_url");
@@ -24,14 +23,12 @@ export function App() {
     fetchThemeBackgrounds();
   }, [isAdminOpen, partyData]);
 
-  // Descobrir a imagem de fundo ideal com base no tema da festa
   function getBackgroundForTheme(themeName: string) {
     if (!themeName) return "https://images.unsplash.com/photo-1511884642898-4c92249e20b6?q=80&w=1920&auto=format&fit=crop";
     const key = themeName.toLowerCase();
     if (themeBackgrounds[key]) {
       return themeBackgrounds[key];
     }
-    // Fundo padrão de fallback
     return "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=1920&auto=format&fit=crop";
   }
 
@@ -40,25 +37,15 @@ export function App() {
     : "https://images.unsplash.com/photo-1511884642898-4c92249e20b6?q=80&w=1920&auto=format&fit=crop";
 
   return (
-    <main className="relative min-h-[100dvh] w-full flex items-center justify-center p-4 text-white overflow-x-hidden overflow-y-auto">
-      {/* Imagem de Fundo Dinâmica Baseada no Tema */}
+    <main className="relative min-h-[100dvh] w-full flex flex-col items-center justify-center p-4 text-white overflow-x-hidden overflow-y-auto">
+      {/* Imagem de Fundo Dinâmica */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat filter brightness-85 saturate-110 scale-105 transition-all duration-700"
         style={{ backgroundImage: `url('${bgImage}')` }}
       />
       
-      {/* Camada translúcida equilibrada */}
+      {/* Camada translúcida */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
-
-      {/* Botão flutuante discreto para aceder à Administração */}
-      {!partyData && !isAdminOpen && (
-        <button
-          onClick={() => setIsAdminOpen(true)}
-          className="absolute top-4 right-4 z-20 flex items-center gap-2 px-3 py-2 rounded-xl bg-black/50 border border-white/20 text-xs font-bold hover:bg-black/70 transition-colors cursor-pointer"
-        >
-          <Settings className="size-4 text-[#a3e635]" /> Admin
-        </button>
-      )}
 
       {/* Conteúdo Principal */}
       <div className="relative z-10 w-full max-w-md sm:max-w-xl mx-auto flex items-center justify-center my-auto">
@@ -112,6 +99,18 @@ export function App() {
           </div>
         )}
       </div>
+
+      {/* Botão de Administração Fixo no Rodapé */}
+      {!isAdminOpen && (
+        <div className="relative z-20 mt-6 pb-2">
+          <button
+            onClick={() => setIsAdminOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black/60 border border-white/30 text-xs font-bold text-white hover:bg-black/80 transition-all shadow-lg backdrop-blur-sm cursor-pointer"
+          >
+            <Settings className="size-4 text-[#a3e635]" /> Painel de Administração
+          </button>
+        </div>
+      )}
     </main>
   );
 }
