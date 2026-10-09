@@ -48,15 +48,15 @@ export function App() {
       {bgImage && (
         <div 
           key={bgImage}
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat filter brightness-95 saturate-110 scale-105 transition-all duration-700"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat filter brightness-100 saturate-110 scale-105 transition-all duration-700"
           style={{ backgroundImage: `url('${bgImage}')` }}
         />
       )}
       
-      {/* Camada translúcida geral extremamente suave (Quase imperceptível) */}
-      <div className="absolute inset-0 bg-black/10 backdrop-blur-[0.5px]" />
+      {/* Sem camada escura geral para deixar a imagem 100% viva */}
+      <div className="absolute inset-0 bg-black/10 backdrop-blur-[0px]" />
 
-      {/* Conteúdo Principal com Transparência Ultra Alta */}
+      {/* Conteúdo Principal: Retângulo Principal Totalmente Transparente com Borda de Brilho */}
       <div className="relative z-10 w-full max-w-[340px] sm:max-w-md mx-auto flex items-center justify-center my-auto py-6">
         {isAdminOpen ? (
           <AdminDashboard onBackToApp={() => {
@@ -66,43 +66,45 @@ export function App() {
         ) : !partyData ? (
           <AccessLogin onLoginSuccess={(data) => setPartyData(data)} />
         ) : (
-          <div className="w-full bg-white/5 border border-white/10 rounded-[2.5rem] p-6 sm:p-8 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] backdrop-blur-xl text-center flex flex-col items-center gap-4 animate-fade-in">
+          <div className="w-full bg-transparent border border-white/25 rounded-[2.5rem] p-6 sm:p-8 shadow-[0_0_40px_rgba(0,0,0,0.5)] backdrop-blur-[2px] text-center flex flex-col items-center gap-4 animate-fade-in">
             
-            <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-[#bef264] text-[11px] sm:text-xs font-bold tracking-wider uppercase shadow-inner">
+            {/* Tag do Tema com fundo translúcido */}
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/40 border border-white/30 text-[#bef264] text-[11px] sm:text-xs font-bold tracking-wider uppercase shadow-md backdrop-blur-md">
               <Sparkles className="size-3.5" /> Tema: {partyData.theme}
             </div>
 
-            <div className="space-y-1.5">
+            {/* Bloco de Boas-vindas com leve translúcido para legibilidade */}
+            <div className="space-y-1.5 px-3 py-2 rounded-2xl bg-black/30 backdrop-blur-md border border-white/10 w-full shadow-md">
               <div className="text-2xl">🎉</div>
-              <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)] leading-tight">
+              <h1 className="text-xl sm:text-3xl font-extrabold text-white tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] leading-tight">
                 Bem-vindo à festa de {partyData.birthdayChildName}!
               </h1>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-center gap-3 w-full mt-1">
-              <div className="flex items-center justify-center gap-3 bg-white/5 border border-white/10 px-4 py-3 rounded-2xl text-sm backdrop-blur-sm shadow-inner flex-1">
+            <div className="flex flex-col sm:flex-row justify-center gap-3 w-full">
+              <div className="flex items-center justify-center gap-3 bg-black/40 border border-white/20 px-4 py-3 rounded-2xl text-sm backdrop-blur-md shadow-md flex-1">
                 <Cake className="size-5 text-[#bef264] shrink-0" />
-                <span className="text-white/90">Idade: <strong className="text-[#bef264] font-bold">{partyData.childAge} anos</strong></span>
+                <span className="text-white drop-shadow">Idade: <strong className="text-[#bef264] font-bold">{partyData.childAge} anos</strong></span>
               </div>
 
-              <div className="flex items-center justify-center gap-3 bg-white/5 border border-white/10 px-4 py-3 rounded-2xl text-sm backdrop-blur-sm shadow-inner flex-1">
+              <div className="flex items-center justify-center gap-3 bg-black/40 border border-white/20 px-4 py-3 rounded-2xl text-sm backdrop-blur-md shadow-md flex-1">
                 <Users className="size-5 text-[#bef264] shrink-0" />
-                <span className="text-white/90">Convidado: <strong className="text-[#bef264] font-bold">{partyData.ageGroup}</strong></span>
+                <span className="text-white drop-shadow">Convidado: <strong className="text-[#bef264] font-bold">{partyData.ageGroup}</strong></span>
               </div>
             </div>
 
             {partyData.characterName && (
-              <div className="flex items-center justify-center gap-3 bg-white/5 border border-white/10 px-4 py-3 rounded-2xl text-white/95 text-sm w-full shadow-inner">
+              <div className="flex items-center justify-center gap-3 bg-black/40 border border-white/20 px-4 py-3 rounded-2xl text-white text-sm w-full shadow-md backdrop-blur-md">
                 <Trophy className="size-5 text-[#bef264] shrink-0" />
-                <span className="text-white/90">Destaque: <span className="text-[#bef264] font-bold">{partyData.characterName}</span></span>
+                <span className="drop-shadow">Destaque: <span className="text-[#bef264] font-bold">{partyData.characterName}</span></span>
               </div>
             )}
 
-            <div className="w-full border-t border-white/10 pt-3 mt-2 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-white/70 font-medium">
+            <div className="w-full border-t border-white/20 pt-3 mt-2 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-white/90 font-medium px-2 py-1 bg-black/30 rounded-xl backdrop-blur-md">
               <span>Painel Exclusivo do Convidado</span>
               <button 
                 onClick={() => setPartyData(null)}
-                className="hover:text-[#bef264] underline cursor-pointer transition-colors py-1"
+                className="hover:text-[#bef264] underline cursor-pointer transition-colors py-1 font-bold"
               >
                 Sair / Inserir outro código
               </button>
