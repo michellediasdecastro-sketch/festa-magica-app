@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { AccessLogin } from "./components/AccessLogin";
 import { AdminDashboard } from "./components/AdminDashboard";
-import { Users, Trophy } from "lucide-react";
+import { PartyGames } from "./components/PartyGames";
+import { Users, Trophy, Gamepad2 } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
 export function App() {
   const [partyData, setPartyData] = useState<any>(null);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isInGames, setIsInGames] = useState(false);
   const [themeBackgrounds, setThemeBackgrounds] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -67,7 +69,9 @@ export function App() {
       {/* Conteúdo Principal do Convidado */}
       <div className="relative z-10 w-full max-w-[340px] sm:max-w-md mx-auto flex items-center justify-center my-auto py-6">
         {!partyData ? (
-          <AccessLogin onLoginSuccess={(data) => setPartyData(data)} />
+          <AccessLogin onLoginSuccess={(data) => { setPartyData(data); setIsInGames(false); }} />
+        ) : isInGames ? (
+          <PartyGames partyData={partyData} onBackToMain={() => setIsInGames(false)} />
         ) : (
           <div className="w-full bg-transparent border border-white/25 rounded-[2.5rem] p-6 sm:p-8 shadow-[0_0_40px_rgba(0,0,0,0.5)] backdrop-blur-[2px] text-center flex flex-col items-center gap-4 animate-fade-in">
             
@@ -82,7 +86,7 @@ export function App() {
             <div className="w-full">
               <div className="flex items-center justify-center gap-3 bg-black/40 border border-white/20 px-4 py-3 rounded-2xl text-sm backdrop-blur-md shadow-md w-full">
                 <Users className="size-5 text-[#bef264] shrink-0" />
-                <span className="text-white drop-shadow">Convidado: Faixa etária atual <strong className="text-[#bef264] font-bold">{partyData.ageGroup}</strong></span>
+                <span className="text-white drop-shadow">Convidado: Faixa etária <strong className="text-[#bef264] font-bold">{partyData.ageGroup}</strong></span>
               </div>
             </div>
 
@@ -93,6 +97,14 @@ export function App() {
                 <span className="drop-shadow">Guia / Mascote: <span className="text-[#bef264] font-bold">{partyData.characterName}</span></span>
               </div>
             )}
+
+            {/* Botão de Acesso aos Jogos */}
+            <button
+              onClick={() => setIsInGames(true)}
+              className="w-full py-3.5 px-6 rounded-2xl bg-[#bef264] text-black font-extrabold text-sm hover:opacity-90 transition-all cursor-pointer shadow-lg shadow-[#bef264]/20 flex items-center justify-center gap-2 transform active:scale-95"
+            >
+              <Gamepad2 className="size-5" /> Entrar na Central de Jogos
+            </button>
 
             <div className="w-full border-t border-white/20 pt-3 mt-2 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-white/90 font-medium px-2 py-1 bg-black/30 rounded-xl backdrop-blur-md">
               <span>Experiência Interativa</span>
