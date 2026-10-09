@@ -9,14 +9,18 @@ interface PartyGamesProps {
 
 export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentChallenge, setCurrentChallenge] = useState<any>(null);
   const [score, setScore] = useState(0);
   const [completedTasks, setCompletedTasks] = useState(0);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [themeImages, setThemeImages] = useState<string[]>([]);
-  const [currentChallenge, setCurrentChallenge] = useState<any>(null);
+
+  // Estados específicos para o Jogo da Memória (Quebra-Cabeças / Pares)
+  const [memoryCards, setMemoryCards] = useState<any[]>([]);
+  const [flippedCards, setFlippedCards] = useState<number[]>([]);
+  const [matchedPairs, setMatchedPairs] = useState<string[]>([]);
 
   useEffect(() => {
     async function fetchThemeImages() {
@@ -38,43 +42,75 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
     fetchThemeImages();
   }, [partyData]);
 
-  // Gerador de dezenas de desafios dinâmicos por categoria com opções baralhadas
-  const getCategoryChallenges = (catId: string) => {
-    let rawList: any[] = [];
-
+  // Gerador dinâmico de dezenas de variações por categoria (Estilo LogicLike)
+  const generateDynamicChallenge = (catId: string) => {
     if (catId === 'logica') {
-      rawList = [
+      const sets = [
         { instruction: "Toque na fruta verde!", spokenText: "Escolha a fruta verde", correct: "🍏", options: ["🍎", "🍏", "🍊", "🍌"] },
-        { instruction: "Encontre o animal diferente!", spokenText: "Encontre o animal diferente", correct: "🦊", options: ["🐼", "🦊", "🐼", "🐼"] },
+        { instruction: "Encontre o animal diferente na roda!", spokenText: "Encontre o animal diferente", correct: "🦊", options: ["🐼", "🦊", "🐼", "🐼"] },
         { instruction: "Qual elemento brilha no céu à noite?", spokenText: "Qual elemento brilha no céu à noite", correct: "⭐", options: ["☀️", "⭐", "☁️", "🎈"] },
         { instruction: "Qual destes animais voa?", spokenText: "Qual destes animais voa", correct: "🐦", options: ["🐶", "🐱", "🐦", "🦁"] },
-        { instruction: "Toque na cor vermelha!", spokenText: "Escolha a cor vermelha", correct: "🍎", options: ["🍌", "🍎", "📘", "🍏"] }
+        { instruction: "Toque na cor vermelha!", spokenText: "Escolha a cor vermelha", correct: "🍎", options: ["🍌", "🍎", "📘", "🍏"] },
+        { instruction: "Qual bicho vive na água?", spokenText: "Qual bicho vive na água", correct: "🐟", options: ["🐱", "🐟", "🐶", "🐰"] }
       ];
-    } else if (catId === 'matematica') {
-      rawList = [
-        { instruction: "Quantos blocos coloridos estão empilhados?", spokenText: "Quantos blocos estão empilhados?", type: "stacked-blocks", correct: "3", options: ["2", "5", "3", "1"] },
-        { instruction: "Qual número vem logo depois do 2?", spokenText: "Qual número vem depois do 2?", correct: "3", options: ["1", "4", "3", "5"] },
-        { instruction: "Qual número vem antes do 2?", spokenText: "Qual número vem antes do 2?", correct: "1", options: ["3", "1", "4", "5"] },
-        { instruction: "Quantos dedos temos numa mão?", spokenText: "Quantos dedos temos numa mão?", correct: "5", options: ["3", "4", "5", "2"] }
+      const selected = sets[Math.floor(Math.random() * sets.length)];
+      return { ...selected, options: [...selected.options].sort(() => Math.random() - 0.5) };
+    } 
+    
+    if (catId === 'matematica') {
+      const randomCount = Math.floor(Math.random() * 4) + 2; // 2 a 5 blocos
+      const randomNum1 = Math.floor(Math.random() * 5) + 1;
+      const sets = [
+        { 
+          instruction: `Quantos blocos coloridos estão empilhados?`, 
+          spokenText: "Quantos blocos estão empilhados?", 
+          type: "stacked-blocks", 
+          count: randomCount, 
+          correct: String(randomCount), 
+          options: [String(randomCount > 1 ? randomCount - 1 : 5), String(randomCount), String(randomCount + 1), String(randomCount + 2)].sort(() => Math.random() - 0.5) 
+        },
+        { 
+          instruction: `Qual número vem logo depois do ${randomNum1}?`, 
+          spokenText: `Qual número vem depois do ${randomNum1}?`, 
+          correct: String(randomNum1 + 1), 
+          options: [String(randomNum1), String(randomNum1 + 1), String(randomNum1 + 2), String(randomNum1 > 1 ? randomNum1 - 1 : 4)].sort(() => Math.random() - 0.5) 
+        }
       ];
-    } else if (catId === 'atencao') {
-      rawList = [
-        { instruction: "Encontre a figura igual ao modelo!", spokenText: "Encontre a figura igual ao modelo", type: "match-model", model: "⭐", correct: "⭐", options: ["⭕", "⬛", "⭐", "🔺"] },
-        { instruction: "Encontre a figura igual ao modelo!", spokenText: "Encontre a figura igual ao modelo", type: "match-model", model: "🔵", correct: "🔵", options: ["⬛", "🔵", "⭐", "🔺"] },
-        { instruction: "Encontre a figura igual ao modelo!", spokenText: "Encontre a figura igual ao modelo", type: "match-model", model: "🔺", correct: "🔺", options: ["⭕", "🔺", "⬛", "⭐"] }
-      ];
-    } else {
-      rawList = [
-        { instruction: "Encontre a peça que encaixa no painel!", spokenText: "Encontre a peça que encaixa no painel", type: "puzzle-model", model: "🧩", correct: "🧩", options: ["📦", "⚽", "🧩", "🎈"] },
-        { instruction: "Encontre a peça que encaixa no painel!", spokenText: "Encontre a peça que encaixa no painel", type: "puzzle-model", model: "🧩", correct: "🧩", options: ["🎈", "🧩", "📦", "⚽"] }
-      ];
+      return sets[Math.floor(Math.random() * sets.length)];
+    } 
+    
+    if (catId === 'atencao') {
+      const symbols = ["⭐", "🔵", "🔺", "⬛", "⭕", "💖"];
+      const target = symbols[Math.floor(Math.random() * symbols.length)];
+      const shuffledOptions = [...symbols].sort(() => Math.random() - 0.5).slice(0, 4);
+      if (!shuffledOptions.includes(target)) shuffledOptions[0] = target;
+
+      return {
+        instruction: "Encontre a figura igual ao modelo!",
+        spokenText: "Encontre a figura igual ao modelo",
+        type: "match-model",
+        model: target,
+        correct: target,
+        options: shuffledOptions.sort(() => Math.random() - 0.5)
+      };
+    } 
+    
+    if (catId === 'quebravc') {
+      // Jogo da Memória / Achar os Pares (Estilo verdadeiro quebra-cabeças de cartas)
+      const icons = ["🍎", "⭐", "🐱", "🚗"];
+      const selectedCard = icons[Math.floor(Math.random() * icons.length)];
+      const deck = [...icons, ...icons].sort(() => Math.random() - 0.5).map((icon, idx) => ({ id: idx, icon, isFlipped: false }));
+      
+      return {
+        instruction: "Encontre o par da carta escondida!",
+        spokenText: "Encontre o par igual",
+        type: "memory-game",
+        targetIcon: selectedCard,
+        cards: deck
+      };
     }
 
-    // Baralha as opções de cada desafio para que a resposta certa nunca fique na mesma posição e não haja marcação visual prévia
-    return rawList.map(item => ({
-      ...item,
-      options: [...item.options].sort(() => Math.random() - 0.5)
-    }));
+    return null;
   };
 
   const speakInstruction = (text: string) => {
@@ -125,11 +161,14 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
 
   const handleSelectCategory = (catId: string) => {
     playSfx('click');
-    const list = getCategoryChallenges(catId);
     setActiveCategory(catId);
-    setCurrentIndex(0);
-    setCurrentChallenge(list[0]);
-    setTimeout(() => speakInstruction(list[0].spokenText), 400);
+    setMatchedPairs([]);
+    setFlippedCards([]);
+    const challenge = generateDynamicChallenge(catId);
+    setCurrentChallenge(challenge);
+    if (challenge) {
+      setTimeout(() => speakInstruction(challenge.spokenText), 400);
+    }
   };
 
   const handleAnswer = (option: string) => {
@@ -142,15 +181,13 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
       setScore(score + 10);
       setCompletedTasks(completedTasks + 1);
 
-      // Avança de forma limpa e sequencial para o próximo desafio da lista
+      // Avança automaticamente para um novo desafio gerado na hora
       setTimeout(() => {
         setFeedback(null);
         setShowConfetti(false);
-        const list = getCategoryChallenges(activeCategory as string);
-        const nextIdx = (currentIndex + 1) % list.length;
-        setCurrentIndex(nextIdx);
-        setCurrentChallenge(list[nextIdx]);
-        speakInstruction(list[nextIdx].spokenText);
+        const nextChallenge = generateDynamicChallenge(activeCategory as string);
+        setCurrentChallenge(nextChallenge);
+        if (nextChallenge) speakInstruction(nextChallenge.spokenText);
       }, 800);
     } else {
       playSfx('wrong');
@@ -159,11 +196,50 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
     }
   };
 
+  // Lógica para o Jogo da Memória (Pares)
+  const handleCardClick = (index: number) => {
+    if (flippedCards.length === 2 || flippedCards.includes(index)) return;
+    playSfx('click');
+
+    const newFlipped = [...flippedCards, index];
+    setFlippedCards(newFlipped);
+
+    if (newFlipped.length === 2) {
+      const [firstIndex, secondIndex] = newFlipped;
+      const card1 = currentChallenge.cards[firstIndex];
+      const card2 = currentChallenge.cards[secondIndex];
+
+      if (card1.icon === card2.icon) {
+        playSfx('success');
+        setMatchedPairs([...matchedPairs, card1.icon]);
+        setFlippedCards([]);
+
+        // Se encontrou todos os pares, gera novo desafio de memória
+        if (matchedPairs.length + 1 >= 2) {
+          setShowConfetti(true);
+          setScore(score + 15);
+          setCompletedTasks(completedTasks + 1);
+          setTimeout(() => {
+            setShowConfetti(false);
+            setMatchedPairs([]);
+            const nextChallenge = generateDynamicChallenge('quebravc');
+            setCurrentChallenge(nextChallenge);
+          }, 1000);
+        }
+      } else {
+        playSfx('wrong');
+        setTimeout(() => {
+          setFlippedCards([]);
+        }, 800);
+      }
+    }
+  };
+
   const categories = [
     { id: "logica", title: "Lógica", color: "bg-purple-600/80 hover:bg-purple-700", icon: Brain },
     { id: "matematica", title: "Matemática", color: "bg-orange-600/80 hover:bg-orange-700", icon: Calculator },
     { id: "atencao", title: "Atenção", color: "bg-blue-600/80 hover:bg-blue-700", icon: Shapes },
-    { id: "quebravc", title: "Quebra-cabeças", color: "bg-green-600/80 hover:bg-green-700", icon: Puzzle }
+    { id: "quebravc", title: "Quebra-cabeças (Pares)", color: "bg-green-600/80 hover:bg-green-700", icon: Puzzle }
   ];
 
   const currentMiniImage = themeImages.length > 0 
@@ -274,32 +350,54 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
                 {currentChallenge.instruction}
               </h3>
 
+              {/* Renderização para Matemática (Blocos Empilhados Dinâmicos) */}
               {currentChallenge.type === 'stacked-blocks' && (
                 <div className="relative z-10 flex flex-col items-center justify-center py-2 gap-1">
-                  <div className="w-16 h-10 bg-purple-600 rounded-xl shadow-lg border border-white/30"></div>
-                  <div className="w-20 h-10 bg-yellow-400 rounded-xl shadow-lg border border-white/30"></div>
-                  <div className="w-24 h-10 bg-orange-500 rounded-xl shadow-lg border border-white/30"></div>
+                  {Array.from({ length: currentChallenge.count }).map((_, idx) => (
+                    <div key={idx} className="w-20 h-8 bg-orange-500 rounded-xl shadow-lg border border-white/30"></div>
+                  ))}
                 </div>
               )}
 
-              {(currentChallenge.type === 'match-model' || currentChallenge.type === 'puzzle-model') && (
+              {/* Renderização para Atenção (Modelo Dinâmico) */}
+              {currentChallenge.type === 'match-model' && (
                 <div className="relative z-10 flex flex-col items-center gap-2 bg-black/50 px-6 py-3 rounded-2xl border border-white/20 shadow-inner">
                   <span className="text-xs text-white/70 font-bold uppercase tracking-wider">Modelo:</span>
                   <span className="text-5xl">{currentChallenge.model}</span>
                 </div>
               )}
 
-              <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-4 w-full mt-2">
-                {currentChallenge.options.map((opt: string, idx: number) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleAnswer(opt)}
-                    className="py-6 rounded-3xl bg-black/60 border border-white/30 hover:border-[#bef264] hover:bg-white/25 transition-all cursor-pointer text-4xl sm:text-5xl flex items-center justify-center shadow-2xl active:scale-95 backdrop-blur-md"
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
+              {/* Renderização para Quebra-Cabeças (Jogo da Memória / Pares) */}
+              {currentChallenge.type === 'memory-game' ? (
+                <div className="relative z-10 grid grid-cols-4 gap-3 w-full my-2">
+                  {currentChallenge.cards.map((card: any, idx: number) => {
+                    const isFlipped = flippedCards.includes(idx) || matchedPairs.includes(card.icon);
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => handleCardClick(idx)}
+                        className={`h-20 rounded-2xl border transition-all cursor-pointer text-4xl flex items-center justify-center shadow-xl ${
+                          isFlipped ? 'bg-white/20 border-[#bef264]' : 'bg-black/70 border-white/30 hover:bg-black/50'
+                        }`}
+                      >
+                        {isFlipped ? card.icon : "❓"}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-4 w-full mt-2">
+                  {currentChallenge.options.map((opt: string, idx: number) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleAnswer(opt)}
+                      className="py-6 rounded-3xl bg-black/60 border border-white/30 hover:border-[#bef264] hover:bg-white/25 transition-all cursor-pointer text-4xl sm:text-5xl flex items-center justify-center shadow-2xl active:scale-95 backdrop-blur-md"
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
