@@ -1,5 +1,5 @@
 import { useState, useEffect, type FormEvent } from "react";
-import { Sparkles, PlusCircle, Layers, Calendar, KeyRound, ArrowLeft } from "lucide-react";
+import { Sparkles, PlusCircle, Layers, Calendar, ArrowLeft } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 interface AdminDashboardProps {
@@ -7,7 +7,7 @@ interface AdminDashboardProps {
 }
 
 export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
-  const [activeTab, setActiveTab] = useState<"themes" | "parties" | "codes">("themes");
+  const [activeTab, setActiveTab] = useState<"themes" | "parties">("themes");
   
   // Estados para Temas
   const [themes, setThemes] = useState<any[]>([]);
@@ -47,14 +47,16 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
       return;
     }
 
-    const { error } = await supabase.from("themes").insert([
-      { theme_name: themeName, background_url: backgroundUrl }
-    ]);
+    // Upsert: se o tema já existir pelo nome, atualiza a imagem em vez de dar erro
+    const { error } = await supabase.from("themes").upsert(
+      [{ theme_name: themeName, background_url: backgroundUrl }],
+      { onConflict: 'theme_name' }
+    );
 
     if (error) {
-      setMessage(`Erro ao criar tema: ${error.message}`);
+      setMessage(`Erro ao salvar tema: ${error.message}`);
     } else {
-      setMessage("Tema criado com sucesso!");
+      setMessage("Tema guardado/atualizado com sucesso!");
       setThemeName("");
       setBackgroundUrl("");
       loadThemes();
@@ -133,7 +135,7 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
       {activeTab === "themes" && (
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <form onSubmit={handleCreateTheme} className="flex flex-col gap-4 bg-white/5 p-5 rounded-2xl border border-white/10">
-            <h2 className="text-lg font-bold flex items-center gap-2"><PlusCircle className="size-5 text-[#a3e635]" /> Novo Tema e Imagem</h2>
+            <h2 className="text-lg font-bold flex items-center gap-2"><PlusCircle className="size-5 text-[#a3e635]" /> Registar ou Atualizar Tema</h2>
             
             <div>
               <label className="text-xs text-white/70 block mb-1">Nome do Tema (ex: Dinossauros)</label>
@@ -147,18 +149,19 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
             </div>
 
             <div>
-              <label className="text-xs text-white/70 block mb-1">URL da Imagem Cinematográfica de Fundo</label>
+              <label className="text-xs text-white/70 block mb-1">URL Direta da Imagem de Fundo (Ex: Unsplash)</label>
               <input 
                 type="text" 
                 value={backgroundUrl} 
                 onChange={(e) => setBackgroundUrl(e.target.value)} 
-                placeholder="https://exemplo.com/imagem.jpg" 
+                placeholder="https://images.unsplash.com/..." 
                 className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/20 text-white placeholder:text-white/30 text-sm"
               />
+              <span className="text-[10px] text-white/50 mt-1 block">Dica: Use um link direto de imagem (terminado em .jpg/.png) para o fundo carregar perfeitamente.</span>
             </div>
 
             <button type="submit" className="mt-2 py-2.5 rounded-xl bg-[#a3e635] text-black font-bold text-sm hover:opacity-90 transition-opacity cursor-pointer">
-              Salvar Tema
+              Salvar / Atualizar Tema
             </button>
           </form>
 
