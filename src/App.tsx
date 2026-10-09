@@ -1,13 +1,21 @@
 import { useState, useEffect } from "react";
 import { AccessLogin } from "./components/AccessLogin";
 import { AdminDashboard } from "./components/AdminDashboard";
-import { Sparkles, Cake, Users, Trophy, Settings } from "lucide-react";
+import { Sparkles, Cake, Users, Trophy } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
 export function App() {
   const [partyData, setPartyData] = useState<any>(null);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [themeBackgrounds, setThemeBackgrounds] = useState<Record<string, string>>({});
+
+  // Verifica se o utilizador abriu o link secreto de admin (ex: seupojeto.vercel.app/?admin=true)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("admin") === "true") {
+      setIsAdminOpen(true);
+    }
+  }, []);
 
   // Carregar todos os temas e respetivas imagens da tabela 'themes'
   useEffect(() => {
@@ -17,7 +25,6 @@ export function App() {
         const bgMap: Record<string, string> = {};
         data.forEach(item => {
           if (item.theme_name) {
-            // Normaliza a chave para minúsculas para evitar falhas de correspondência
             bgMap[item.theme_name.trim().toLowerCase()] = item.background_url;
           }
         });
@@ -27,39 +34,43 @@ export function App() {
     fetchThemeBackgrounds();
   }, [isAdminOpen, partyData]);
 
-  // Função para encontrar a imagem exata do tema registado na administração
   function getBackgroundForTheme(themeName: string) {
-    if (!themeName) return "https://images.unsplash.com/photo-1511884642898-4c92249e20b6?q=80&w=1920&auto=format&fit=crop";
+    if (!themeName) return "https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1920&auto=format&fit=crop";
     const key = themeName.trim().toLowerCase();
     
     if (themeBackgrounds[key]) {
       return themeBackgrounds[key];
     }
     
-    // Fallback caso o tema não seja encontrado
-    return "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=1920&auto=format&fit=crop";
+    return "https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=1920&auto=format&fit=crop";
   }
 
+  // Fundo da Tela 1 (Início): Imagem lúdica, colorida e cinematográfica de festa infantil
+  // Fundo da Tela 2 (Festa): Imagem dinâmica associada ao tema registado no Supabase
   const bgImage = partyData 
     ? getBackgroundForTheme(partyData.theme) 
-    : "https://images.unsplash.com/photo-1511884642898-4c92249e20b6?q=80&w=1920&auto=format&fit=crop";
+    : "https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1920&auto=format&fit=crop";
 
   return (
     <main className="relative min-h-[100dvh] w-full flex flex-col items-center justify-center p-4 text-white overflow-x-hidden overflow-y-auto">
-      {/* Imagem de Fundo Dinâmica com chave única para evitar cache do navegador */}
+      {/* Imagem de Fundo Dinâmica com chave única */}
       <div 
         key={bgImage}
         className="absolute inset-0 bg-cover bg-center bg-no-repeat filter brightness-85 saturate-110 scale-105 transition-all duration-700"
         style={{ backgroundImage: `url('${bgImage}')` }}
       />
       
-      {/* Camada translúcida */}
+      {/* Camada translúcida suave */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
 
       {/* Conteúdo Principal */}
       <div className="relative z-10 w-full max-w-md sm:max-w-xl mx-auto flex items-center justify-center my-auto">
         {isAdminOpen ? (
-          <AdminDashboard onBackToApp={() => setIsAdminOpen(false)} />
+          <AdminDashboard onBackToApp={() => {
+            // Remove o parâmetro admin da URL ao sair do painel e volta ao site normal
+            window.history.replaceState({}, document.title, window.location.pathname);
+            setIsAdminOpen(false);
+          }} />
         ) : !partyData ? (
           <AccessLogin onLoginSuccess={(data) => setPartyData(data)} />
         ) : (
@@ -108,18 +119,6 @@ export function App() {
           </div>
         )}
       </div>
-
-      {/* Botão de Administração Fixo no Rodapé */}
-      {!isAdminOpen && (
-        <div className="relative z-20 mt-6 pb-2">
-          <button
-            onClick={() => setIsAdminOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black/60 border border-white/30 text-xs font-bold text-white hover:bg-black/80 transition-all shadow-lg backdrop-blur-sm cursor-pointer"
-          >
-            <Settings className="size-4 text-[#a3e635]" /> Painel de Administração
-          </button>
-        </div>
-      )}
     </main>
   );
 }
