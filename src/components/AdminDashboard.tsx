@@ -9,11 +9,11 @@ interface AdminDashboardProps {
 export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<"themes" | "parties">("themes");
   
-  // Estados para Temas
+  // Estados para Temas com múltiplas imagens para os jogos
   const [themes, setThemes] = useState<any[]>([]);
   const [themeName, setThemeName] = useState("");
   const [backgroundUrl, setBackgroundUrl] = useState("");
-  const [gameImageUrl, setGameImageUrl] = useState("");
+  const [gameImagesInput, setGameImagesInput] = useState("");
 
   // Estados para Festas
   const [parties, setParties] = useState<any[]>([]);
@@ -47,11 +47,14 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
       return;
     }
 
+    // Converte as imagens separadas por vírgula numa lista/array
+    const gameImagesArray = gameImagesInput ? gameImagesInput.split(',').map(url => url.trim()).filter(Boolean) : [];
+
     const { error } = await supabase.from("themes").upsert(
       [{ 
         theme_name: themeName, 
         background_url: backgroundUrl,
-        game_image_url: gameImageUrl // Guarda a imagem específica para os minijogos
+        game_images: gameImagesArray // Guarda a lista de várias imagens temáticas
       }],
       { onConflict: 'theme_name' }
     );
@@ -59,10 +62,10 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
     if (error) {
       setMessage(`Erro ao salvar tema: ${error.message}`);
     } else {
-      setMessage("Tema e imagens guardados com sucesso!");
+      setMessage("Tema e imagens múltiplas guardados com sucesso!");
       setThemeName("");
       setBackgroundUrl("");
-      setGameImageUrl("");
+      setGameImagesInput("");
       loadThemes();
     }
   }
@@ -81,7 +84,7 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
   async function handleCreateParty(e: FormEvent) {
     e.preventDefault();
     if (!partyName || !childName || !selectedThemeId) {
-      setMessage("Preencha os campos obrigatórios da festa.");
+      setMessage("Preencha os campos obrigatórios da experiência.");
       return;
     }
 
@@ -99,9 +102,9 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
     ]);
 
     if (error) {
-      setMessage(`Erro ao criar festa: ${error.message}`);
+      setMessage(`Erro ao criar experiência: ${error.message}`);
     } else {
-      setMessage("Festa criada com sucesso!");
+      setMessage("Experiência criada com sucesso!");
       setPartyName("");
       setChildName("");
       setChildAge("");
@@ -111,12 +114,12 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
   }
 
   async function handleDeleteParty(id: string) {
-    if (!confirm("Tem certeza que deseja apagar esta festa?")) return;
+    if (!confirm("Tem certeza que deseja apagar esta experiência?")) return;
     const { error } = await supabase.from("parties").delete().eq("id", id);
     if (error) {
-      setMessage(`Erro ao apagar festa: ${error.message}`);
+      setMessage(`Erro ao apagar experiência: ${error.message}`);
     } else {
-      setMessage("Festa apagada com sucesso!");
+      setMessage("Experiência apagada com sucesso!");
       loadParties();
     }
   }
@@ -148,7 +151,7 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
               onClick={() => setActiveTab("parties")}
               className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeTab === 'parties' ? 'bg-[#bef264] text-black shadow-lg shadow-[#bef264]/25' : 'bg-white/10 hover:bg-white/20'}`}
             >
-              <Calendar className="inline size-4 mr-1.5" /> Festas ({parties.length})
+              <Calendar className="inline size-4 mr-1.5" /> Experiências ({parties.length})
             </button>
           </div>
         </div>
@@ -189,13 +192,13 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
 
               <div>
                 <label className="text-xs text-white/70 block mb-1 flex items-center gap-1">
-                  <ImageIcon className="size-3.5 text-[#bef264]" /> URL da Imagem dos Minijogos / Personagem
+                  <ImageIcon className="size-3.5 text-[#bef264]" /> URLs das Imagens dos Jogos (separadas por vírgula)
                 </label>
-                <input 
-                  type="text" 
-                  value={gameImageUrl} 
-                  onChange={(e) => setGameImageUrl(e.target.value)} 
-                  placeholder="https://... (imagem temática para os jogos)" 
+                <textarea 
+                  value={gameImagesInput} 
+                  onChange={(e) => setGameImagesInput(e.target.value)} 
+                  placeholder="https://imagem1.com, https://imagem2.com, https://imagem3.com..." 
+                  rows={3}
                   className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-[#bef264]"
                 />
               </div>
@@ -222,8 +225,8 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
                     </div>
                     <div className="space-y-1 text-xs text-white/70">
                       <p className="truncate"><strong>Fundo:</strong> <a href={t.background_url} target="_blank" rel="noreferrer" className="underline hover:text-white">{t.background_url}</a></p>
-                      {t.game_image_url && (
-                        <p className="truncate"><strong>Jogos/Mascote:</strong> <a href={t.game_image_url} target="_blank" rel="noreferrer" className="underline hover:text-white">{t.game_image_url}</a></p>
+                      {t.game_images && t.game_images.length > 0 && (
+                        <p className="text-[#bef264]"><strong>Imagens de Jogos:</strong> {t.game_images.length} imagens cadastradas</p>
                       )}
                     </div>
                   </div>
@@ -233,14 +236,14 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
           </div>
         )}
 
-        {/* ABA DE FESTAS */}
+        {/* ABA DE EXPERIÊNCIAS */}
         {activeTab === "parties" && (
           <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
             <form onSubmit={handleCreateParty} className="flex flex-col gap-4 bg-white/5 p-6 rounded-3xl border border-white/10 h-fit">
               <h2 className="text-xl font-bold flex items-center gap-2 text-[#bef264]"><PlusCircle className="size-5" /> Registar Nova Experiência</h2>
               
               <div>
-                <label className="text-xs text-white/70 block mb-1">Nome da Experiência / Festa</label>
+                <label className="text-xs text-white/70 block mb-1">Nome da Experiência</label>
                 <input 
                   type="text" 
                   value={partyName} 
