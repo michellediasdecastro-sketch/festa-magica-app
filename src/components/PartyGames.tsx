@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Volume2, VolumeX, X, Sparkles, Brain, Calculator, Shapes, Puzzle } from "lucide-react";
+import { useState } from "react";
+import { Volume2, VolumeX, X, Brain, Calculator, Shapes, Puzzle } from "lucide-react";
 
 interface PartyGamesProps {
   partyData: any;
@@ -7,7 +7,7 @@ interface PartyGamesProps {
 }
 
 export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
-  const [activeCategory, setActiveCategory] = useState<any | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [currentChallenge, setCurrentChallenge] = useState<any>(null);
   const [score, setScore] = useState(0);
   const [completedTasks, setCompletedTasks] = useState(0);
@@ -15,20 +15,20 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
   const [showConfetti, setShowConfetti] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
 
-  // Banco de Jogos Educativos Ricos e Visuais (Sem textos complexos, ideal para 4-5 anos)
-  const gamePool = {
+  // Banco de Jogos Corrigidos, Visuais e Ricos (Com modelos de referência reais)
+  const gamePool: Record<string, any[]> = {
     logica: [
       {
         instruction: "Toque na fruta verde!",
         spokenText: "Escolha a fruta verde",
-        type: "visual-grid",
+        type: "options",
         correct: "🍏",
         options: ["🍎", "🍊", "🍏", "🍌"]
       },
       {
         instruction: "Quem é o animal diferente na roda?",
         spokenText: "Encontre o animal diferente",
-        type: "visual-grid",
+        type: "options",
         correct: "🦊",
         options: ["🐼", "🐼", "🦊", "🐼"]
       }
@@ -36,8 +36,8 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
     matematica: [
       {
         instruction: "Quantos blocos coloridos estão empilhados?",
-        spokenText: "Quantos blocos tem na imagem?",
-        type: "blocks",
+        spokenText: "Quantos blocos estão empilhados?",
+        type: "stacked-blocks",
         count: 3,
         correct: "3",
         options: ["2", "3", "5"]
@@ -45,7 +45,7 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
       {
         instruction: "Qual número vem logo depois do 2?",
         spokenText: "Qual número vem depois do 2?",
-        type: "number-sequence",
+        type: "options",
         correct: "3",
         options: ["1", "3", "4"]
       }
@@ -53,48 +53,32 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
     atencao: [
       {
         instruction: "Encontre a figura igual ao modelo!",
-        spokenText: "Encontre a figura igual",
-        type: "match",
+        spokenText: "Encontre a figura igual ao modelo",
+        type: "match-model",
+        model: "⭐",
         correct: "⭐",
         options: ["⭕", "⭐", "⬛", "🔺"]
+      },
+      {
+        instruction: "Encontre a figura igual ao modelo!",
+        spokenText: "Encontre a figura igual ao modelo",
+        type: "match-model",
+        model: "🔵",
+        correct: "🔵",
+        options: ["🔵", "⭐", "⬛", "🔺"]
       }
     ],
     quebravc: [
       {
-        instruction: "Encombre a peça que falta no painel!",
-        spokenText: "Encontre a peça que falta",
-        type: "puzzle",
+        instruction: "Encontre a peça que encaixa no painel!",
+        spokenText: "Encontre a peça que encaixa no painel",
+        type: "puzzle-model",
+        model: "🧩",
         correct: "🧩",
         options: ["📦", "🧩", "⚽", "🎈"]
       }
     ]
   };
-
-  // Música de fundo em loop leve
-  useEffect(() => {
-    if (!isAudioEnabled) return;
-    try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      let timer: any;
-      const playNote = () => {
-        if (!isAudioEnabled) return;
-        const notes = [261.63, 329.63, 392.00, 523.25];
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.frequency.value = notes[Math.floor(Math.random() * notes.length)];
-        gain.gain.setValueAtTime(0.015, audioCtx.currentTime);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.25);
-        timer = setTimeout(playNote, 900);
-      };
-      playNote();
-      return () => clearTimeout(timer);
-    } catch (e) {
-      console.log("BGM error", e);
-    }
-  }, [isAudioEnabled]);
 
   const speakInstruction = (text: string) => {
     if (!isAudioEnabled) return;
@@ -144,12 +128,13 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
 
   const handleSelectCategory = (catId: string) => {
     playSfx('click');
-    const list = (gamePool as any)[catId];
-    // Escolhe aleatoriamente um desafio do banco para garantir dinamismo absoluto
-    const randomChallenge = list[Math.floor(Math.random() * list.length)];
+    const list = gamePool[catId];
+    // Sorteia aleatoriamente um desafio diferente para evitar repetições
+    const randomIndex = Math.floor(Math.random() * list.length);
+    const selected = list[randomIndex];
     setActiveCategory(catId);
-    setCurrentChallenge(randomChallenge);
-    setTimeout(() => speakInstruction(randomChallenge.spokenText), 400);
+    setCurrentChallenge(selected);
+    setTimeout(() => speakInstruction(selected.spokenText), 400);
   };
 
   const handleAnswer = (option: string) => {
@@ -163,9 +148,10 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
       setTimeout(() => {
         setFeedback(null);
         setShowConfetti(false);
-        // Carrega um novo desafio aleatório da mesma categoria sem repetir igual
-        const list = (gamePool as any)[activeCategory];
-        const nextChallenge = list[Math.floor(Math.random() * list.length)];
+        // Sorteia o próximo desafio da categoria garantindo variação
+        const list = gamePool[activeCategory as string];
+        const nextIndex = Math.floor(Math.random() * list.length);
+        const nextChallenge = list[nextIndex];
         setCurrentChallenge(nextChallenge);
         speakInstruction(nextChallenge.spokenText);
       }, 900);
@@ -238,7 +224,7 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
           </div>
         </div>
       ) : (
-        // TELA DO JOGO ATIVO (Sem retângulo opaco de fundo, direto na imagem)
+        // TELA DO JOGO ATIVO
         <div className="flex flex-col gap-6 animate-fade-in relative min-h-[380px] items-center">
           
           <div className="w-full flex justify-between items-center max-w-xl">
@@ -260,7 +246,7 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
             </button>
           </div>
 
-          {/* Área Visual do Desafio (Totalmente integrada e limpa) */}
+          {/* Área Visual do Desafio */}
           <div className={`w-full max-w-xl p-8 rounded-[2.5rem] border text-center flex flex-col items-center justify-center gap-6 transition-all shadow-2xl backdrop-blur-md ${
             feedback === 'correct' ? 'bg-green-600/40 border-green-400 scale-102' :
             feedback === 'wrong' ? 'bg-red-600/40 border-red-400 animate-bounce' :
@@ -270,16 +256,24 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
               {currentChallenge.instruction}
             </h3>
 
-            {/* Representação Visual Específica por Tipo de Jogo */}
-            {currentChallenge.type === 'blocks' && (
-              <div className="flex gap-2 items-end justify-center py-4">
-                <div className="w-12 h-12 bg-orange-500 rounded-xl shadow-lg border border-white/30"></div>
-                <div className="w-12 h-12 bg-yellow-400 rounded-xl shadow-lg border border-white/30"></div>
-                <div className="w-12 h-12 bg-purple-600 rounded-xl shadow-lg border border-white/30"></div>
+            {/* 1. Blocos Empilhados de Verdade (Vertical) */}
+            {currentChallenge.type === 'stacked-blocks' && (
+              <div className="flex flex-col items-center justify-center py-2 gap-1">
+                <div className="w-16 h-10 bg-purple-600 rounded-xl shadow-lg border border-white/30"></div>
+                <div className="w-20 h-10 bg-yellow-400 rounded-xl shadow-lg border border-white/30"></div>
+                <div className="w-24 h-10 bg-orange-500 rounded-xl shadow-lg border border-white/30"></div>
               </div>
             )}
 
-            {/* Opções Grandes e Intuitivas */}
+            {/* 2. Modelo de Referência para Atenção e Quebra-Cabeças */}
+            {(currentChallenge.type === 'match-model' || currentChallenge.type === 'puzzle-model') && (
+              <div className="flex flex-col items-center gap-2 bg-black/40 px-6 py-3 rounded-2xl border border-white/20 shadow-inner">
+                <span className="text-xs text-white/70 font-bold uppercase tracking-wider">Modelo:</span>
+                <span className="text-5xl">{currentChallenge.model}</span>
+              </div>
+            )}
+
+            {/* Opções de Resposta Centralizadas e Perfeitas */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full mt-2">
               {currentChallenge.options.map((opt: string, idx: number) => (
                 <button
