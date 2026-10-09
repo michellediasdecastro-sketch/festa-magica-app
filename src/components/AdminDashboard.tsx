@@ -1,5 +1,5 @@
 import { useState, useEffect, type FormEvent } from "react";
-import { Sparkles, PlusCircle, Layers, Calendar, ArrowLeft, Trash2 } from "lucide-react";
+import { Sparkles, PlusCircle, Layers, Calendar, ArrowLeft, Trash2, Image as ImageIcon } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 interface AdminDashboardProps {
@@ -13,6 +13,7 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
   const [themes, setThemes] = useState<any[]>([]);
   const [themeName, setThemeName] = useState("");
   const [backgroundUrl, setBackgroundUrl] = useState("");
+  const [gameImageUrl, setGameImageUrl] = useState("");
 
   // Estados para Festas
   const [parties, setParties] = useState<any[]>([]);
@@ -22,7 +23,6 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
   const [selectedThemeId, setSelectedThemeId] = useState("");
   const [characterName, setCharacterName] = useState("");
 
-  // Mensagens de feedback
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -43,21 +43,26 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
   async function handleCreateTheme(e: FormEvent) {
     e.preventDefault();
     if (!themeName || !backgroundUrl) {
-      setMessage("Preencha o nome do tema e a URL da imagem.");
+      setMessage("Preencha o nome do tema e a URL da imagem de fundo.");
       return;
     }
 
     const { error } = await supabase.from("themes").upsert(
-      [{ theme_name: themeName, background_url: backgroundUrl }],
+      [{ 
+        theme_name: themeName, 
+        background_url: backgroundUrl,
+        game_image_url: gameImageUrl // Guarda a imagem específica para os minijogos
+      }],
       { onConflict: 'theme_name' }
     );
 
     if (error) {
       setMessage(`Erro ao salvar tema: ${error.message}`);
     } else {
-      setMessage("Tema guardado/atualizado com sucesso!");
+      setMessage("Tema e imagens guardados com sucesso!");
       setThemeName("");
       setBackgroundUrl("");
+      setGameImageUrl("");
       loadThemes();
     }
   }
@@ -117,7 +122,7 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
   }
 
   return (
-    <div className="w-full min-h-[100dvh] bg-black/80 backdrop-blur-xl text-white p-6 md:p-12 overflow-y-auto">
+    <div className="w-full min-h-[100dvh] bg-black/90 backdrop-blur-xl text-white p-6 md:p-12 overflow-y-auto">
       <div className="max-w-6xl mx-auto">
         
         {/* Cabeçalho do Admin */}
@@ -135,13 +140,13 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
           <div className="flex gap-2 w-full sm:w-auto">
             <button 
               onClick={() => setActiveTab("themes")}
-              className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeTab === 'themes' ? 'bg-[#a3e635] text-black shadow-lg shadow-[#a3e635]/20' : 'bg-white/10 hover:bg-white/20'}`}
+              className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeTab === 'themes' ? 'bg-[#bef264] text-black shadow-lg shadow-[#bef264]/25' : 'bg-white/10 hover:bg-white/20'}`}
             >
               <Layers className="inline size-4 mr-1.5" /> Temas ({themes.length})
             </button>
             <button 
               onClick={() => setActiveTab("parties")}
-              className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeTab === 'parties' ? 'bg-[#a3e635] text-black shadow-lg shadow-[#a3e635]/20' : 'bg-white/10 hover:bg-white/20'}`}
+              className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeTab === 'parties' ? 'bg-[#bef264] text-black shadow-lg shadow-[#bef264]/25' : 'bg-white/10 hover:bg-white/20'}`}
             >
               <Calendar className="inline size-4 mr-1.5" /> Festas ({parties.length})
             </button>
@@ -149,7 +154,7 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
         </div>
 
         {message && (
-          <div className="mt-6 p-4 rounded-xl bg-white/10 border border-white/25 text-center text-sm font-medium text-[#a3e635] animate-fade-in">
+          <div className="mt-6 p-4 rounded-xl bg-white/10 border border-white/25 text-center text-sm font-medium text-[#bef264] animate-fade-in">
             {message}
           </div>
         )}
@@ -158,7 +163,7 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
         {activeTab === "themes" && (
           <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
             <form onSubmit={handleCreateTheme} className="flex flex-col gap-4 bg-white/5 p-6 rounded-3xl border border-white/10 h-fit">
-              <h2 className="text-xl font-bold flex items-center gap-2 text-[#a3e635]"><PlusCircle className="size-5" /> Registar / Atualizar Tema</h2>
+              <h2 className="text-xl font-bold flex items-center gap-2 text-[#bef264]"><PlusCircle className="size-5" /> Registar / Atualizar Tema</h2>
               
               <div>
                 <label className="text-xs text-white/70 block mb-1">Nome do Tema</label>
@@ -167,22 +172,35 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
                   value={themeName} 
                   onChange={(e) => setThemeName(e.target.value)} 
                   placeholder="Ex: Dinossauros" 
-                  className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-[#a3e635]"
+                  className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-[#bef264]"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-white/70 block mb-1">URL Direta da Imagem de Fundo (Supabase ou Direta)</label>
+                <label className="text-xs text-white/70 block mb-1">URL da Imagem de Fundo Principal</label>
                 <input 
                   type="text" 
                   value={backgroundUrl} 
                   onChange={(e) => setBackgroundUrl(e.target.value)} 
                   placeholder="https://..." 
-                  className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-[#a3e635]"
+                  className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-[#bef264]"
                 />
               </div>
 
-              <button type="submit" className="mt-2 py-3 rounded-xl bg-[#a3e635] text-black font-bold text-sm hover:opacity-95 transition-opacity cursor-pointer shadow-lg shadow-[#a3e635]/20">
+              <div>
+                <label className="text-xs text-white/70 block mb-1 flex items-center gap-1">
+                  <ImageIcon className="size-3.5 text-[#bef264]" /> URL da Imagem dos Minijogos / Personagem
+                </label>
+                <input 
+                  type="text" 
+                  value={gameImageUrl} 
+                  onChange={(e) => setGameImageUrl(e.target.value)} 
+                  placeholder="https://... (imagem temática para os jogos)" 
+                  className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-[#bef264]"
+                />
+              </div>
+
+              <button type="submit" className="mt-2 py-3 rounded-xl bg-[#bef264] text-black font-bold text-sm hover:opacity-95 transition-opacity cursor-pointer shadow-lg shadow-[#bef264]/20">
                 Salvar Tema
               </button>
             </form>
@@ -193,7 +211,7 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
                 {themes.map(t => (
                   <div key={t.id} className="flex flex-col justify-between p-4 rounded-2xl bg-black/40 border border-white/10 gap-3">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-lg text-[#a3e635]">{t.theme_name}</span>
+                      <span className="font-bold text-lg text-[#bef264]">{t.theme_name}</span>
                       <button 
                         onClick={() => handleDeleteTheme(t.id)}
                         className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors cursor-pointer"
@@ -202,9 +220,12 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
                         <Trash2 className="size-4" />
                       </button>
                     </div>
-                    <a href={t.background_url} target="_blank" rel="noreferrer" className="text-xs underline text-white/70 hover:text-white truncate">
-                      {t.background_url}
-                    </a>
+                    <div className="space-y-1 text-xs text-white/70">
+                      <p className="truncate"><strong>Fundo:</strong> <a href={t.background_url} target="_blank" rel="noreferrer" className="underline hover:text-white">{t.background_url}</a></p>
+                      {t.game_image_url && (
+                        <p className="truncate"><strong>Jogos/Mascote:</strong> <a href={t.game_image_url} target="_blank" rel="noreferrer" className="underline hover:text-white">{t.game_image_url}</a></p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -216,38 +237,38 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
         {activeTab === "parties" && (
           <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
             <form onSubmit={handleCreateParty} className="flex flex-col gap-4 bg-white/5 p-6 rounded-3xl border border-white/10 h-fit">
-              <h2 className="text-xl font-bold flex items-center gap-2 text-[#a3e635]"><PlusCircle className="size-5" /> Registar Nova Festa</h2>
+              <h2 className="text-xl font-bold flex items-center gap-2 text-[#bef264]"><PlusCircle className="size-5" /> Registar Nova Experiência</h2>
               
               <div>
-                <label className="text-xs text-white/70 block mb-1">Nome da Festa</label>
+                <label className="text-xs text-white/70 block mb-1">Nome da Experiência / Festa</label>
                 <input 
                   type="text" 
                   value={partyName} 
                   onChange={(e) => setPartyName(e.target.value)} 
-                  placeholder="Ex: Aniversário do Lucas" 
-                  className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-[#a3e635]"
+                  placeholder="Ex: Lucas no mundo dos Dinossauros" 
+                  className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-[#bef264]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-white/70 block mb-1">Aniversariante</label>
+                  <label className="text-xs text-white/70 block mb-1">Participante</label>
                   <input 
                     type="text" 
                     value={childName} 
                     onChange={(e) => setChildName(e.target.value)} 
                     placeholder="Lucas" 
-                    className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-[#a3e635]"
+                    className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-[#bef264]"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-white/70 block mb-1">Idade</label>
+                  <label className="text-xs text-white/70 block mb-1">Faixa Etária</label>
                   <input 
                     type="number" 
                     value={childAge} 
                     onChange={(e) => setChildAge(e.target.value)} 
                     placeholder="5" 
-                    className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-[#a3e635]"
+                    className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-[#bef264]"
                   />
                 </div>
               </div>
@@ -257,7 +278,7 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
                 <select 
                   value={selectedThemeId} 
                   onChange={(e) => setSelectedThemeId(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-white text-sm focus:outline-none focus:border-[#a3e635]"
+                  className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-white text-sm focus:outline-none focus:border-[#bef264]"
                 >
                   <option value="">Escolha um tema...</option>
                   {themes.map(t => (
@@ -267,41 +288,41 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
               </div>
 
               <div>
-                <label className="text-xs text-white/70 block mb-1">Personagem em Destaque (Opcional)</label>
+                <label className="text-xs text-white/70 block mb-1">Guia / Mascote (Opcional)</label>
                 <input 
                   type="text" 
                   value={characterName} 
                   onChange={(e) => setCharacterName(e.target.value)} 
                   placeholder="Ex: T-Rex Amigável" 
-                  className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-[#a3e635]"
+                  className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-[#bef264]"
                 />
               </div>
 
-              <button type="submit" className="mt-2 py-3 rounded-xl bg-[#a3e635] text-black font-bold text-sm hover:opacity-95 transition-opacity cursor-pointer shadow-lg shadow-[#a3e635]/20">
-                Criar Festa
+              <button type="submit" className="mt-2 py-3 rounded-xl bg-[#bef264] text-black font-bold text-sm hover:opacity-95 transition-opacity cursor-pointer shadow-lg shadow-[#bef264]/20">
+                Criar Experiência
               </button>
             </form>
 
             <div className="lg:col-span-2 bg-white/5 p-6 rounded-3xl border border-white/10">
-              <h2 className="text-xl font-bold mb-4">Festas Ativas ({parties.length})</h2>
+              <h2 className="text-xl font-bold mb-4">Experiências Ativas ({parties.length})</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {parties.map(p => (
                   <div key={p.id} className="flex flex-col justify-between p-4 rounded-2xl bg-black/40 border border-white/10 gap-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <span className="font-bold text-lg text-[#a3e635] block">{p.party_name}</span>
-                        <span className="text-xs text-white/70 block mt-1">Aniversariante: {p.birthday_child_name} ({p.child_age} anos)</span>
+                        <span className="font-bold text-lg text-[#bef264] block">{p.party_name}</span>
+                        <span className="text-xs text-white/70 block mt-1">Participante: {p.birthday_child_name} ({p.child_age} anos)</span>
                       </div>
                       <button 
                         onClick={() => handleDeleteParty(p.id)}
                         className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors cursor-pointer shrink-0"
-                        title="Apagar Festa"
+                        title="Apagar Experiência"
                       >
                         <Trash2 className="size-4" />
                       </button>
                     </div>
                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-white/90 w-fit">
-                      <Sparkles className="size-3 text-[#a3e635]" /> Tema: {p.theme}
+                      <Sparkles className="size-3 text-[#bef264]" /> Tema: {p.theme}
                     </div>
                   </div>
                 ))}
