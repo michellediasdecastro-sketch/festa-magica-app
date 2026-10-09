@@ -17,7 +17,6 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [themeImages, setThemeImages] = useState<string[]>([]);
 
-  // Carrega as imagens múltiplas cadastradas no tema para usar nos minijogos
   useEffect(() => {
     async function fetchThemeImages() {
       if (!partyData?.theme) return;
@@ -38,44 +37,82 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
     fetchThemeImages();
   }, [partyData]);
 
-  // Banco maciço com 20 desafios ricos e visuais por categoria (Total de 80 minijogos)
+  // Banco robusto com múltiplos desafios visuais por categoria
   const gamePool: Record<string, any[]> = {
-    logica: Array.from({ length: 20 }, (_, i) => ({
-      id: `logica-${i}`,
-      instruction: i % 2 === 0 ? "Toque na fruta verde!" : "Encontre o animal diferente na roda!",
-      spokenText: i % 2 === 0 ? "Escolha a fruta verde" : "Encontre o animal diferente",
-      type: "options",
-      correct: i % 2 === 0 ? "🍏" : "🦊",
-      options: i % 2 === 0 ? ["🍎", "🍊", "🍏", "🍌"] : ["🐼", "🐼", "🦊", "🐼"]
-    })),
-    matematica: Array.from({ length: 20 }, (_, i) => ({
-      id: `mat-${i}`,
-      instruction: i % 2 === 0 ? "Quantos blocos coloridos estão empilhados?" : "Qual número vem logo depois do 2?",
-      spokenText: i % 2 === 0 ? "Quantos blocos estão empilhados?" : "Qual número vem depois do 2?",
-      type: i % 2 === 0 ? "stacked-blocks" : "options",
-      count: 3,
-      correct: i % 2 === 0 ? "3" : "3",
-      options: i % 2 === 0 ? ["2", "3", "5"] : ["1", "3", "4"]
-    })),
-    atencao: Array.from({ length: 20 }, (_, i) => ({
-      id: `atn-${i}`,
-      instruction: "Encontre a figura igual ao modelo!",
-      spokenText: "Encontre a figura igual ao modelo",
-      type: "match-model",
-      model: i % 2 === 0 ? "⭐" : "🔵",
-      correct: i % 2 === 0 ? "⭐" : "🔵",
-      options: i % 2 === 0 ? ["⭕", "⭐", "⬛", "🔺"] : ["🔵", "⭐", "⬛", "🔺"]
-    }))
-    ,
-    quebravc: Array.from({ length: 20 }, (_, i) => ({
-      id: `qbr-${i}`,
-      instruction: "Encontre a peça que encaixa no painel!",
-      spokenText: "Encontre a peça que encaixa no painel",
-      type: "puzzle-model",
-      model: "🧩",
-      correct: "🧩",
-      options: ["📦", "🧩", "⚽", "🎈"]
-    }))
+    logica: [
+      {
+        instruction: "Toque na fruta verde!",
+        spokenText: "Escolha a fruta verde",
+        type: "options",
+        correct: "🍏",
+        options: ["🍎", "🍊", "🍏", "🍌"]
+      },
+      {
+        instruction: "Encontre o animal diferente na roda!",
+        spokenText: "Encontre o animal diferente",
+        type: "options",
+        correct: "🦊",
+        options: ["🐼", "🐼", "🦊", "🐼"]
+      },
+      {
+        instruction: "Qual destes elementos brilha no céu à noite?",
+        spokenText: "Qual elemento brilha no céu à noite",
+        type: "options",
+        correct: "⭐",
+        options: ["☀️", "☁️", "⭐", "🎈"]
+      }
+    ],
+    matematica: [
+      {
+        instruction: "Quantos blocos coloridos estão empilhados?",
+        spokenText: "Quantos blocos estão empilhados?",
+        type: "stacked-blocks",
+        correct: "3",
+        options: ["2", "3", "5"]
+      },
+      {
+        instruction: "Qual número vem logo depois do 2?",
+        spokenText: "Qual número vem depois do 2?",
+        type: "options",
+        correct: "3",
+        options: ["1", "3", "4"]
+      },
+      {
+        instruction: "Qual número vem antes do 2?",
+        spokenText: "Qual número vem antes do 2?",
+        type: "options",
+        correct: "1",
+        options: ["1", "3", "4"]
+      }
+    ],
+    atencao: [
+      {
+        instruction: "Encontre a figura igual ao modelo!",
+        spokenText: "Encontre a figura igual ao modelo",
+        type: "match-model",
+        model: "⭐",
+        correct: "⭐",
+        options: ["⭕", "⭐", "⬛", "🔺"]
+      },
+      {
+        instruction: "Encontre a figura igual ao modelo!",
+        spokenText: "Encontre a figura igual ao modelo",
+        type: "match-model",
+        model: "🔵",
+        correct: "🔵",
+        options: ["🔵", "⭐", "⬛", "🔺"]
+      }
+    ],
+    quebravc: [
+      {
+        instruction: "Encontre a peça que encaixa no painel!",
+        spokenText: "Encontre a peça que encaixa no painel",
+        type: "puzzle-model",
+        model: "🧩",
+        correct: "🧩",
+        options: ["📦", "🧩", "⚽", "🎈"]
+      }
+    ]
   };
 
   const speakInstruction = (text: string) => {
@@ -126,7 +163,7 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
 
   const handleSelectCategory = (catId: string) => {
     playSfx('click');
-    const list = gamePool[catId];
+    const list = gamePool[catId] || gamePool.logica;
     const randomIndex = Math.floor(Math.random() * list.length);
     const selected = list[randomIndex];
     setActiveCategory(catId);
@@ -142,20 +179,24 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
       setScore(score + 10);
       setCompletedTasks(completedTasks + 1);
 
-      // Avança automaticamente para o próximo desafio da categoria após o acerto
+      // Avanço automático e imediato para o próximo desafio sem travamentos
       setTimeout(() => {
         setFeedback(null);
         setShowConfetti(false);
-        const list = gamePool[activeCategory as string];
-        const nextIndex = Math.floor(Math.random() * list.length);
+        const list = gamePool[activeCategory as string] || gamePool.logica;
+        // Sorteia um novo desafio diferente do atual
+        let nextIndex = Math.floor(Math.random() * list.length);
+        if (list.length > 1 && list[nextIndex] === currentChallenge) {
+          nextIndex = (nextIndex + 1) % list.length;
+        }
         const nextChallenge = list[nextIndex];
         setCurrentChallenge(nextChallenge);
         speakInstruction(nextChallenge.spokenText);
-      }, 900);
+      }, 800);
     } else {
       playSfx('wrong');
       setFeedback("wrong");
-      setTimeout(() => setFeedback(null), 600);
+      setTimeout(() => setFeedback(null), 500);
     }
   };
 
@@ -166,7 +207,6 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
     { id: "quebravc", title: "Quebra-cabeças", color: "bg-green-600/80 hover:bg-green-700", icon: Puzzle }
   ];
 
-  // Escolhe uma imagem temática rotativa para o fundo do desafio atual
   const currentMiniImage = themeImages.length > 0 
     ? themeImages[completedTasks % themeImages.length] 
     : "";
@@ -207,7 +247,6 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-2">
             {categories.map((cat, index) => {
               const IconComponent = cat.icon;
-              // Atribui uma imagem temática diferente a cada quadradinho do menu se estiver disponível
               const catImage = themeImages.length > 0 ? themeImages[index % themeImages.length] : "";
 
               return (
@@ -240,7 +279,7 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
           
           <div className="w-full flex justify-between items-center max-w-xl">
             <button
-              onClick={() => speakInstruction(currentChallenge.spokenText)}
+              onClick={() => speakInstruction(currentChallenge?.spokenText)}
               className="p-3.5 rounded-2xl bg-black/60 border border-white/30 hover:bg-black/80 transition-all cursor-pointer flex items-center gap-2 shadow-xl backdrop-blur-md animate-pulse"
               title="Ouvir instrução"
             >
@@ -248,7 +287,7 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
               <span className="text-xs font-bold text-white">Ouvir Comando</span>
             </button>
 
-            {/* Botão X fecha imediatamente e retorna ao menu de categorias */}
+            {/* Botão X sai imediatamente do jogo e retorna ao menu */}
             <button
               onClick={() => setActiveCategory(null)}
               className="p-3.5 rounded-2xl bg-red-600/60 border border-red-400/50 hover:bg-red-600/80 transition-all cursor-pointer text-white shadow-xl backdrop-blur-md"
@@ -259,49 +298,51 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
           </div>
 
           {/* Área Visual do Desafio */}
-          <div className={`w-full max-w-xl p-8 rounded-[2.5rem] border text-center flex flex-col items-center justify-center gap-6 transition-all shadow-2xl backdrop-blur-md relative overflow-hidden ${
-            feedback === 'correct' ? 'bg-green-600/40 border-green-400 scale-102' :
-            feedback === 'wrong' ? 'bg-red-600/40 border-red-400 animate-bounce' :
-            'bg-black/40 border-white/25'
-          }`}>
-            {currentMiniImage && (
-              <div 
-                className="absolute inset-0 bg-cover bg-center opacity-15 pointer-events-none"
-                style={{ backgroundImage: `url('${currentMiniImage}')` }}
-              />
-            )}
+          {currentChallenge && (
+            <div className={`w-full max-w-xl p-8 rounded-[2.5rem] border text-center flex flex-col items-center justify-center gap-6 transition-all shadow-2xl backdrop-blur-md relative overflow-hidden ${
+              feedback === 'correct' ? 'bg-green-600/40 border-green-400 scale-102' :
+              feedback === 'wrong' ? 'bg-red-600/40 border-red-400 animate-bounce' :
+              'bg-black/40 border-white/25'
+            }`}>
+              {currentMiniImage && (
+                <div 
+                  className="absolute inset-0 bg-cover bg-center opacity-15 pointer-events-none"
+                  style={{ backgroundImage: `url('${currentMiniImage}')` }}
+                />
+              )}
 
-            <h3 className="relative z-10 text-xl sm:text-2xl font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-              {currentChallenge.instruction}
-            </h3>
+              <h3 className="relative z-10 text-xl sm:text-2xl font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                {currentChallenge.instruction}
+              </h3>
 
-            {currentChallenge.type === 'stacked-blocks' && (
-              <div className="relative z-10 flex flex-col items-center justify-center py-2 gap-1">
-                <div className="w-16 h-10 bg-purple-600 rounded-xl shadow-lg border border-white/30"></div>
-                <div className="w-20 h-10 bg-yellow-400 rounded-xl shadow-lg border border-white/30"></div>
-                <div className="w-24 h-10 bg-orange-500 rounded-xl shadow-lg border border-white/30"></div>
+              {currentChallenge.type === 'stacked-blocks' && (
+                <div className="relative z-10 flex flex-col items-center justify-center py-2 gap-1">
+                  <div className="w-16 h-10 bg-purple-600 rounded-xl shadow-lg border border-white/30"></div>
+                  <div className="w-20 h-10 bg-yellow-400 rounded-xl shadow-lg border border-white/30"></div>
+                  <div className="w-24 h-10 bg-orange-500 rounded-xl shadow-lg border border-white/30"></div>
+                </div>
+              )}
+
+              {(currentChallenge.type === 'match-model' || currentChallenge.type === 'puzzle-model') && (
+                <div className="relative z-10 flex flex-col items-center gap-2 bg-black/50 px-6 py-3 rounded-2xl border border-white/20 shadow-inner">
+                  <span className="text-xs text-white/70 font-bold uppercase tracking-wider">Modelo:</span>
+                  <span className="text-5xl">{currentChallenge.model}</span>
+                </div>
+              )}
+
+              <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-4 w-full mt-2">
+                {currentChallenge.options.map((opt: string, idx: number) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleAnswer(opt)}
+                    className="py-6 rounded-3xl bg-black/60 border border-white/30 hover:border-[#bef264] hover:bg-white/25 transition-all cursor-pointer text-4xl sm:text-5xl flex items-center justify-center shadow-2xl active:scale-95 backdrop-blur-md"
+                  >
+                    {opt}
+                  </button>
+                ))}
               </div>
-            )}
-
-            {(currentChallenge.type === 'match-model' || currentChallenge.type === 'puzzle-model') && (
-              <div className="relative z-10 flex flex-col items-center gap-2 bg-black/50 px-6 py-3 rounded-2xl border border-white/20 shadow-inner">
-                <span className="text-xs text-white/70 font-bold uppercase tracking-wider">Modelo:</span>
-                <span className="text-5xl">{currentChallenge.model}</span>
-              </div>
-            )}
-
-            <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-4 w-full mt-2">
-              {currentChallenge.options.map((opt: string, idx: number) => (
-                <button
-                  key={idx}
-                  onClick={() => handleAnswer(opt)}
-                  className="py-6 rounded-3xl bg-black/60 border border-white/30 hover:border-[#bef264] hover:bg-white/25 transition-all cursor-pointer text-4xl sm:text-5xl flex items-center justify-center shadow-2xl active:scale-95 backdrop-blur-md"
-                >
-                  {opt}
-                </button>
-              ))}
             </div>
-          </div>
+          )}
 
           {showConfetti && (
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-20">
