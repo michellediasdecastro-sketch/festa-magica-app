@@ -9,7 +9,7 @@ export function App() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [themeBackgrounds, setThemeBackgrounds] = useState<Record<string, string>>({});
 
-  // Verifica se o utilizador abriu o link secreto de admin (ex: seupojeto.vercel.app/?admin=true)
+  // Verifica se abriu pelo link secreto de administração (?admin=true)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("admin") === "true") {
@@ -17,15 +17,15 @@ export function App() {
     }
   }, []);
 
-  // Carregar todos os temas e respetivas imagens da tabela 'themes'
+  // Carrega os temas e as URLs exatas guardadas por si no Supabase
   useEffect(() => {
     async function fetchThemeBackgrounds() {
       const { data } = await supabase.from("themes").select("theme_name, background_url");
       if (data) {
         const bgMap: Record<string, string> = {};
         data.forEach(item => {
-          if (item.theme_name) {
-            bgMap[item.theme_name.trim().toLowerCase()] = item.background_url;
+          if (item.theme_name && item.background_url) {
+            bgMap[item.theme_name.trim().toLowerCase()] = item.background_url.trim();
           }
         });
         setThemeBackgrounds(bgMap);
@@ -34,47 +34,43 @@ export function App() {
     fetchThemeBackgrounds();
   }, [isAdminOpen, partyData]);
 
+  // Busca rigorosamente a imagem cadastrada para o tema, sem imagens automáticas
   function getBackgroundForTheme(themeName: string) {
-    if (!themeName) return "https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1920&auto=format&fit=crop";
+    if (!themeName) return "";
     const key = themeName.trim().toLowerCase();
-    
-    if (themeBackgrounds[key]) {
-      return themeBackgrounds[key];
-    }
-    
-    return "https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=1920&auto=format&fit=crop";
+    return themeBackgrounds[key] || "";
   }
 
-  // Fundo da Tela 1 (Início): Imagem lúdica, colorida e cinematográfica de festa infantil
-  // Fundo da Tela 2 (Festa): Imagem dinâmica associada ao tema registado no Supabase
+  // Se estiver na tela de login (Tela 1), usa um fundo neutro elegante; se entrou na festa, usa a imagem exata do tema
   const bgImage = partyData 
     ? getBackgroundForTheme(partyData.theme) 
     : "https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1920&auto=format&fit=crop";
 
   return (
-    <main className="relative min-h-[100dvh] w-full flex flex-col items-center justify-center p-4 text-white overflow-x-hidden overflow-y-auto">
-      {/* Imagem de Fundo Dinâmica com chave única */}
-      <div 
-        key={bgImage}
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat filter brightness-85 saturate-110 scale-105 transition-all duration-700"
-        style={{ backgroundImage: `url('${bgImage}')` }}
-      />
+    <main className="relative min-h-[100dvh] w-full flex flex-col items-center justify-center p-4 text-white overflow-x-hidden overflow-y-auto bg-black">
+      {/* Imagem de Fundo Estrita do Tema (com chave para evitar cache) */}
+      {bgImage && (
+        <div 
+          key={bgImage}
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat filter brightness-90 saturate-110 scale-105 transition-all duration-700"
+          style={{ backgroundImage: `url('${bgImage}')` }}
+        />
+      )}
       
-      {/* Camada translúcida suave */}
+      {/* Camada translúcida suave para legibilidade perfeita */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
 
       {/* Conteúdo Principal */}
       <div className="relative z-10 w-full max-w-md sm:max-w-xl mx-auto flex items-center justify-center my-auto">
         {isAdminOpen ? (
           <AdminDashboard onBackToApp={() => {
-            // Remove o parâmetro admin da URL ao sair do painel e volta ao site normal
             window.history.replaceState({}, document.title, window.location.pathname);
             setIsAdminOpen(false);
           }} />
         ) : !partyData ? (
           <AccessLogin onLoginSuccess={(data) => setPartyData(data)} />
         ) : (
-          <div className="w-full bg-black/30 border border-white/20 rounded-3xl p-5 sm:p-8 shadow-2xl backdrop-blur-md text-center flex flex-col items-center gap-4 sm:gap-5 animate-fade-in">
+          <div className="w-full bg-black/35 border border-white/20 rounded-3xl p-5 sm:p-8 shadow-2xl backdrop-blur-md text-center flex flex-col items-center gap-4 sm:gap-5 animate-fade-in">
             
             <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-black/40 border border-white/25 text-[#a3e635] text-xs sm:text-sm font-bold tracking-wider uppercase shadow-md">
               <Sparkles className="size-4 animate-pulse" /> Tema: {partyData.theme}
@@ -88,19 +84,19 @@ export function App() {
             </div>
 
             <div className="flex flex-col sm:flex-row justify-center gap-2.5 w-full">
-              <div className="flex items-center justify-center gap-3 bg-black/35 border border-white/15 px-4 py-2.5 rounded-2xl text-sm backdrop-blur-sm shadow-sm flex-1">
+              <div className="flex items-center justify-center gap-3 bg-black/40 border border-white/15 px-4 py-2.5 rounded-2xl text-sm backdrop-blur-sm shadow-sm flex-1">
                 <Cake className="size-4 text-[#a3e635] shrink-0" />
                 <span>Idade: <strong className="text-[#a3e635]">{partyData.childAge} anos</strong></span>
               </div>
 
-              <div className="flex items-center justify-center gap-3 bg-black/35 border border-white/15 px-4 py-2.5 rounded-2xl text-sm backdrop-blur-sm shadow-sm flex-1">
+              <div className="flex items-center justify-center gap-3 bg-black/40 border border-white/15 px-4 py-2.5 rounded-2xl text-sm backdrop-blur-sm shadow-sm flex-1">
                 <Users className="size-4 text-[#a3e635] shrink-0" />
                 <span>Convidado: <strong className="text-[#a3e635]">{partyData.ageGroup}</strong></span>
               </div>
             </div>
 
             {partyData.characterName && (
-              <div className="flex items-center justify-center gap-2 bg-black/35 border border-white/15 px-4 py-2.5 rounded-2xl text-white/95 text-sm w-full shadow-sm">
+              <div className="flex items-center justify-center gap-2 bg-black/40 border border-white/15 px-4 py-2.5 rounded-2xl text-white/95 text-sm w-full shadow-sm">
                 <Trophy className="size-4 text-[#a3e635] shrink-0" />
                 <span>Destaque: <span className="text-[#a3e635] font-bold">{partyData.characterName}</span></span>
               </div>
