@@ -53,10 +53,10 @@ export function App() {
         />
       )}
       
-      {/* Camada translúcida geral muito leve para preservar o fundo vivo */}
-      <div className="absolute inset-0 bg-black/25 backdrop-blur-[1px]" />
+      {/* Camada translúcida geral extremamente suave (Quase imperceptível) */}
+      <div className="absolute inset-0 bg-black/10 backdrop-blur-[0.5px]" />
 
-      {/* Conteúdo Principal com Largura Responsiva Inteligente */}
+      {/* Conteúdo Principal com Transparência Ultra Alta */}
       <div className="relative z-10 w-full max-w-[340px] sm:max-w-md mx-auto flex items-center justify-center my-auto py-6">
         {isAdminOpen ? (
           <AdminDashboard onBackToApp={() => {
@@ -66,43 +66,43 @@ export function App() {
         ) : !partyData ? (
           <AccessLogin onLoginSuccess={(data) => setPartyData(data)} />
         ) : (
-          <div className="w-full bg-black/20 border border-white/25 rounded-3xl p-5 sm:p-7 shadow-2xl backdrop-blur-md text-center flex flex-col items-center gap-3.5 sm:gap-4 animate-fade-in">
+          <div className="w-full bg-white/5 border border-white/10 rounded-[2.5rem] p-6 sm:p-8 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] backdrop-blur-xl text-center flex flex-col items-center gap-4 animate-fade-in">
             
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-black/35 border border-white/30 text-[#a3e635] text-[11px] sm:text-xs font-bold tracking-wider uppercase shadow-md">
-              <Sparkles className="size-3.5 animate-pulse" /> Tema: {partyData.theme}
+            <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-[#bef264] text-[11px] sm:text-xs font-bold tracking-wider uppercase shadow-inner">
+              <Sparkles className="size-3.5" /> Tema: {partyData.theme}
             </div>
 
-            <div className="space-y-1">
-              <div className="text-xl">🎉</div>
-              <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-md leading-snug">
+            <div className="space-y-1.5">
+              <div className="text-2xl">🎉</div>
+              <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)] leading-tight">
                 Bem-vindo à festa de {partyData.birthdayChildName}!
               </h1>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-center gap-2 w-full">
-              <div className="flex items-center justify-center gap-2.5 bg-black/25 border border-white/15 px-3.5 py-2 rounded-2xl text-xs sm:text-sm backdrop-blur-sm shadow-sm flex-1">
-                <Cake className="size-4 text-[#a3e635] shrink-0" />
-                <span>Idade: <strong className="text-[#a3e635]">{partyData.childAge} anos</strong></span>
+            <div className="flex flex-col sm:flex-row justify-center gap-3 w-full mt-1">
+              <div className="flex items-center justify-center gap-3 bg-white/5 border border-white/10 px-4 py-3 rounded-2xl text-sm backdrop-blur-sm shadow-inner flex-1">
+                <Cake className="size-5 text-[#bef264] shrink-0" />
+                <span className="text-white/90">Idade: <strong className="text-[#bef264] font-bold">{partyData.childAge} anos</strong></span>
               </div>
 
-              <div className="flex items-center justify-center gap-2.5 bg-black/25 border border-white/15 px-3.5 py-2 rounded-2xl text-xs sm:text-sm backdrop-blur-sm shadow-sm flex-1">
-                <Users className="size-4 text-[#a3e635] shrink-0" />
-                <span>Convidado: <strong className="text-[#a3e635]">{partyData.ageGroup}</strong></span>
+              <div className="flex items-center justify-center gap-3 bg-white/5 border border-white/10 px-4 py-3 rounded-2xl text-sm backdrop-blur-sm shadow-inner flex-1">
+                <Users className="size-5 text-[#bef264] shrink-0" />
+                <span className="text-white/90">Convidado: <strong className="text-[#bef264] font-bold">{partyData.ageGroup}</strong></span>
               </div>
             </div>
 
             {partyData.characterName && (
-              <div className="flex items-center justify-center gap-2 bg-black/25 border border-white/15 px-3.5 py-2 rounded-2xl text-white/95 text-xs sm:text-sm w-full shadow-sm">
-                <Trophy className="size-4 text-[#a3e635] shrink-0" />
-                <span>Destaque: <span className="text-[#a3e635] font-bold">{partyData.characterName}</span></span>
+              <div className="flex items-center justify-center gap-3 bg-white/5 border border-white/10 px-4 py-3 rounded-2xl text-white/95 text-sm w-full shadow-inner">
+                <Trophy className="size-5 text-[#bef264] shrink-0" />
+                <span className="text-white/90">Destaque: <span className="text-[#bef264] font-bold">{partyData.characterName}</span></span>
               </div>
             )}
 
-            <div className="w-full border-t border-white/15 pt-2.5 mt-1 flex flex-col sm:flex-row justify-between items-center gap-1.5 text-[11px] sm:text-xs text-white/80 font-medium">
+            <div className="w-full border-t border-white/10 pt-3 mt-2 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-white/70 font-medium">
               <span>Painel Exclusivo do Convidado</span>
               <button 
                 onClick={() => setPartyData(null)}
-                className="hover:text-[#a3e635] underline cursor-pointer transition-colors py-0.5"
+                className="hover:text-[#bef264] underline cursor-pointer transition-colors py-1"
               >
                 Sair / Inserir outro código
               </button>
