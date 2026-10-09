@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { AccessLogin } from "./components/AccessLogin";
 import { AdminDashboard } from "./components/AdminDashboard";
-import { Sparkles, Cake, Users, Trophy } from "lucide-react";
+import { Users, Trophy } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
 export function App() {
@@ -42,7 +42,6 @@ export function App() {
     ? getBackgroundForTheme(partyData.theme) 
     : "https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1920&auto=format&fit=crop";
 
-  // Se o painel de administração estiver aberto, ocupa o ecrã inteiro sem restrições
   if (isAdminOpen) {
     return (
       <AdminDashboard onBackToApp={() => {
@@ -72,38 +71,31 @@ export function App() {
         ) : (
           <div className="w-full bg-transparent border border-white/25 rounded-[2.5rem] p-6 sm:p-8 shadow-[0_0_40px_rgba(0,0,0,0.5)] backdrop-blur-[2px] text-center flex flex-col items-center gap-4 animate-fade-in">
             
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/40 border border-white/30 text-[#bef264] text-[11px] sm:text-xs font-bold tracking-wider uppercase shadow-md backdrop-blur-md">
-              <Sparkles className="size-3.5" /> Tema: {partyData.theme}
-            </div>
-
-            <div className="space-y-1.5 px-3 py-2 rounded-2xl bg-black/30 backdrop-blur-md border border-white/10 w-full shadow-md">
-              <div className="text-2xl">🎉</div>
+            {/* Bloco do Nome da Festa em Destaque */}
+            <div className="w-full px-4 py-3 rounded-2xl bg-black/30 backdrop-blur-md border border-white/10 shadow-md">
               <h1 className="text-xl sm:text-3xl font-extrabold text-white tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] leading-tight">
-                Bem-vindo à festa de {partyData.birthdayChildName}!
+                {partyData.partyName}
               </h1>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-center gap-3 w-full">
-              <div className="flex items-center justify-center gap-3 bg-black/40 border border-white/20 px-4 py-3 rounded-2xl text-sm backdrop-blur-md shadow-md flex-1">
-                <Cake className="size-5 text-[#bef264] shrink-0" />
-                <span className="text-white drop-shadow">Idade: <strong className="text-[#bef264] font-bold">{partyData.childAge} anos</strong></span>
-              </div>
-
-              <div className="flex items-center justify-center gap-3 bg-black/40 border border-white/20 px-4 py-3 rounded-2xl text-sm backdrop-blur-md shadow-md flex-1">
+            {/* Faixa Etária */}
+            <div className="w-full">
+              <div className="flex items-center justify-center gap-3 bg-black/40 border border-white/20 px-4 py-3 rounded-2xl text-sm backdrop-blur-md shadow-md w-full">
                 <Users className="size-5 text-[#bef264] shrink-0" />
-                <span className="text-white drop-shadow">Convidado: <strong className="text-[#bef264] font-bold">{partyData.ageGroup}</strong></span>
+                <span className="text-white drop-shadow">Convidado: Faixa etária atual <strong className="text-[#bef264] font-bold">{partyData.ageGroup}</strong></span>
               </div>
             </div>
 
+            {/* Personagem em Destaque / Mascote */}
             {partyData.characterName && (
               <div className="flex items-center justify-center gap-3 bg-black/40 border border-white/20 px-4 py-3 rounded-2xl text-white text-sm w-full shadow-md backdrop-blur-md">
                 <Trophy className="size-5 text-[#bef264] shrink-0" />
-                <span className="drop-shadow">Destaque: <span className="text-[#bef264] font-bold">{partyData.characterName}</span></span>
+                <span className="drop-shadow">Guia / Mascote: <span className="text-[#bef264] font-bold">{partyData.characterName}</span></span>
               </div>
             )}
 
             <div className="w-full border-t border-white/20 pt-3 mt-2 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-white/90 font-medium px-2 py-1 bg-black/30 rounded-xl backdrop-blur-md">
-              <span>Painel Exclusivo do Convidado</span>
+              <span>Experiência Interativa</span>
               <button 
                 onClick={() => setPartyData(null)}
                 className="hover:text-[#bef264] underline cursor-pointer transition-colors py-1 font-bold"
