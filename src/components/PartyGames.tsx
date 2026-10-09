@@ -9,13 +9,14 @@ interface PartyGamesProps {
 
 export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [currentChallenge, setCurrentChallenge] = useState<any>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [completedTasks, setCompletedTasks] = useState(0);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [themeImages, setThemeImages] = useState<string[]>([]);
+  const [currentChallenge, setCurrentChallenge] = useState<any>(null);
 
   useEffect(() => {
     async function fetchThemeImages() {
@@ -37,82 +38,43 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
     fetchThemeImages();
   }, [partyData]);
 
-  // Banco robusto com múltiplos desafios visuais por categoria
-  const gamePool: Record<string, any[]> = {
-    logica: [
-      {
-        instruction: "Toque na fruta verde!",
-        spokenText: "Escolha a fruta verde",
-        type: "options",
-        correct: "🍏",
-        options: ["🍎", "🍊", "🍏", "🍌"]
-      },
-      {
-        instruction: "Encontre o animal diferente na roda!",
-        spokenText: "Encontre o animal diferente",
-        type: "options",
-        correct: "🦊",
-        options: ["🐼", "🐼", "🦊", "🐼"]
-      },
-      {
-        instruction: "Qual destes elementos brilha no céu à noite?",
-        spokenText: "Qual elemento brilha no céu à noite",
-        type: "options",
-        correct: "⭐",
-        options: ["☀️", "☁️", "⭐", "🎈"]
-      }
-    ],
-    matematica: [
-      {
-        instruction: "Quantos blocos coloridos estão empilhados?",
-        spokenText: "Quantos blocos estão empilhados?",
-        type: "stacked-blocks",
-        correct: "3",
-        options: ["2", "3", "5"]
-      },
-      {
-        instruction: "Qual número vem logo depois do 2?",
-        spokenText: "Qual número vem depois do 2?",
-        type: "options",
-        correct: "3",
-        options: ["1", "3", "4"]
-      },
-      {
-        instruction: "Qual número vem antes do 2?",
-        spokenText: "Qual número vem antes do 2?",
-        type: "options",
-        correct: "1",
-        options: ["1", "3", "4"]
-      }
-    ],
-    atencao: [
-      {
-        instruction: "Encontre a figura igual ao modelo!",
-        spokenText: "Encontre a figura igual ao modelo",
-        type: "match-model",
-        model: "⭐",
-        correct: "⭐",
-        options: ["⭕", "⭐", "⬛", "🔺"]
-      },
-      {
-        instruction: "Encontre a figura igual ao modelo!",
-        spokenText: "Encontre a figura igual ao modelo",
-        type: "match-model",
-        model: "🔵",
-        correct: "🔵",
-        options: ["🔵", "⭐", "⬛", "🔺"]
-      }
-    ],
-    quebravc: [
-      {
-        instruction: "Encontre a peça que encaixa no painel!",
-        spokenText: "Encontre a peça que encaixa no painel",
-        type: "puzzle-model",
-        model: "🧩",
-        correct: "🧩",
-        options: ["📦", "🧩", "⚽", "🎈"]
-      }
-    ]
+  // Gerador de dezenas de desafios dinâmicos por categoria com opções baralhadas
+  const getCategoryChallenges = (catId: string) => {
+    let rawList: any[] = [];
+
+    if (catId === 'logica') {
+      rawList = [
+        { instruction: "Toque na fruta verde!", spokenText: "Escolha a fruta verde", correct: "🍏", options: ["🍎", "🍏", "🍊", "🍌"] },
+        { instruction: "Encontre o animal diferente!", spokenText: "Encontre o animal diferente", correct: "🦊", options: ["🐼", "🦊", "🐼", "🐼"] },
+        { instruction: "Qual elemento brilha no céu à noite?", spokenText: "Qual elemento brilha no céu à noite", correct: "⭐", options: ["☀️", "⭐", "☁️", "🎈"] },
+        { instruction: "Qual destes animais voa?", spokenText: "Qual destes animais voa", correct: "🐦", options: ["🐶", "🐱", "🐦", "🦁"] },
+        { instruction: "Toque na cor vermelha!", spokenText: "Escolha a cor vermelha", correct: "🍎", options: ["🍌", "🍎", "📘", "🍏"] }
+      ];
+    } else if (catId === 'matematica') {
+      rawList = [
+        { instruction: "Quantos blocos coloridos estão empilhados?", spokenText: "Quantos blocos estão empilhados?", type: "stacked-blocks", correct: "3", options: ["2", "5", "3", "1"] },
+        { instruction: "Qual número vem logo depois do 2?", spokenText: "Qual número vem depois do 2?", correct: "3", options: ["1", "4", "3", "5"] },
+        { instruction: "Qual número vem antes do 2?", spokenText: "Qual número vem antes do 2?", correct: "1", options: ["3", "1", "4", "5"] },
+        { instruction: "Quantos dedos temos numa mão?", spokenText: "Quantos dedos temos numa mão?", correct: "5", options: ["3", "4", "5", "2"] }
+      ];
+    } else if (catId === 'atencao') {
+      rawList = [
+        { instruction: "Encontre a figura igual ao modelo!", spokenText: "Encontre a figura igual ao modelo", type: "match-model", model: "⭐", correct: "⭐", options: ["⭕", "⬛", "⭐", "🔺"] },
+        { instruction: "Encontre a figura igual ao modelo!", spokenText: "Encontre a figura igual ao modelo", type: "match-model", model: "🔵", correct: "🔵", options: ["⬛", "🔵", "⭐", "🔺"] },
+        { instruction: "Encontre a figura igual ao modelo!", spokenText: "Encontre a figura igual ao modelo", type: "match-model", model: "🔺", correct: "🔺", options: ["⭕", "🔺", "⬛", "⭐"] }
+      ];
+    } else {
+      rawList = [
+        { instruction: "Encontre a peça que encaixa no painel!", spokenText: "Encontre a peça que encaixa no painel", type: "puzzle-model", model: "🧩", correct: "🧩", options: ["📦", "⚽", "🧩", "🎈"] },
+        { instruction: "Encontre a peça que encaixa no painel!", spokenText: "Encontre a peça que encaixa no painel", type: "puzzle-model", model: "🧩", correct: "🧩", options: ["🎈", "🧩", "📦", "⚽"] }
+      ];
+    }
+
+    // Baralha as opções de cada desafio para que a resposta certa nunca fique na mesma posição e não haja marcação visual prévia
+    return rawList.map(item => ({
+      ...item,
+      options: [...item.options].sort(() => Math.random() - 0.5)
+    }));
   };
 
   const speakInstruction = (text: string) => {
@@ -163,15 +125,16 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
 
   const handleSelectCategory = (catId: string) => {
     playSfx('click');
-    const list = gamePool[catId] || gamePool.logica;
-    const randomIndex = Math.floor(Math.random() * list.length);
-    const selected = list[randomIndex];
+    const list = getCategoryChallenges(catId);
     setActiveCategory(catId);
-    setCurrentChallenge(selected);
-    setTimeout(() => speakInstruction(selected.spokenText), 400);
+    setCurrentIndex(0);
+    setCurrentChallenge(list[0]);
+    setTimeout(() => speakInstruction(list[0].spokenText), 400);
   };
 
   const handleAnswer = (option: string) => {
+    if (!currentChallenge) return;
+
     if (option === currentChallenge.correct) {
       playSfx('success');
       setFeedback("correct");
@@ -179,19 +142,15 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
       setScore(score + 10);
       setCompletedTasks(completedTasks + 1);
 
-      // Avanço automático e imediato para o próximo desafio sem travamentos
+      // Avança de forma limpa e sequencial para o próximo desafio da lista
       setTimeout(() => {
         setFeedback(null);
         setShowConfetti(false);
-        const list = gamePool[activeCategory as string] || gamePool.logica;
-        // Sorteia um novo desafio diferente do atual
-        let nextIndex = Math.floor(Math.random() * list.length);
-        if (list.length > 1 && list[nextIndex] === currentChallenge) {
-          nextIndex = (nextIndex + 1) % list.length;
-        }
-        const nextChallenge = list[nextIndex];
-        setCurrentChallenge(nextChallenge);
-        speakInstruction(nextChallenge.spokenText);
+        const list = getCategoryChallenges(activeCategory as string);
+        const nextIdx = (currentIndex + 1) % list.length;
+        setCurrentIndex(nextIdx);
+        setCurrentChallenge(list[nextIdx]);
+        speakInstruction(list[nextIdx].spokenText);
       }, 800);
     } else {
       playSfx('wrong');
