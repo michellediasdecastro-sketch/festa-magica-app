@@ -18,7 +18,6 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
   const [themeImages, setThemeImages] = useState<string[]>([]);
 
   // Estados específicos para o Jogo da Memória (Quebra-Cabeças / Pares)
-  const [memoryCards, setMemoryCards] = useState<any[]>([]);
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [matchedPairs, setMatchedPairs] = useState<string[]>([]);
 
@@ -42,7 +41,7 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
     fetchThemeImages();
   }, [partyData]);
 
-  // Gerador dinâmico de dezenas de variações por categoria (Estilo LogicLike)
+  // Gerador dinâmico de dezenas de variações por categoria
   const generateDynamicChallenge = (catId: string) => {
     if (catId === 'logica') {
       const sets = [
@@ -96,16 +95,17 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
     } 
     
     if (catId === 'quebravc') {
-      // Jogo da Memória / Achar os Pares (Estilo verdadeiro quebra-cabeças de cartas)
-      const icons = ["🍎", "⭐", "🐱", "🚗"];
-      const selectedCard = icons[Math.floor(Math.random() * icons.length)];
-      const deck = [...icons, ...icons].sort(() => Math.random() - 0.5).map((icon, idx) => ({ id: idx, icon, isFlipped: false }));
+      // Jogo da Memória com 3 pares completos (6 cartas no total)
+      const iconsPool = ["🍎", "⭐", "🐱", "🚗", "🍌", "🚀"];
+      // Seleciona 3 ícones aleatórios para formar os 3 pares
+      const selectedIcons = [...iconsPool].sort(() => Math.random() - 0.5).slice(0, 3);
+      const deck = [...selectedIcons, ...selectedIcons].sort(() => Math.random() - 0.5).map((icon, idx) => ({ id: idx, icon }));
       
       return {
-        instruction: "Encontre o par da carta escondida!",
-        spokenText: "Encontre o par igual",
+        instruction: "Encontre todos os pares escondidos nas cartas!",
+        spokenText: "Encontre todos os pares",
         type: "memory-game",
-        targetIcon: selectedCard,
+        totalPairs: selectedIcons.length, // 3 pares necessários para concluir
         cards: deck
       };
     }
@@ -181,7 +181,6 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
       setScore(score + 10);
       setCompletedTasks(completedTasks + 1);
 
-      // Avança automaticamente para um novo desafio gerado na hora
       setTimeout(() => {
         setFeedback(null);
         setShowConfetti(false);
@@ -196,10 +195,13 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
     }
   };
 
-  // Lógica para o Jogo da Memória (Pares)
+  // Lógica corrigida para o Jogo da Memória (Só avança após encontrar TODOS os pares)
   const handleCardClick = (index: number) => {
     if (flippedCards.length === 2 || flippedCards.includes(index)) return;
     playSfx('click');
+
+    const cardClicked = currentChallenge.cards[index];
+    if (matchedPairs.includes(cardClicked.icon)) return;
 
     const newFlipped = [...flippedCards, index];
     setFlippedCards(newFlipped);
@@ -211,20 +213,22 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
 
       if (card1.icon === card2.icon) {
         playSfx('success');
-        setMatchedPairs([...matchedPairs, card1.icon]);
+        const updatedMatched = [...matchedPairs, card1.icon];
+        setMatchedPairs(updatedMatched);
         setFlippedCards([]);
 
-        // Se encontrou todos os pares, gera novo desafio de memória
-        if (matchedPairs.length + 1 >= 2) {
+        // Verifica se encontrou TODOS os pares necessários (totalPairs)
+        if (updatedMatched.length >= currentChallenge.totalPairs) {
           setShowConfetti(true);
-          setScore(score + 15);
+          setScore(score + 20);
           setCompletedTasks(completedTasks + 1);
           setTimeout(() => {
             setShowConfetti(false);
             setMatchedPairs([]);
             const nextChallenge = generateDynamicChallenge('quebravc');
             setCurrentChallenge(nextChallenge);
-          }, 1000);
+            speakInstruction(nextChallenge.spokenText);
+          }, 1200);
         }
       } else {
         playSfx('wrong');
@@ -350,7 +354,6 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
                 {currentChallenge.instruction}
               </h3>
 
-              {/* Renderização para Matemática (Blocos Empilhados Dinâmicos) */}
               {currentChallenge.type === 'stacked-blocks' && (
                 <div className="relative z-10 flex flex-col items-center justify-center py-2 gap-1">
                   {Array.from({ length: currentChallenge.count }).map((_, idx) => (
@@ -359,7 +362,6 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
                 </div>
               )}
 
-              {/* Renderização para Atenção (Modelo Dinâmico) */}
               {currentChallenge.type === 'match-model' && (
                 <div className="relative z-10 flex flex-col items-center gap-2 bg-black/50 px-6 py-3 rounded-2xl border border-white/20 shadow-inner">
                   <span className="text-xs text-white/70 font-bold uppercase tracking-wider">Modelo:</span>
@@ -367,17 +369,17 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
                 </div>
               )}
 
-              {/* Renderização para Quebra-Cabeças (Jogo da Memória / Pares) */}
+              {/* Jogo da Memória com 6 cartas (3 pares) */}
               {currentChallenge.type === 'memory-game' ? (
-                <div className="relative z-10 grid grid-cols-4 gap-3 w-full my-2">
+                <div className="relative z-10 grid grid-cols-3 gap-3 w-full my-2 max-w-md mx-auto">
                   {currentChallenge.cards.map((card: any, idx: number) => {
                     const isFlipped = flippedCards.includes(idx) || matchedPairs.includes(card.icon);
                     return (
                       <button
                         key={idx}
                         onClick={() => handleCardClick(idx)}
-                        className={`h-20 rounded-2xl border transition-all cursor-pointer text-4xl flex items-center justify-center shadow-xl ${
-                          isFlipped ? 'bg-white/20 border-[#bef264]' : 'bg-black/70 border-white/30 hover:bg-black/50'
+                        className={`h-24 rounded-2xl border transition-all cursor-pointer text-4xl flex items-center justify-center shadow-xl ${
+                          isFlipped ? 'bg-white/25 border-[#bef264] scale-105' : 'bg-black/70 border-white/30 hover:bg-black/50'
                         }`}
                       >
                         {isFlipped ? card.icon : "❓"}
