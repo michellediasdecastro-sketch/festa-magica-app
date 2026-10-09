@@ -9,13 +9,17 @@ export function App() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [themeBackgrounds, setThemeBackgrounds] = useState<Record<string, string>>({});
 
+  // Carregar todos os temas e respetivas imagens da tabela 'themes'
   useEffect(() => {
     async function fetchThemeBackgrounds() {
       const { data } = await supabase.from("themes").select("theme_name, background_url");
       if (data) {
         const bgMap: Record<string, string> = {};
         data.forEach(item => {
-          bgMap[item.theme_name.toLowerCase()] = item.background_url;
+          if (item.theme_name) {
+            // Normaliza a chave para minúsculas para evitar falhas de correspondência
+            bgMap[item.theme_name.trim().toLowerCase()] = item.background_url;
+          }
         });
         setThemeBackgrounds(bgMap);
       }
@@ -23,12 +27,16 @@ export function App() {
     fetchThemeBackgrounds();
   }, [isAdminOpen, partyData]);
 
+  // Função para encontrar a imagem exata do tema registado na administração
   function getBackgroundForTheme(themeName: string) {
     if (!themeName) return "https://images.unsplash.com/photo-1511884642898-4c92249e20b6?q=80&w=1920&auto=format&fit=crop";
-    const key = themeName.toLowerCase();
+    const key = themeName.trim().toLowerCase();
+    
     if (themeBackgrounds[key]) {
       return themeBackgrounds[key];
     }
+    
+    // Fallback caso o tema não seja encontrado
     return "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=1920&auto=format&fit=crop";
   }
 
@@ -38,8 +46,9 @@ export function App() {
 
   return (
     <main className="relative min-h-[100dvh] w-full flex flex-col items-center justify-center p-4 text-white overflow-x-hidden overflow-y-auto">
-      {/* Imagem de Fundo Dinâmica */}
+      {/* Imagem de Fundo Dinâmica com chave única para evitar cache do navegador */}
       <div 
+        key={bgImage}
         className="absolute inset-0 bg-cover bg-center bg-no-repeat filter brightness-85 saturate-110 scale-105 transition-all duration-700"
         style={{ backgroundImage: `url('${bgImage}')` }}
       />
