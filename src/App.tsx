@@ -42,6 +42,16 @@ export function App() {
     ? getBackgroundForTheme(partyData.theme) 
     : "https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1920&auto=format&fit=crop";
 
+  // Se o painel de administração estiver aberto, ocupa o ecrã inteiro sem restrições
+  if (isAdminOpen) {
+    return (
+      <AdminDashboard onBackToApp={() => {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        setIsAdminOpen(false);
+      }} />
+    );
+  }
+
   return (
     <main className="relative min-h-[100dvh] w-full flex flex-col items-center justify-center p-3 sm:p-6 text-white overflow-x-hidden overflow-y-auto bg-black">
       {/* Imagem de Fundo Estrita */}
@@ -53,27 +63,19 @@ export function App() {
         />
       )}
       
-      {/* Sem camada escura geral para deixar a imagem 100% viva */}
       <div className="absolute inset-0 bg-black/10 backdrop-blur-[0px]" />
 
-      {/* Conteúdo Principal: Retângulo Principal Totalmente Transparente com Borda de Brilho */}
+      {/* Conteúdo Principal do Convidado */}
       <div className="relative z-10 w-full max-w-[340px] sm:max-w-md mx-auto flex items-center justify-center my-auto py-6">
-        {isAdminOpen ? (
-          <AdminDashboard onBackToApp={() => {
-            window.history.replaceState({}, document.title, window.location.pathname);
-            setIsAdminOpen(false);
-          }} />
-        ) : !partyData ? (
+        {!partyData ? (
           <AccessLogin onLoginSuccess={(data) => setPartyData(data)} />
         ) : (
           <div className="w-full bg-transparent border border-white/25 rounded-[2.5rem] p-6 sm:p-8 shadow-[0_0_40px_rgba(0,0,0,0.5)] backdrop-blur-[2px] text-center flex flex-col items-center gap-4 animate-fade-in">
             
-            {/* Tag do Tema com fundo translúcido */}
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/40 border border-white/30 text-[#bef264] text-[11px] sm:text-xs font-bold tracking-wider uppercase shadow-md backdrop-blur-md">
               <Sparkles className="size-3.5" /> Tema: {partyData.theme}
             </div>
 
-            {/* Bloco de Boas-vindas com leve translúcido para legibilidade */}
             <div className="space-y-1.5 px-3 py-2 rounded-2xl bg-black/30 backdrop-blur-md border border-white/10 w-full shadow-md">
               <div className="text-2xl">🎉</div>
               <h1 className="text-xl sm:text-3xl font-extrabold text-white tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] leading-tight">
