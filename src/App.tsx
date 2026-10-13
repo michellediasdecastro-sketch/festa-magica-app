@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { AccessLogin } from "./components/AccessLogin";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { PartyGames } from "./components/PartyGames";
-import { Users, Trophy, Gamepad2, Cake, Sparkles } from "lucide-react";
+import { Trophy, Gamepad2, Cake, Sparkles } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
 export function App() {
@@ -73,11 +73,11 @@ export function App() {
         ) : isInGames ? (
           <PartyGames partyData={partyData} onBackToMain={() => setIsInGames(false)} />
         ) : (
-          <div className="w-full bg-black/40 border border-white/30 rounded-[2.5rem] p-6 sm:p-8 shadow-[0_0_50px_rgba(0,0,0,0.6)] backdrop-blur-md text-center flex flex-col items-center gap-4 animate-fade-in">
+          <div className="w-full bg-transparent border border-white/25 rounded-[2.5rem] p-6 sm:p-8 shadow-[0_0_40px_rgba(0,0,0,0.5)] backdrop-blur-[2px] text-center flex flex-col items-center gap-4 animate-fade-in">
             
-            {/* Foto / Avatar do Aniversariante (se houver photo_url ou usa um ícone festivo) */}
-            <div className="relative -mt-12 mb-1">
-              <div className="w-24 h-24 rounded-full border-4 border-[#bef264] bg-black/70 shadow-xl overflow-hidden flex items-center justify-center relative">
+            {/* Foto / Avatar do Aniversariante */}
+            <div className="relative -mt-10 mb-1">
+              <div className="w-24 h-24 rounded-full border-4 border-[#bef264] bg-black/50 shadow-xl overflow-hidden flex items-center justify-center relative backdrop-blur-md">
                 {partyData.photoUrl ? (
                   <img src={partyData.photoUrl} alt={partyData.childName} className="w-full h-full object-cover" />
                 ) : (
@@ -89,28 +89,28 @@ export function App() {
               </span>
             </div>
 
-            {/* Nome da Festa em Destaque */}
-            <div className="w-full px-4 py-2 rounded-2xl bg-black/40 backdrop-blur-md border border-white/15 shadow-md">
+            {/* Nome da Festa em Destaque (Totalmente Transparente) */}
+            <div className="w-full px-4 py-3 rounded-2xl bg-transparent border border-white/20 shadow-md backdrop-blur-[1px]">
               <span className="text-[10px] uppercase tracking-widest text-[#bef264] font-extrabold block mb-0.5">Experiência Exclusiva</span>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight drop-shadow leading-tight">
                 {partyData.partyName}
               </h1>
             </div>
 
-            {/* Informações Detalhadas do Aniversariante */}
-            <div className="w-full grid grid-cols-1 gap-2">
-              <div className="flex items-center justify-between bg-black/50 border border-white/20 px-4 py-3 rounded-2xl text-sm backdrop-blur-md shadow-md">
-                <span className="text-white/80 font-medium">Aniversariante:</span>
-                <strong className="text-[#bef264] font-bold text-base">{partyData.childName} ({partyData.childAge || partyData.age} anos)</strong>
+            {/* Informações Detalhadas (Festa de X aninhos, Tema, Mascote) */}
+            <div className="w-full grid grid-cols-1 gap-2.5">
+              <div className="flex items-center justify-between bg-transparent border border-white/20 px-4 py-3 rounded-2xl text-sm backdrop-blur-[1px] shadow-md">
+                <span className="text-white/80 font-medium">Idade:</span>
+                <strong className="text-[#bef264] font-bold text-base">Festa de {partyData.childAge || partyData.age} aninhos</strong>
               </div>
 
-              <div className="flex items-center justify-between bg-black/50 border border-white/20 px-4 py-3 rounded-2xl text-sm backdrop-blur-md shadow-md">
+              <div className="flex items-center justify-between bg-transparent border border-white/20 px-4 py-3 rounded-2xl text-sm backdrop-blur-[1px] shadow-md">
                 <span className="text-white/80 font-medium">Tema da Festa:</span>
                 <strong className="text-white font-bold">{partyData.theme}</strong>
               </div>
 
               {partyData.characterName && (
-                <div className="flex items-center justify-between bg-black/50 border border-white/20 px-4 py-3 rounded-2xl text-sm backdrop-blur-md shadow-md">
+                <div className="flex items-center justify-between bg-transparent border border-white/20 px-4 py-3 rounded-2xl text-sm backdrop-blur-[1px] shadow-md">
                   <span className="text-white/80 font-medium">Guia / Mascote:</span>
                   <span className="text-[#bef264] font-bold flex items-center gap-1.5">
                     <Trophy className="size-4" /> {partyData.characterName}
@@ -119,7 +119,7 @@ export function App() {
               )}
             </div>
 
-            {/* Botão JOGAR Destacado (Focado no Aniversariante) */}
+            {/* Botão JOGAR Destacado */}
             <button
               onClick={() => setIsInGames(true)}
               className="w-full py-4 px-6 rounded-2xl bg-[#bef264] text-black font-black text-lg tracking-wider hover:opacity-90 transition-all cursor-pointer shadow-[0_0_30px_rgba(190,242,100,0.4)] flex items-center justify-center gap-2 transform active:scale-95 uppercase mt-1"
@@ -127,13 +127,13 @@ export function App() {
               <Gamepad2 className="size-6" /> JOGAR
             </button>
 
-            <div className="w-full border-t border-white/20 pt-3 mt-1 flex justify-between items-center text-xs text-white/80 font-medium px-2">
-              <span>Feito para {partyData.childName}</span>
+            {/* Rodapé Limpo (Apenas o botão de Sair) */}
+            <div className="w-full border-t border-white/20 pt-3 mt-1 flex justify-center items-center text-xs text-white/80 font-medium px-2">
               <button 
                 onClick={() => setPartyData(null)}
-                className="hover:text-[#bef264] underline cursor-pointer transition-colors font-bold"
+                className="hover:text-[#bef264] underline cursor-pointer transition-colors font-bold py-1"
               >
-                Sair / Outro Código
+                Sair / Inserir Outro Código
               </button>
             </div>
 
