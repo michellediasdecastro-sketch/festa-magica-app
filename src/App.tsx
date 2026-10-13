@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { AccessLogin } from "./components/AccessLogin";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { PartyGames } from "./components/PartyGames";
-import { Trophy, Gamepad2, Cake, Sparkles } from "lucide-react";
+import { Gamepad2, Cake, Sparkles, Compass, Trophy, Footprints } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
 export function App() {
@@ -64,20 +64,20 @@ export function App() {
         />
       )}
       
-      <div className="absolute inset-0 bg-black/10 backdrop-blur-[0px]" />
+      <div className="absolute inset-0 bg-black/20 backdrop-blur-[0px]" />
 
-      {/* Conteúdo Principal Personalizado */}
+      {/* Conteúdo Principal Estilo Aventura Infantil */}
       <div className="relative z-10 w-full max-w-[360px] sm:max-w-md mx-auto flex items-center justify-center my-auto py-6">
         {!partyData ? (
           <AccessLogin onLoginSuccess={(data) => { setPartyData(data); setIsInGames(false); }} />
         ) : isInGames ? (
           <PartyGames partyData={partyData} onBackToMain={() => setIsInGames(false)} />
         ) : (
-          <div className="w-full bg-transparent border border-white/25 rounded-[2.5rem] p-6 sm:p-8 shadow-[0_0_40px_rgba(0,0,0,0.5)] backdrop-blur-[2px] text-center flex flex-col items-center gap-4 animate-fade-in">
+          <div className="w-full bg-transparent border border-white/25 rounded-[2.5rem] p-6 sm:p-7 shadow-[0_0_40px_rgba(0,0,0,0.6)] backdrop-blur-[2px] text-center flex flex-col items-center gap-3.5 animate-fade-in">
             
             {/* Foto / Avatar do Aniversariante */}
-            <div className="relative -mt-10 mb-1">
-              <div className="w-24 h-24 rounded-full border-4 border-[#bef264] bg-black/50 shadow-xl overflow-hidden flex items-center justify-center relative backdrop-blur-md">
+            <div className="relative -mt-10 mb-0">
+              <div className="w-24 h-24 rounded-full border-4 border-[#bef264] bg-black/60 shadow-xl overflow-hidden flex items-center justify-center relative backdrop-blur-md">
                 {partyData.photoUrl ? (
                   <img src={partyData.photoUrl} alt={partyData.childName} className="w-full h-full object-cover" />
                 ) : (
@@ -89,51 +89,77 @@ export function App() {
               </span>
             </div>
 
-            {/* Nome da Festa em Destaque (Totalmente Transparente) */}
-            <div className="w-full px-4 py-3 rounded-2xl bg-transparent border border-white/20 shadow-md backdrop-blur-[1px]">
-              <span className="text-[10px] uppercase tracking-widest text-[#bef264] font-extrabold block mb-0.5">Experiência Exclusiva</span>
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight drop-shadow leading-tight">
+            {/* Cabeçalho Narrativo (Frase Secundária + Título Principal) */}
+            <div className="w-full flex flex-col gap-1 text-center">
+              <span className="text-xs sm:text-sm font-bold text-[#bef264] tracking-wide drop-shadow">
+                Prepare-se para uma grande aventura![cite: 15]
+              </span>
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] leading-tight">
                 {partyData.partyName}
               </h1>
             </div>
 
-            {/* Informações Detalhadas (Festa de X aninhos, Tema, Mascote) */}
-            <div className="w-full grid grid-cols-1 gap-2.5">
-              <div className="flex items-center justify-between bg-transparent border border-white/20 px-4 py-3 rounded-2xl text-sm backdrop-blur-[1px] shadow-md">
-                <span className="text-white/80 font-medium">Idade:</span>
-                <strong className="text-[#bef264] font-bold text-base">Festa de {partyData.childAge || partyData.age} aninhos</strong>
+            {/* Informações da Festa em Formato de Narrativa Lúdica (Sem aparência de formulário) */}
+            <div className="w-full flex flex-col gap-2.5 text-left text-xs sm:text-sm">
+              
+              {/* Idade / Aniversariante */}
+              <div className="flex items-start gap-3 bg-transparent border border-white/20 px-4 py-3 rounded-2xl backdrop-blur-[1px] shadow-md">
+                <span className="p-2 rounded-xl bg-white/10 text-[#bef264] shrink-0 mt-0.5">
+                  <Cake className="size-4" />
+                </span>
+                <div>
+                  <strong className="text-white font-bold block">
+                    {partyData.childName} está fazendo {partyData.childAge || partyData.age} anos![cite: 15]
+                  </strong>
+                  <span className="text-white/80 text-[11px]">E você foi convidado para essa aventura.[cite: 15]</span>
+                </div>
               </div>
 
-              <div className="flex items-center justify-between bg-transparent border border-white/20 px-4 py-3 rounded-2xl text-sm backdrop-blur-[1px] shadow-md">
-                <span className="text-white/80 font-medium">Tema da Festa:</span>
-                <strong className="text-white font-bold">{partyData.theme}</strong>
+              {/* Tema / Destino */}
+              <div className="flex items-start gap-3 bg-transparent border border-white/20 px-4 py-3 rounded-2xl backdrop-blur-[1px] shadow-md">
+                <span className="p-2 rounded-xl bg-white/10 text-[#bef264] shrink-0 mt-0.5">
+                  <Compass className="size-4" />
+                </span>
+                <div>
+                  <strong className="text-white font-bold block">
+                    Destino: {partyData.theme}[cite: 15]
+                  </strong>
+                  <span className="text-white/80 text-[11px]">Um universo cheio de descobertas e desafios.[cite: 15]</span>
+                </div>
               </div>
 
+              {/* Guia / Mascote */}
               {partyData.characterName && (
-                <div className="flex items-center justify-between bg-transparent border border-white/20 px-4 py-3 rounded-2xl text-sm backdrop-blur-[1px] shadow-md">
-                  <span className="text-white/80 font-medium">Guia / Mascote:</span>
-                  <span className="text-[#bef264] font-bold flex items-center gap-1.5">
-                    <Trophy className="size-4" /> {partyData.characterName}
+                <div className="flex items-start gap-3 bg-transparent border border-white/20 px-4 py-3 rounded-2xl backdrop-blur-[1px] shadow-md">
+                  <span className="p-2 rounded-xl bg-white/10 text-[#bef264] shrink-0 mt-0.5">
+                    <Trophy className="size-4" />
                   </span>
+                  <div>
+                    <strong className="text-white font-bold block">
+                      Seu companheiro: {partyData.characterName}[cite: 15]
+                    </strong>
+                    <span className="text-white/80 text-[11px]">Vai guiar você por todo o jogo.[cite: 15]</span>
+                  </div>
                 </div>
               )}
+
             </div>
 
-            {/* Botão JOGAR Destacado */}
+            {/* Botão COMEÇAR A AVENTURA */}
             <button
               onClick={() => setIsInGames(true)}
-              className="w-full py-4 px-6 rounded-2xl bg-[#bef264] text-black font-black text-lg tracking-wider hover:opacity-90 transition-all cursor-pointer shadow-[0_0_30px_rgba(190,242,100,0.4)] flex items-center justify-center gap-2 transform active:scale-95 uppercase mt-1"
+              className="w-full py-4 px-6 rounded-2xl bg-[#bef264] text-black font-black text-base sm:text-lg tracking-wide hover:opacity-95 transition-all cursor-pointer shadow-[0_0_30px_rgba(190,242,100,0.4)] flex items-center justify-center gap-2.5 transform active:scale-95 uppercase mt-1"
             >
-              <Gamepad2 className="size-6" /> JOGAR
+              <Gamepad2 className="size-6" /> COMEÇAR A AVENTURA[cite: 15]
             </button>
 
-            {/* Rodapé Limpo (Apenas o botão de Sair) */}
-            <div className="w-full border-t border-white/20 pt-3 mt-1 flex justify-center items-center text-xs text-white/80 font-medium px-2">
+            {/* Rodapé Discreto */}
+            <div className="w-full pt-2 flex justify-center items-center text-xs text-white/70 font-medium">
               <button 
                 onClick={() => setPartyData(null)}
-                className="hover:text-[#bef264] underline cursor-pointer transition-colors font-bold py-1"
+                className="hover:text-[#bef264] underline cursor-pointer transition-colors font-medium py-1"
               >
-                Sair / Inserir Outro Código
+                Sair / Inserir outro código[cite: 15]
               </button>
             </div>
 
