@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { AccessLogin } from "./components/AccessLogin";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { PartyGames } from "./components/PartyGames";
-import { Users, Trophy } from "lucide-react";
+import { Users, Trophy, Gamepad2, Cake, Sparkles } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
 export function App() {
@@ -55,7 +55,7 @@ export function App() {
 
   return (
     <main className="relative min-h-[100dvh] w-full flex flex-col items-center justify-center p-3 sm:p-6 text-white overflow-x-hidden overflow-y-auto bg-black">
-      {/* Imagem de Fundo Estrita */}
+      {/* Imagem de Fundo Estrita do Tema */}
       {bgImage && (
         <div 
           key={bgImage}
@@ -66,53 +66,74 @@ export function App() {
       
       <div className="absolute inset-0 bg-black/10 backdrop-blur-[0px]" />
 
-      {/* Conteúdo Principal do Convidado */}
-      <div className="relative z-10 w-full max-w-[340px] sm:max-w-md mx-auto flex items-center justify-center my-auto py-6">
+      {/* Conteúdo Principal Personalizado */}
+      <div className="relative z-10 w-full max-w-[360px] sm:max-w-md mx-auto flex items-center justify-center my-auto py-6">
         {!partyData ? (
           <AccessLogin onLoginSuccess={(data) => { setPartyData(data); setIsInGames(false); }} />
         ) : isInGames ? (
           <PartyGames partyData={partyData} onBackToMain={() => setIsInGames(false)} />
         ) : (
-          <div className="w-full bg-transparent border border-white/25 rounded-[2.5rem] p-6 sm:p-8 shadow-[0_0_40px_rgba(0,0,0,0.5)] backdrop-blur-[2px] text-center flex flex-col items-center gap-4 animate-fade-in">
+          <div className="w-full bg-black/40 border border-white/30 rounded-[2.5rem] p-6 sm:p-8 shadow-[0_0_50px_rgba(0,0,0,0.6)] backdrop-blur-md text-center flex flex-col items-center gap-4 animate-fade-in">
             
-            {/* Bloco do Nome da Festa em Destaque */}
-            <div className="w-full px-4 py-3 rounded-2xl bg-black/30 backdrop-blur-md border border-white/10 shadow-md">
-              <h1 className="text-xl sm:text-3xl font-extrabold text-white tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] leading-tight">
+            {/* Foto / Avatar do Aniversariante (se houver photo_url ou usa um ícone festivo) */}
+            <div className="relative -mt-12 mb-1">
+              <div className="w-24 h-24 rounded-full border-4 border-[#bef264] bg-black/70 shadow-xl overflow-hidden flex items-center justify-center relative">
+                {partyData.photoUrl ? (
+                  <img src={partyData.photoUrl} alt={partyData.childName} className="w-full h-full object-cover" />
+                ) : (
+                  <Cake className="size-10 text-[#bef264]" />
+                )}
+              </div>
+              <span className="absolute bottom-0 right-0 p-1.5 bg-[#bef264] text-black rounded-full shadow-lg">
+                <Sparkles className="size-4" />
+              </span>
+            </div>
+
+            {/* Nome da Festa em Destaque */}
+            <div className="w-full px-4 py-2 rounded-2xl bg-black/40 backdrop-blur-md border border-white/15 shadow-md">
+              <span className="text-[10px] uppercase tracking-widest text-[#bef264] font-extrabold block mb-0.5">Experiência Exclusiva</span>
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight drop-shadow leading-tight">
                 {partyData.partyName}
               </h1>
             </div>
 
-            {/* Faixa Etária */}
-            <div className="w-full">
-              <div className="flex items-center justify-center gap-3 bg-black/40 border border-white/20 px-4 py-3 rounded-2xl text-sm backdrop-blur-md shadow-md w-full">
-                <Users className="size-5 text-[#bef264] shrink-0" />
-                <span className="text-white drop-shadow">Convidado: Faixa etária <strong className="text-[#bef264] font-bold">{partyData.ageGroup}</strong></span>
+            {/* Informações Detalhadas do Aniversariante */}
+            <div className="w-full grid grid-cols-1 gap-2">
+              <div className="flex items-center justify-between bg-black/50 border border-white/20 px-4 py-3 rounded-2xl text-sm backdrop-blur-md shadow-md">
+                <span className="text-white/80 font-medium">Aniversariante:</span>
+                <strong className="text-[#bef264] font-bold text-base">{partyData.childName} ({partyData.childAge || partyData.age} anos)</strong>
               </div>
+
+              <div className="flex items-center justify-between bg-black/50 border border-white/20 px-4 py-3 rounded-2xl text-sm backdrop-blur-md shadow-md">
+                <span className="text-white/80 font-medium">Tema da Festa:</span>
+                <strong className="text-white font-bold">{partyData.theme}</strong>
+              </div>
+
+              {partyData.characterName && (
+                <div className="flex items-center justify-between bg-black/50 border border-white/20 px-4 py-3 rounded-2xl text-sm backdrop-blur-md shadow-md">
+                  <span className="text-white/80 font-medium">Guia / Mascote:</span>
+                  <span className="text-[#bef264] font-bold flex items-center gap-1.5">
+                    <Trophy className="size-4" /> {partyData.characterName}
+                  </span>
+                </div>
+              )}
             </div>
 
-            {/* Personagem em Destaque / Mascote */}
-            {partyData.characterName && (
-              <div className="flex items-center justify-center gap-3 bg-black/40 border border-white/20 px-4 py-3 rounded-2xl text-white text-sm w-full shadow-md backdrop-blur-md">
-                <Trophy className="size-5 text-[#bef264] shrink-0" />
-                <span className="drop-shadow">Guia / Mascote: <span className="text-[#bef264] font-bold">{partyData.characterName}</span></span>
-              </div>
-            )}
-
-            {/* Botão JOGAR Destacado */}
+            {/* Botão JOGAR Destacado (Focado no Aniversariante) */}
             <button
               onClick={() => setIsInGames(true)}
-              className="w-full py-4 px-6 rounded-2xl bg-[#bef264] text-black font-black text-lg tracking-wider hover:opacity-90 transition-all cursor-pointer shadow-[0_0_30px_rgba(190,242,100,0.4)] flex items-center justify-center gap-2 transform active:scale-95 uppercase"
+              className="w-full py-4 px-6 rounded-2xl bg-[#bef264] text-black font-black text-lg tracking-wider hover:opacity-90 transition-all cursor-pointer shadow-[0_0_30px_rgba(190,242,100,0.4)] flex items-center justify-center gap-2 transform active:scale-95 uppercase mt-1"
             >
-              JOGAR
+              <Gamepad2 className="size-6" /> JOGAR
             </button>
 
-            <div className="w-full border-t border-white/20 pt-3 mt-2 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-white/90 font-medium px-2 py-1 bg-black/30 rounded-xl backdrop-blur-md">
-              <span>Experiência Interativa</span>
+            <div className="w-full border-t border-white/20 pt-3 mt-1 flex justify-between items-center text-xs text-white/80 font-medium px-2">
+              <span>Feito para {partyData.childName}</span>
               <button 
                 onClick={() => setPartyData(null)}
-                className="hover:text-[#bef264] underline cursor-pointer transition-colors py-1 font-bold"
+                className="hover:text-[#bef264] underline cursor-pointer transition-colors font-bold"
               >
-                Sair / Inserir outro código
+                Sair / Outro Código
               </button>
             </div>
 
