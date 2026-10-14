@@ -1,113 +1,133 @@
 import { useState, type FormEvent } from "react";
-import { Sparkles, KeyRound } from "lucide-react";
+import { Sparkles, ArrowRight, Gamepad2, User, Calendar } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 interface AccessLoginProps {
-  onLoginSuccess: (partyData: any) => void;
+  onLoginSuccess: (data: any) => void;
 }
 
 export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
-  const [token, setToken] = useState("");
+  const [step, setStep] = useState<1 | 2>(1);
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  
+  // Dados do Convidado
+  const [partyData, setPartyData] = useState<any>(null);
+  const [guestName, setGuestName] = useState("");
+  const [guestAge, setGuestAge] = useState("");
 
-  async function handleAccess(e: FormEvent) {
+  // Etapa 1: Validar o Código da Festa
+  async function handleVerifyCode(e: FormEvent) {
     e.preventDefault();
-    if (!token.trim()) {
-      setErrorMessage("Por favor, insira o seu código de acesso.");
-      return;
-    }
-
+    if (!code.trim()) return;
+    
     setLoading(true);
-    setErrorMessage("");
+    setError("");
 
-    try {
-      // 1. Procura o token na tabela access_codes
-      const { data: accessData, error: accessError } = await supabase
-        .from("access_codes")
-        .select("*")
-        .eq("code_token", token.trim())
-        .maybeSingle();
+    // Procura a festa pelo ID ou pelo Nome Exato
+    const { data, error: dbError } = await supabase
+      .from("parties")
+      .select("*")
+      .or(`id.eq.${code.trim()},party_name.ilike.${code.trim()}`)
+      .limit(1)
+      .single();
 
-      if (accessError || !accessData) {
-        setErrorMessage("Código inválido. Verifique o seu convite!");
-        setLoading(false);
-        return;
-      }
+    setLoading(false);
 
-      // 2. Verifica se expirou
-      const now = new Date();
-      const expiryDate = new Date(accessData.expires_at);
-      if (now > expiryDate) {
-        setErrorMessage("Este código de acesso expirou.");
-        setLoading(false);
-        return;
-      }
-
-      // 3. Vai buscar os dados reais da festa usando o party_id
-      const { data: partyData, error: partyError } = await supabase
-        .from("parties")
-        .select("*")
-        .eq("id", accessData.party_id)
-        .maybeSingle();
-
-      if (partyError || !partyData) {
-        setErrorMessage("Erro ao carregar os dados da festa.");
-        setLoading(false);
-        return;
-      }
-
-      // Sucesso! Passa os dados reais para a aplicação
-      onLoginSuccess({
-        partyName: partyData.party_name,
-        birthdayChildName: partyData.birthday_child_name,
-        childAge: partyData.child_age,
-        theme: partyData.theme,
-        characterName: partyData.character_name,
-        ageGroup: accessData.age_group,
-        photoUrl: partyData.photo_url
-      });
-
-    } catch (err) {
-      console.error(err);
-      setErrorMessage("Ocorreu um erro inesperado ao validar.");
-    } finally {
-      setLoading(false);
+    if (dbError || !data) {
+      setError("Código de aventura não encontrado. Tente novamente!");
+    } else {
+      setPartyData(data);
+      setStep(2); // Avança para perguntar os dados do convidado
     }
   }
 
+  // Etapa 2: Entrar no Jogo com os Dados do Convidado
+  function handleEnterGame(e: FormEvent) {
+    e.preventDefault();
+    if (!guestName.trim() || !guestAge) {
+      setError("Preencha o seu nome e idade para brincar!");
+      return;
+    }
+
+    // Junta os dados da festa com os dados do convidado e envia para a App
+    onLoginSuccess({
+      ...partyData,
+      guestName: guestName.trim(),
+      guestAge: parseInt(guestAge, 10)
+    });
+  }
+
   return (
-    <div className="flex w-full max-w-md flex-col items-center rounded-2xl border border-lime/40 bg-forest/95 px-6 py-10 shadow-2xl backdrop-blur-md text-cream text-center">
-      <div className="mb-4 inline-flex items-center justify-center size-16 rounded-2xl bg-lime/20 border border-lime/30 text-lime">
-        <KeyRound className="size-8" />
+    <div className="w-full max-w-sm mx-auto bg-black/40 border border-white/20 rounded-[2.5rem] p-8 shadow-[0_0_40px_rgba(0,0,0,0.6)] backdrop-blur-md text-center flex flex-col items-center animate-fade-in">
+      <div className="w-20 h-20 bg-[#bef264]/20 rounded-full flex items-center justify-center mb-6 shadow-inner">
+        <Gamepad2 className="size-10 text-[#bef264]" />
       </div>
 
-      <h1 className="font-display text-3xl mb-2 text-cream">Área do Convidado</h1>
-      <p className="text-sm text-cream/80 mb-8">
-        Insira o código impresso no seu QR Code ou convite para entrar na festa!
-      </p>
+      {step === 1 ? (
+        <>
+          <h2 className="text-2xl font-black text-white mb-2 drop-shadow-md">Entrar na Aventura</h2>
+          <p className="text-sm text-white/70 mb-6">Insira o código convite da festa</p>
 
-      <form onSubmit={handleAccess} className="w-full flex flex-col gap-4">
-        <input
-          type="text"
-          value={token}
-          onChange={(e) => setToken(e.target.value)}
-          placeholder="Insira o seu código"
-          className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-cream placeholder:text-cream/40 focus:outline-none focus:border-lime text-center font-bold tracking-widest text-lg"
-        />
+          <form onSubmit={handleVerifyCode} className="w-full flex flex-col gap-4">
+            <input
+              type="text"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="Ex: festadolucas"
+              className="w-full px-5 py-4 rounded-2xl bg-black/50 border border-white/20 text-white placeholder:text-white/30 text-center text-lg focus:outline-none focus:border-[#bef264] transition-colors"
+            />
+            {error && <span className="text-red-400 text-xs font-bold">{error}</span>}
+            
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 rounded-2xl bg-[#bef264] text-black font-black text-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50 cursor-pointer"
+            >
+              {loading ? "A PROCURAR..." : "AVANÇAR"} <ArrowRight className="size-5" />
+            </button>
+          </form>
+        </>
+      ) : (
+        <>
+          <h2 className="text-xl font-black text-[#bef264] mb-1 drop-shadow-md">Festa Encontrada!</h2>
+          <p className="text-sm text-white/80 mb-6">Identifique-se para preparar os seus jogos</p>
 
-        {errorMessage && (
-          <p className="text-sm text-red-400 font-medium">{errorMessage}</p>
-        )}
+          <form onSubmit={handleEnterGame} className="w-full flex flex-col gap-4">
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-white/40" />
+              <input
+                type="text"
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+                placeholder="O seu nome"
+                className="w-full pl-12 pr-5 py-4 rounded-2xl bg-black/50 border border-white/20 text-white placeholder:text-white/40 text-left focus:outline-none focus:border-[#bef264] transition-colors"
+              />
+            </div>
+            
+            <div className="relative">
+              <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-white/40" />
+              <input
+                type="number"
+                value={guestAge}
+                onChange={(e) => setGuestAge(e.target.value)}
+                placeholder="A sua idade"
+                className="w-full pl-12 pr-5 py-4 rounded-2xl bg-black/50 border border-white/20 text-white placeholder:text-white/40 text-left focus:outline-none focus:border-[#bef264] transition-colors"
+              />
+            </div>
 
-        <button 
-          type="submit" 
-          disabled={loading}
-          className="w-full h-12 text-base font-bold bg-lime text-forest hover:bg-lime/90 transition-all mt-2 flex items-center justify-center rounded-xl cursor-pointer disabled:opacity-50"
-        >
-          {loading ? "A verificar..." : "Entrar na Festa"} <Sparkles className="size-4 ml-2" />
-        </button>
-      </form>
+            {error && <span className="text-red-400 text-xs font-bold">{error}</span>}
+            
+            <button
+              type="submit"
+              className="w-full py-4 rounded-2xl bg-[#bef264] text-black font-black text-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 mt-2 shadow-[0_0_20px_rgba(190,242,100,0.3)] cursor-pointer"
+            >
+              <Sparkles className="size-5" /> ENTRAR NO JOGO
+            </button>
+          </form>
+        </>
+      )}
     </div>
   );
 }
