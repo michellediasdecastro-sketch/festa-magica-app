@@ -1,21 +1,15 @@
 import React, { useState, useEffect } from "react";
 import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 
-// 1. GERADOR DINÂMICO DE DESAFIOS
 const generateMemoryChallenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
-  // Define de 2 a 8 pares com base na dificuldade (que aumenta ou diminui durante o jogo)
   const pairCount = Math.min(8, Math.max(2, Math.floor(difficulty + 1))); 
-  
-  // Utiliza as imagens reais cadastradas para a festa
-  const sourceImages = context.gameImages.length >= 2 ? context.gameImages : ["🍎", "🚗", "🐶", "⭐", "🎈", "🚀"];
   
   let attempts = 0;
   let signature = "";
   let deck: any[] = [];
   
-  // Antirrepetição: Tenta gerar um tabuleiro único que não esteja no histórico
   do {
-    const selectedImages = [...sourceImages].sort(() => Math.random() - 0.5).slice(0, pairCount);
+    const selectedImages = [...context.gameImages].sort(() => Math.random() - 0.5).slice(0, pairCount);
     deck = [...selectedImages, ...selectedImages]
       .sort(() => Math.random() - 0.5)
       .map((img, idx) => ({ id: idx, content: img }));
@@ -27,12 +21,11 @@ const generateMemoryChallenge = (difficulty: number, context: PartyContext, hist
   return {
     id: signature,
     instruction: "Encontre os pares escondidos!",
-    spokenText: `${context.childName}, ajude o ${context.characterName} a encontrar todos os pares!`,
+    spokenText: `Ajude o ${context.characterName} a encontrar os pares iguais!`,
     data: { deck, pairCount }
   };
 };
 
-// 2. COMPONENTE VISUAL DO JOGO
 const MemoryComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: boolean, scoreDelta: number) => void }> = ({ challenge, onAnswer }) => {
   const { deck, pairCount } = challenge.data;
   const [flipped, setFlipped] = useState<number[]>([]);
@@ -57,12 +50,10 @@ const MemoryComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: bo
         setMatched(prev => [...prev, card1]);
         setFlipped([]);
         if (matched.length + 1 === pairCount) {
-          onAnswer(true, pairCount * 10); // Informa o motor que a fase foi concluída
+          onAnswer(true, pairCount * 10);
         }
       } else {
-        setTimeout(() => {
-          setFlipped([]);
-        }, 800);
+        setTimeout(() => setFlipped([]), 800);
       }
     }
   };
@@ -94,7 +85,6 @@ const MemoryComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: bo
   );
 };
 
-// 3. EXPORTAÇÃO DO MÓDULO
 export const MemoryGameModule: GameModule = {
   id: "memory-core",
   title: "Jogo da Memória",
