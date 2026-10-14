@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import React, { useState } from "react";
 import { Sparkles, ArrowRight, Gamepad2, User, Calendar } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
@@ -12,20 +12,17 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   
-  // Dados do Convidado
   const [partyData, setPartyData] = useState<any>(null);
   const [guestName, setGuestName] = useState("");
   const [guestAge, setGuestAge] = useState("");
 
-  // Etapa 1: Validar o Código da Festa
-  async function handleVerifyCode(e: FormEvent) {
+  async function handleVerifyCode(e: React.FormEvent) {
     e.preventDefault();
     if (!code.trim()) return;
     
     setLoading(true);
     setError("");
 
-    // Procura a festa pelo ID ou pelo Nome Exato
     const { data, error: dbError } = await supabase
       .from("parties")
       .select("*")
@@ -39,19 +36,17 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
       setError("Código de aventura não encontrado. Tente novamente!");
     } else {
       setPartyData(data);
-      setStep(2); // Avança para perguntar os dados do convidado
+      setStep(2);
     }
   }
 
-  // Etapa 2: Entrar no Jogo com os Dados do Convidado
-  function handleEnterGame(e: FormEvent) {
+  function handleEnterGame(e: React.FormEvent) {
     e.preventDefault();
     if (!guestName.trim() || !guestAge) {
       setError("Preencha o seu nome e idade para brincar!");
       return;
     }
 
-    // Junta os dados da festa com os dados do convidado e envia para a App
     onLoginSuccess({
       ...partyData,
       guestName: guestName.trim(),
