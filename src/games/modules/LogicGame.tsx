@@ -2,20 +2,17 @@ import React from "react";
 import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 
 const generateLogicChallenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
-  const sourceImages = context.gameImages.length >= 2 ? context.gameImages : ["🍎", "🚗", "🐶", "⭐", "🎈"];
-  
   let attempts = 0;
   let signature = "";
   let options: string[] = [];
   let correct = "";
   
   do {
-    const selected = [...sourceImages].sort(() => Math.random() - 0.5).slice(0, 2);
+    const selected = [...context.gameImages].sort(() => Math.random() - 0.5).slice(0, 2);
     const majority = selected[0];
     const oddOne = selected[1];
     correct = oddOne;
     
-    // Nível 1: 3 itens. Nível alto: até 6 itens na grelha.
     const count = Math.min(6, Math.max(3, Math.floor(difficulty + 2))); 
     options = Array(count - 1).fill(majority);
     options.push(oddOne);
@@ -44,7 +41,7 @@ const LogicComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: boo
           <button
             key={idx}
             onClick={() => onAnswer(opt === correct, 10)}
-            className="aspect-square rounded-3xl bg-black/50 border border-white/20 hover:border-[#bef264] hover:bg-black/30 transition-all shadow-xl flex items-center justify-center overflow-hidden active:scale-95 p-4"
+            className="aspect-square rounded-3xl bg-black/50 border border-white/20 hover:border-[#bef264] transition-all shadow-xl flex items-center justify-center overflow-hidden p-4"
           >
             {isImage ? <img src={opt} alt="item" className="w-full h-full object-contain drop-shadow-md" /> : <span className="text-6xl drop-shadow-md">{opt}</span>}
           </button>
