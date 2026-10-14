@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Sparkles, ArrowRight, Gamepad2, User, Calendar } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
@@ -15,6 +15,22 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
   const [partyData, setPartyData] = useState<any>(null);
   const [guestName, setGuestName] = useState("");
   const [guestAge, setGuestAge] = useState("");
+
+  // MEMÓRIA DO CELULAR: Verifica se a criança já fez login neste aparelho
+  useEffect(() => {
+    const savedSession = localStorage.getItem('@party_guest_session');
+    if (savedSession) {
+      try {
+        const parsedData = JSON.parse(savedSession);
+        if (parsedData && parsedData.guestName) {
+          // Se já tem sessão salva, entra direto no jogo!
+          onLoginSuccess(parsedData);
+        }
+      } catch (e) {
+        console.error("Erro ao ler sessão salva", e);
+      }
+    }
+  }, [onLoginSuccess]);
 
   async function handleVerifyCode(e: React.FormEvent) {
     e.preventDefault();
@@ -80,8 +96,7 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
       return;
     }
 
-    // CORREÇÃO CRÍTICA: "Tradução" dos dados do Supabase (snake_case) para a App (camelCase)
-    onLoginSuccess({
+    const finalData = {
       ...partyData,
       partyName: partyData.party_name,
       childName: partyData.birthday_child_name,
@@ -91,7 +106,12 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
       theme: partyData.theme,
       guestName: guestName.trim(),
       guestAge: parseInt(guestAge, 10)
-    });
+    };
+
+    // GRAVA A SESSÃO NO CELULAR PARA NÃO PEDIR NOVAMENTE
+    localStorage.setItem('@party_guest_session', JSON.stringify(finalData));
+
+    onLoginSuccess(finalData);
   }
 
   return (
