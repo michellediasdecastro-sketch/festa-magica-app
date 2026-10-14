@@ -32,6 +32,11 @@ export function App() {
       }
     }
     fetchThemeBackgrounds();
+    
+    // Força o carregamento das vozes do sistema antecipadamente
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.getVoices();
+    }
   }, [isAdminOpen, partyData]);
 
   function getBackgroundForTheme(themeName: string) {
@@ -57,17 +62,33 @@ export function App() {
   const childAgeDisplay = partyData?.childAge || "5";
   const guestName = partyData?.guestName || "Amigo";
 
+  // FUNÇÃO DE VOZ MELHORADA (Menos robótica e com pausas)
   const speakWelcome = () => {
     if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
+    window.speechSynthesis.cancel(); // Para qualquer fala anterior
     
-    // NARRADOR: Lê exatamente o nome da festa que você cadastrou + a instrução
-    const textToSpeak = `${partyData?.partyName || "Aventura Mágica"}. Clique no botão verde para começarmos essa aventura!`;
-    
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.lang = 'pt-BR';
-    utterance.rate = 0.95;
-    window.speechSynthesis.speak(utterance);
+    // Tenta encontrar uma voz de melhor qualidade no aparelho
+    const voices = window.speechSynthesis.getVoices();
+    const ptVoice = voices.find(v => v.lang.includes('pt-BR') && v.name.includes('Google')) 
+                 || voices.find(v => v.lang.includes('pt-BR'));
+
+    // Primeira frase: Nome da festa
+    const utterance1 = new SpeechSynthesisUtterance(partyData?.partyName || "Aventura Mágica");
+    utterance1.lang = 'pt-BR';
+    utterance1.rate = 0.85; // Mais lento, menos atropelado
+    utterance1.pitch = 1.15; // Tom um pouquinho mais alegre/agudo para crianças
+    if (ptVoice) utterance1.voice = ptVoice;
+
+    // Segunda frase: Instrução (Enviada separadamente para forçar o navegador a dar uma pausa natural)
+    const utterance2 = new SpeechSynthesisUtterance("Agora... clique no botão verde, para começarmos essa aventura!");
+    utterance2.lang = 'pt-BR';
+    utterance2.rate = 0.85;
+    utterance2.pitch = 1.15;
+    if (ptVoice) utterance2.voice = ptVoice;
+
+    // Manda falar a 1 e depois a 2. O navegador gerencia a pausa entre elas!
+    window.speechSynthesis.speak(utterance1);
+    window.speechSynthesis.speak(utterance2);
   };
 
   useEffect(() => {
@@ -76,7 +97,6 @@ export function App() {
     }
   }, [partyData, isInGames]);
 
-  // FUNÇÃO DE LOGOUT REAL: Apaga a memória do celular para permitir novo login
   const handleLogout = () => {
     localStorage.removeItem('@party_guest_session');
     setPartyData(null);
