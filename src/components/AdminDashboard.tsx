@@ -1,5 +1,5 @@
-import { useState, useEffect, type FormEvent } from "react";
-import { Sparkles, PlusCircle, Layers, Calendar, ArrowLeft, Trash2, Edit2, Image as ImageIcon } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Sparkles, PlusCircle, Layers, Calendar as CalendarIcon, ArrowLeft, Trash2, Edit2, Image as ImageIcon } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 interface AdminDashboardProps {
@@ -10,14 +10,12 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<"themes" | "parties">("themes");
   const [message, setMessage] = useState("");
 
-  // Estados para Temas
   const [themes, setThemes] = useState<any[]>([]);
   const [editingThemeId, setEditingThemeId] = useState<string | null>(null);
   const [themeName, setThemeName] = useState("");
   const [backgroundUrl, setBackgroundUrl] = useState("");
   const [gameImagesInput, setGameImagesInput] = useState("");
 
-  // Estados para Experiências/Festas
   const [parties, setParties] = useState<any[]>([]);
   const [editingPartyId, setEditingPartyId] = useState<string | null>(null);
   const [partyName, setPartyName] = useState("");
@@ -41,7 +39,6 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
     if (data) setParties(data);
   }
 
-  // ---- FUNÇÕES DE TEMAS ----
   function handleEditTheme(t: any) {
     setEditingThemeId(t.id);
     setThemeName(t.theme_name);
@@ -57,7 +54,7 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
     setGameImagesInput("");
   }
 
-  async function handleSaveTheme(e: FormEvent) {
+  async function handleSaveTheme(e: React.FormEvent) {
     e.preventDefault();
     if (!themeName || !backgroundUrl) return setMessage("Preencha o nome e a imagem de fundo.");
 
@@ -69,7 +66,6 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
         background_url: backgroundUrl,
         game_images: gameImagesArray 
       }).eq("id", editingThemeId);
-      
       if (error) setMessage(`Erro: ${error.message}`);
       else { setMessage("Tema atualizado!"); resetThemeForm(); loadThemes(); }
     } else {
@@ -78,7 +74,6 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
         background_url: backgroundUrl,
         game_images: gameImagesArray 
       }]);
-      
       if (error) setMessage(`Erro: ${error.message}`);
       else { setMessage("Tema criado!"); resetThemeForm(); loadThemes(); }
     }
@@ -90,7 +85,6 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
     loadThemes();
   }
 
-  // ---- FUNÇÕES DE FESTAS ----
   function handleEditParty(p: any) {
     setEditingPartyId(p.id);
     setPartyName(p.party_name);
@@ -112,7 +106,7 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
     setCharacterName("");
   }
 
-  async function handleSaveParty(e: FormEvent) {
+  async function handleSaveParty(e: React.FormEvent) {
     e.preventDefault();
     if (!partyName || !childName || !selectedThemeId) return setMessage("Preencha os campos obrigatórios.");
 
@@ -148,7 +142,6 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
     <div className="w-full min-h-[100dvh] bg-black/90 text-white p-6 md:p-12 overflow-y-auto">
       <div className="max-w-6xl mx-auto">
         
-        {/* Cabeçalho */}
         <div className="flex flex-col sm:flex-row justify-between items-center pb-6 border-b border-white/15 gap-4">
           <button onClick={onBackToApp} className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-sm font-bold flex items-center gap-2">
             <ArrowLeft className="size-5" /> Voltar
@@ -158,21 +151,20 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
               <Layers className="inline size-4 mr-1.5" /> Temas
             </button>
             <button onClick={() => { setActiveTab("parties"); resetPartyForm(); }} className={`px-5 py-2.5 rounded-xl text-sm font-bold ${activeTab === 'parties' ? 'bg-[#bef264] text-black' : 'bg-white/10 hover:bg-white/20'}`}>
-              <Calendar className="inline size-4 mr-1.5" /> Festas
+              <CalendarIcon className="inline size-4 mr-1.5" /> Festas
             </button>
           </div>
         </div>
 
         {message && <div className="mt-4 p-3 bg-white/10 border border-white/20 text-center text-[#bef264] rounded-xl">{message}</div>}
 
-        {/* ABA TEMAS */}
         {activeTab === "themes" && (
           <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
             <form onSubmit={handleSaveTheme} className="flex flex-col gap-4 bg-white/5 p-6 rounded-3xl border border-white/10 h-fit">
               <h2 className="text-xl font-bold text-[#bef264]">{editingThemeId ? "Editar Tema" : "Novo Tema"}</h2>
               <input type="text" value={themeName} onChange={(e) => setThemeName(e.target.value)} placeholder="Nome do Tema" className="w-full p-3 rounded-xl bg-black/50 border border-white/20 text-white text-sm" />
               <input type="text" value={backgroundUrl} onChange={(e) => setBackgroundUrl(e.target.value)} placeholder="URL do Fundo Principal" className="w-full p-3 rounded-xl bg-black/50 border border-white/20 text-white text-sm" />
-              <textarea value={gameImagesInput} onChange={(e) => setGameImagesInput(e.target.value)} placeholder="Imagens PNG sem fundo separadas por vírgula (MUITO IMPORTANTE para os jogos)" rows={4} className="w-full p-3 rounded-xl bg-black/50 border border-white/20 text-white text-sm" />
+              <textarea value={gameImagesInput} onChange={(e) => setGameImagesInput(e.target.value)} placeholder="Imagens PNG sem fundo separadas por vírgula" rows={4} className="w-full p-3 rounded-xl bg-black/50 border border-white/20 text-white text-sm" />
               <div className="flex gap-2">
                 <button type="submit" className="flex-1 py-3 bg-[#bef264] text-black font-bold rounded-xl text-sm">Salvar</button>
                 {editingThemeId && <button type="button" onClick={resetThemeForm} className="px-4 bg-white/10 rounded-xl text-sm font-bold">Cancelar</button>}
@@ -196,14 +188,13 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
           </div>
         )}
 
-        {/* ABA FESTAS */}
         {activeTab === "parties" && (
           <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
             <form onSubmit={handleSaveParty} className="flex flex-col gap-4 bg-white/5 p-6 rounded-3xl border border-white/10 h-fit">
               <h2 className="text-xl font-bold text-[#bef264]">{editingPartyId ? "Editar Festa" : "Nova Festa"}</h2>
               <input type="text" value={partyName} onChange={(e) => setPartyName(e.target.value)} placeholder="Nome da Festa (Ex: Mundo do Lucas)" className="w-full p-3 rounded-xl bg-black/50 border border-white/20 text-white text-sm" />
               <div className="grid grid-cols-2 gap-2">
-                <input type="text" value={childName} onChange={(e) => setChildName(e.target.value)} placeholder="Nome da Criança" className="w-full p-3 rounded-xl bg-black/50 border border-white/20 text-white text-sm" />
+                <input type="text" value={childName} onChange={(e) => setChildName(e.target.value)} placeholder="Nome do Aniversariante" className="w-full p-3 rounded-xl bg-black/50 border border-white/20 text-white text-sm" />
                 <input type="number" value={childAge} onChange={(e) => setChildAge(e.target.value)} placeholder="Idade Exata" className="w-full p-3 rounded-xl bg-black/50 border border-white/20 text-white text-sm" />
               </div>
               <select value={selectedThemeId} onChange={(e) => setSelectedThemeId(e.target.value)} className="w-full p-3 rounded-xl bg-black/50 border border-white/20 text-white text-sm">
@@ -233,7 +224,6 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
             </div>
           </div>
         )}
-
       </div>
     </div>
   );
