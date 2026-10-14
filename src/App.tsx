@@ -10,6 +10,23 @@ export function App() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isInGames, setIsInGames] = useState(false);
   const [themeBackgrounds, setThemeBackgrounds] = useState<Record<string, string>>({});
+  const [isInitializing, setIsInitializing] = useState(true);
+
+  // MEMÓRIA RAIZ: Verifica a sessão salva assim que o site é aberto!
+  useEffect(() => {
+    const savedSession = localStorage.getItem('@party_guest_session');
+    if (savedSession) {
+      try {
+        const parsed = JSON.parse(savedSession);
+        if (parsed && parsed.guestName) {
+          setPartyData(parsed);
+        }
+      } catch (e) {
+        console.error("Sessão inválida", e);
+      }
+    }
+    setIsInitializing(false);
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -33,7 +50,6 @@ export function App() {
     }
     fetchThemeBackgrounds();
     
-    // Força o carregamento das vozes do sistema antecipadamente
     if ('speechSynthesis' in window) {
       window.speechSynthesis.getVoices();
     }
@@ -62,31 +78,26 @@ export function App() {
   const childAgeDisplay = partyData?.childAge || "5";
   const guestName = partyData?.guestName || "Amigo";
 
-  // FUNÇÃO DE VOZ MELHORADA (Menos robótica e com pausas)
   const speakWelcome = () => {
     if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel(); // Para qualquer fala anterior
+    window.speechSynthesis.cancel();
     
-    // Tenta encontrar uma voz de melhor qualidade no aparelho
     const voices = window.speechSynthesis.getVoices();
     const ptVoice = voices.find(v => v.lang.includes('pt-BR') && v.name.includes('Google')) 
                  || voices.find(v => v.lang.includes('pt-BR'));
 
-    // Primeira frase: Nome da festa
     const utterance1 = new SpeechSynthesisUtterance(partyData?.partyName || "Aventura Mágica");
     utterance1.lang = 'pt-BR';
-    utterance1.rate = 0.85; // Mais lento, menos atropelado
-    utterance1.pitch = 1.15; // Tom um pouquinho mais alegre/agudo para crianças
+    utterance1.rate = 0.85;
+    utterance1.pitch = 1.15;
     if (ptVoice) utterance1.voice = ptVoice;
 
-    // Segunda frase: Instrução (Enviada separadamente para forçar o navegador a dar uma pausa natural)
     const utterance2 = new SpeechSynthesisUtterance("Agora... clique no botão verde, para começarmos essa aventura!");
     utterance2.lang = 'pt-BR';
     utterance2.rate = 0.85;
     utterance2.pitch = 1.15;
     if (ptVoice) utterance2.voice = ptVoice;
 
-    // Manda falar a 1 e depois a 2. O navegador gerencia a pausa entre elas!
     window.speechSynthesis.speak(utterance1);
     window.speechSynthesis.speak(utterance2);
   };
@@ -100,8 +111,13 @@ export function App() {
   const handleLogout = () => {
     localStorage.removeItem('@party_guest_session');
     setPartyData(null);
+    setIsInGames(false);
     window.speechSynthesis.cancel();
   };
+
+  if (isInitializing) {
+    return <div className="min-h-screen w-full bg-black flex items-center justify-center"><Sparkles className="size-8 text-[#bef264] animate-spin" /></div>;
+  }
 
   return (
     <main className="relative min-h-[100dvh] w-full flex flex-col items-center justify-center p-3 sm:p-6 text-white overflow-x-hidden overflow-y-auto bg-black">
