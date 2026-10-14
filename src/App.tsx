@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { AccessLogin } from "./components/AccessLogin";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { PartyGames } from "./components/PartyGames";
-import { Gamepad2, Cake, Sparkles, Compass, Trophy, Footprints } from "lucide-react";
+import { Gamepad2, Cake, Sparkles, Compass, Trophy } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
 export function App() {
@@ -92,53 +92,53 @@ export function App() {
             {/* Cabeçalho Narrativo (Frase Secundária + Título Principal) */}
             <div className="w-full flex flex-col gap-1 text-center">
               <span className="text-xs sm:text-sm font-bold text-[#bef264] tracking-wide drop-shadow">
-                Prepare-se para uma grande aventura![cite: 15]
+                Prepare-se para uma grande aventura!
               </span>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] leading-tight">
                 {partyData.partyName}
               </h1>
             </div>
 
-            {/* Informações da Festa em Formato de Narrativa Lúdica (Sem aparência de formulário) */}
+            {/* Informações da Festa (Blocos internos com leve opacidade para legibilidade perfeita) */}
             <div className="w-full flex flex-col gap-2.5 text-left text-xs sm:text-sm">
               
               {/* Idade / Aniversariante */}
-              <div className="flex items-start gap-3 bg-transparent border border-white/20 px-4 py-3 rounded-2xl backdrop-blur-[1px] shadow-md">
+              <div className="flex items-start gap-3 bg-black/30 border border-white/25 px-4 py-3 rounded-2xl backdrop-blur-md shadow-md">
                 <span className="p-2 rounded-xl bg-white/10 text-[#bef264] shrink-0 mt-0.5">
                   <Cake className="size-4" />
                 </span>
                 <div>
                   <strong className="text-white font-bold block">
-                    {partyData.childName} está fazendo {partyData.childAge || partyData.age} anos![cite: 15]
+                    {partyData.childName} está fazendo {partyData.childAge || partyData.age} anos!
                   </strong>
-                  <span className="text-white/80 text-[11px]">E você foi convidado para essa aventura.[cite: 15]</span>
+                  <span className="text-white/80 text-[11px]">E você foi convidado para essa aventura.</span>
                 </div>
               </div>
 
               {/* Tema / Destino */}
-              <div className="flex items-start gap-3 bg-transparent border border-white/20 px-4 py-3 rounded-2xl backdrop-blur-[1px] shadow-md">
+              <div className="flex items-start gap-3 bg-black/30 border border-white/25 px-4 py-3 rounded-2xl backdrop-blur-md shadow-md">
                 <span className="p-2 rounded-xl bg-white/10 text-[#bef264] shrink-0 mt-0.5">
                   <Compass className="size-4" />
                 </span>
                 <div>
                   <strong className="text-white font-bold block">
-                    Destino: {partyData.theme}[cite: 15]
+                    Destino: {partyData.theme}
                   </strong>
-                  <span className="text-white/80 text-[11px]">Um universo cheio de descobertas e desafios.[cite: 15]</span>
+                  <span className="text-white/80 text-[11px]">Um universo cheio de descobertas e desafios.</span>
                 </div>
               </div>
 
               {/* Guia / Mascote */}
               {partyData.characterName && (
-                <div className="flex items-start gap-3 bg-transparent border border-white/20 px-4 py-3 rounded-2xl backdrop-blur-[1px] shadow-md">
+                <div className="flex items-start gap-3 bg-black/30 border border-white/25 px-4 py-3 rounded-2xl backdrop-blur-md shadow-md">
                   <span className="p-2 rounded-xl bg-white/10 text-[#bef264] shrink-0 mt-0.5">
                     <Trophy className="size-4" />
                   </span>
                   <div>
                     <strong className="text-white font-bold block">
-                      Seu companheiro: {partyData.characterName}[cite: 15]
+                      Seu companheiro: {partyData.characterName}
                     </strong>
-                    <span className="text-white/80 text-[11px]">Vai guiar você por todo o jogo.[cite: 15]</span>
+                    <span className="text-white/80 text-[11px]">Vai guiar você por todo o jogo.</span>
                   </div>
                 </div>
               )}
@@ -150,7 +150,7 @@ export function App() {
               onClick={() => setIsInGames(true)}
               className="w-full py-4 px-6 rounded-2xl bg-[#bef264] text-black font-black text-base sm:text-lg tracking-wide hover:opacity-95 transition-all cursor-pointer shadow-[0_0_30px_rgba(190,242,100,0.4)] flex items-center justify-center gap-2.5 transform active:scale-95 uppercase mt-1"
             >
-              <Gamepad2 className="size-6" /> COMEÇAR A AVENTURA[cite: 15]
+              <Gamepad2 className="size-6" /> COMEÇAR A AVENTURA
             </button>
 
             {/* Rodapé Discreto */}
@@ -159,7 +159,7 @@ export function App() {
                 onClick={() => setPartyData(null)}
                 className="hover:text-[#bef264] underline cursor-pointer transition-colors font-medium py-1"
               >
-                Sair / Inserir outro código[cite: 15]
+                Sair / Inserir outro código
               </button>
             </div>
 
