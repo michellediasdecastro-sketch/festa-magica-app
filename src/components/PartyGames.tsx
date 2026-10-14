@@ -25,7 +25,7 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
   const [currentChallenge, setCurrentChallenge] = useState<any>(null);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
 
-  const age = partyData.childAge || partyData.age || 5;
+  const age = partyData.guestAge || 5; // Usa a idade do convidado informada no login!
   const ageGroup: AgeGroup = age <= 5 ? "4-5" : age <= 7 ? "6-7" : age <= 9 ? "8-9" : "10-11";
 
   // Imagens muito mais ricas como plano B caso o tema não tenha imagens suficientes
@@ -33,8 +33,8 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
 
   const partyContext: PartyContext = useMemo(() => ({
     theme: partyData.theme || "Aventura",
-    childName: partyData.birthdayChildName || partyData.childName || "Aventureiro",
-    childAge: age,
+    childName: partyData.guestName || "Aventureiro", // A voz e os jogos vão usar o nome do convidado!
+    childAge: partyData.childAge || 5,
     characterName: partyData.characterName || "Mascote",
     gameImages: themeImages.length > 0 ? themeImages : fallbackImages
   }), [partyData, themeImages, age]);
