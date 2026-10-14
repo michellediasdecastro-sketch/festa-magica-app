@@ -27,15 +27,13 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
     try {
       let foundParty = null;
 
-      // 1. Procura primeiro na tabela access_codes pela coluna code_token (baseado na sua imagem)
       const { data: tokenData } = await supabase
         .from("access_codes")
         .select("party_id")
         .eq("code_token", trimmedCode)
-        .maybeSingle(); // maybeSingle evita erros fatais caso não encontre nada
+        .maybeSingle();
 
       if (tokenData && tokenData.party_id) {
-        // Se o token existe, procura a festa correspondente pelo party_id
         const { data: partyResult } = await supabase
           .from("parties")
           .select("*")
@@ -47,7 +45,6 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
         }
       }
 
-      // 2. Fallback Seguro: Se não achou um token, tenta procurar direto pelo nome da festa
       if (!foundParty) {
         const { data: partyByName } = await supabase
           .from("parties")
@@ -61,10 +58,9 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
         }
       }
 
-      // 3. Validação final para decidir se avança ou mostra erro
       if (foundParty) {
         setPartyData(foundParty);
-        setStep(2); // Vai para a etapa onde pede nome e idade do convidado
+        setStep(2);
       } else {
         setError("Código ou token não encontrado. Tente novamente!");
       }
@@ -84,8 +80,15 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
       return;
     }
 
+    // CORREÇÃO CRÍTICA: "Tradução" dos dados do Supabase (snake_case) para a App (camelCase)
     onLoginSuccess({
       ...partyData,
+      partyName: partyData.party_name,
+      childName: partyData.birthday_child_name,
+      childAge: partyData.child_age,
+      characterName: partyData.character_name,
+      photoUrl: partyData.photo_url,
+      theme: partyData.theme,
       guestName: guestName.trim(),
       guestAge: parseInt(guestAge, 10)
     });
