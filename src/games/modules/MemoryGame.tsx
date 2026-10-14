@@ -2,27 +2,34 @@ import React, { useState, useEffect } from "react";
 import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 
 const generateMemoryChallenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
-  const pairCount = Math.min(8, Math.max(2, Math.floor(difficulty + 1))); 
+  // Limpa imagens repetidas caso você tenha colado o mesmo link duas vezes
+  const uniqueImages = Array.from(new Set(context.gameImages));
+  const fallback = ["🍎", "🚗", "🐶", "⭐", "🎈", "🚀", "⚽", "🐻"];
+  const source = uniqueImages.length >= 2 ? uniqueImages : fallback;
+
+  // Dificuldade dinâmica: NUNCA pede mais pares do que o total de imagens que você colocou!
+  const targetPairCount = Math.min(8, Math.max(2, Math.floor(difficulty + 1))); 
+  const finalPairCount = Math.min(targetPairCount, source.length); 
   
   let attempts = 0;
   let signature = "";
   let deck: any[] = [];
   
   do {
-    const selectedImages = [...context.gameImages].sort(() => Math.random() - 0.5).slice(0, pairCount);
+    const selectedImages = [...source].sort(() => Math.random() - 0.5).slice(0, finalPairCount);
     deck = [...selectedImages, ...selectedImages]
       .sort(() => Math.random() - 0.5)
       .map((img, idx) => ({ id: idx, content: img }));
       
-    signature = `mem-${pairCount}-${deck.map(d => d.content.substring(0,3)).join('')}`;
+    signature = `mem-${finalPairCount}-${deck.map(d => d.content.substring(0,3)).join('')}`;
     attempts++;
   } while (history.includes(signature) && attempts < 10);
 
   return {
-    id: signature,
+    id: signature || Date.now().toString(),
     instruction: "Encontre os pares escondidos!",
     spokenText: `Ajude o ${context.characterName} a encontrar os pares iguais!`,
-    data: { deck, pairCount }
+    data: { deck, pairCount: finalPairCount }
   };
 };
 
@@ -47,11 +54,15 @@ const MemoryComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: bo
       const card2 = deck[newFlipped[1]].content;
 
       if (card1 === card2) {
-        setMatched(prev => [...prev, card1]);
+        setMatched(prev => {
+          const newMatched = [...prev, card1];
+          // Lógica 100% segura para avançar quando encontrar o último par
+          if (newMatched.length === pairCount) {
+            setTimeout(() => onAnswer(true, pairCount * 10), 600); // Dá tempo da criança ver a carta virar
+          }
+          return newMatched;
+        });
         setFlipped([]);
-        if (matched.length + 1 === pairCount) {
-          onAnswer(true, pairCount * 10);
-        }
       } else {
         setTimeout(() => setFlipped([]), 800);
       }
@@ -74,9 +85,9 @@ const MemoryComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: bo
               ${isRevealed ? 'bg-white/20 border-[#bef264] scale-100 rotate-y-180' : 'bg-black/60 border-white/20 hover:bg-black/40 hover:scale-105'}`}
           >
             {isRevealed ? (
-              isImage ? <img src={card.content} alt="card" className="w-full h-full object-cover" /> : <span className="text-4xl">{card.content}</span>
+              isImage ? <img src={card.content} alt="card" className="w-full h-full object-cover pointer-events-none" /> : <span className="text-4xl pointer-events-none">{card.content}</span>
             ) : (
-              <span className="text-3xl text-white/40">❓</span>
+              <span className="text-3xl text-white/40 pointer-events-none">❓</span>
             )}
           </button>
         );
@@ -89,7 +100,7 @@ export const MemoryGameModule: GameModule = {
   id: "memory-core",
   title: "Jogo da Memória",
   categoryId: "memoria",
-  supportedAges: ["4-5", "6-7", "8-9", "10-11"],
+  supportedAges: ["4-5", "6-7", "8-9", "10-11"], // TODAS AS IDADES PERMITIDAS
   generateChallenge: generateMemoryChallenge,
   component: MemoryComponent
 };
