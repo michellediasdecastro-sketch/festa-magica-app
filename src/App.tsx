@@ -99,11 +99,11 @@ export function App() {
               </h1>
             </div>
 
-            {/* Informações da Festa (Blocos internos com leve opacidade para legibilidade perfeita) */}
+            {/* Informações da Festa (Blocos internos com opacidade ligeiramente ajustada para melhor leitura) */}
             <div className="w-full flex flex-col gap-2.5 text-left text-xs sm:text-sm">
               
-              {/* Idade / Aniversariante */}
-              <div className="flex items-start gap-3 bg-black/30 border border-white/25 px-4 py-3 rounded-2xl backdrop-blur-md shadow-md">
+              {/* Idade / Aniversariante com o nome antes */}
+              <div className="flex items-start gap-3 bg-black/45 border border-white/30 px-4 py-3 rounded-2xl backdrop-blur-md shadow-md">
                 <span className="p-2 rounded-xl bg-white/10 text-[#bef264] shrink-0 mt-0.5">
                   <Cake className="size-4" />
                 </span>
@@ -116,7 +116,7 @@ export function App() {
               </div>
 
               {/* Tema / Destino */}
-              <div className="flex items-start gap-3 bg-black/30 border border-white/25 px-4 py-3 rounded-2xl backdrop-blur-md shadow-md">
+              <div className="flex items-start gap-3 bg-black/45 border border-white/30 px-4 py-3 rounded-2xl backdrop-blur-md shadow-md">
                 <span className="p-2 rounded-xl bg-white/10 text-[#bef264] shrink-0 mt-0.5">
                   <Compass className="size-4" />
                 </span>
@@ -130,7 +130,7 @@ export function App() {
 
               {/* Guia / Mascote */}
               {partyData.characterName && (
-                <div className="flex items-start gap-3 bg-black/30 border border-white/25 px-4 py-3 rounded-2xl backdrop-blur-md shadow-md">
+                <div className="flex items-start gap-3 bg-black/45 border border-white/30 px-4 py-3 rounded-2xl backdrop-blur-md shadow-md">
                   <span className="p-2 rounded-xl bg-white/10 text-[#bef264] shrink-0 mt-0.5">
                     <Trophy className="size-4" />
                   </span>
