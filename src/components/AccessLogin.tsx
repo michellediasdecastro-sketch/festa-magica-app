@@ -18,25 +18,62 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
 
   async function handleVerifyCode(e: React.FormEvent) {
     e.preventDefault();
-    if (!code.trim()) return;
+    const trimmedCode = code.trim();
+    if (!trimmedCode) return;
     
     setLoading(true);
     setError("");
 
-    const { data, error: dbError } = await supabase
-      .from("parties")
-      .select("*")
-      .or(`id.eq.${code.trim()},party_name.ilike.${code.trim()}`)
-      .limit(1)
-      .single();
+    try {
+      let foundParty = null;
 
-    setLoading(false);
+      // 1. Procura primeiro na tabela access_codes pela coluna code_token (baseado na sua imagem)
+      const { data: tokenData } = await supabase
+        .from("access_codes")
+        .select("party_id")
+        .eq("code_token", trimmedCode)
+        .maybeSingle(); // maybeSingle evita erros fatais caso não encontre nada
 
-    if (dbError || !data) {
-      setError("Código de aventura não encontrado. Tente novamente!");
-    } else {
-      setPartyData(data);
-      setStep(2);
+      if (tokenData && tokenData.party_id) {
+        // Se o token existe, procura a festa correspondente pelo party_id
+        const { data: partyResult } = await supabase
+          .from("parties")
+          .select("*")
+          .eq("id", tokenData.party_id)
+          .single();
+          
+        if (partyResult) {
+          foundParty = partyResult;
+        }
+      }
+
+      // 2. Fallback Seguro: Se não achou um token, tenta procurar direto pelo nome da festa
+      if (!foundParty) {
+        const { data: partyByName } = await supabase
+          .from("parties")
+          .select("*")
+          .ilike("party_name", trimmedCode)
+          .limit(1)
+          .maybeSingle();
+          
+        if (partyByName) {
+          foundParty = partyByName;
+        }
+      }
+
+      // 3. Validação final para decidir se avança ou mostra erro
+      if (foundParty) {
+        setPartyData(foundParty);
+        setStep(2); // Vai para a etapa onde pede nome e idade do convidado
+      } else {
+        setError("Código ou token não encontrado. Tente novamente!");
+      }
+
+    } catch (err) {
+      console.error(err);
+      setError("Erro de comunicação com o servidor.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -70,7 +107,7 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="Ex: festadolucas"
+              placeholder="Ex: 123456 ou festadolucas"
               className="w-full px-5 py-4 rounded-2xl bg-black/50 border border-white/20 text-white placeholder:text-white/30 text-center text-lg focus:outline-none focus:border-[#bef264] transition-colors"
             />
             {error && <span className="text-red-400 text-xs font-bold">{error}</span>}
