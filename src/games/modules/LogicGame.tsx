@@ -7,8 +7,12 @@ const generateLogicChallenge = (difficulty: number, context: PartyContext, histo
   let options: string[] = [];
   let correct = "";
   
+  const uniqueImages = Array.from(new Set(context.gameImages));
+  const fallback = ["🍎", "🚗", "🐶", "⭐", "🎈"];
+  const source = uniqueImages.length >= 2 ? uniqueImages : fallback;
+
   do {
-    const selected = [...context.gameImages].sort(() => Math.random() - 0.5).slice(0, 2);
+    const selected = [...source].sort(() => Math.random() - 0.5).slice(0, 2);
     const majority = selected[0];
     const oddOne = selected[1];
     correct = oddOne;
@@ -23,7 +27,7 @@ const generateLogicChallenge = (difficulty: number, context: PartyContext, histo
   } while (history.includes(signature) && attempts < 10);
 
   return {
-    id: signature,
+    id: signature || Date.now().toString(),
     instruction: "Encontre o intruso!",
     spokenText: "Um destes é diferente. Toque no intruso!",
     data: { options, correct }
@@ -43,7 +47,7 @@ const LogicComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: boo
             onClick={() => onAnswer(opt === correct, 10)}
             className="aspect-square rounded-3xl bg-black/50 border border-white/20 hover:border-[#bef264] transition-all shadow-xl flex items-center justify-center overflow-hidden p-4"
           >
-            {isImage ? <img src={opt} alt="item" className="w-full h-full object-contain drop-shadow-md" /> : <span className="text-6xl drop-shadow-md">{opt}</span>}
+            {isImage ? <img src={opt} alt="item" className="w-full h-full object-contain drop-shadow-md pointer-events-none" /> : <span className="text-6xl drop-shadow-md pointer-events-none">{opt}</span>}
           </button>
         );
       })}
@@ -55,7 +59,7 @@ export const LogicGameModule: GameModule = {
   id: "logic-odd-one",
   title: "O Intruso",
   categoryId: "logica",
-  supportedAges: ["4-5", "6-7"],
+  supportedAges: ["4-5", "6-7", "8-9", "10-11"], // TODAS AS IDADES PERMITIDAS
   generateChallenge: generateLogicChallenge,
   component: LogicComponent
 };
