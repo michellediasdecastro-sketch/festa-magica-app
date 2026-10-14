@@ -1,10 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Volume2, VolumeX, X, Trophy, ArrowLeft } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import type { PartyContext, AgeGroup } from "../lib/gameTypes";
 import { GameRegistry, Categories } from "../games/GameRegistry";
 
-// Motor de áudio global (evita que os sons parem de funcionar ou travem o navegador)
 let sharedAudioCtx: AudioContext | null = null;
 
 interface PartyGamesProps {
@@ -25,17 +24,17 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
   const [currentChallenge, setCurrentChallenge] = useState<any>(null);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
 
-  const age = partyData.guestAge || 5; // Usa a idade do convidado informada no login!
+  // Usa a idade do convidado informada no login. Se falhar, usa a da festa ou 5.
+  const age = partyData.guestAge || partyData.child_age || partyData.childAge || 5;
   const ageGroup: AgeGroup = age <= 5 ? "4-5" : age <= 7 ? "6-7" : age <= 9 ? "8-9" : "10-11";
 
-  // Imagens muito mais ricas como plano B caso o tema não tenha imagens suficientes
   const fallbackImages = ["🍎", "🚗", "🐶", "⭐", "🎈", "🚀", "🐱", "⚽", "🐻", "🦄", "🐼", "🦊", "🦕", "🦋"];
 
   const partyContext: PartyContext = useMemo(() => ({
     theme: partyData.theme || "Aventura",
-    childName: partyData.guestName || "Aventureiro", // A voz e os jogos vão usar o nome do convidado!
-    childAge: partyData.childAge || 5,
-    characterName: partyData.characterName || "Mascote",
+    childName: partyData.guestName || "Aventureiro", // Usa o NOME DO CONVIDADO
+    childAge: age,
+    characterName: partyData.character_name || partyData.characterName || "Mascote",
     gameImages: themeImages.length > 0 ? themeImages : fallbackImages
   }), [partyData, themeImages, age]);
 
@@ -185,7 +184,6 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
            }`}>
              <h3 className="text-xl sm:text-2xl font-black text-center mb-6">{currentChallenge?.instruction}</h3>
              
-             {/* A key forçada recria o componente a cada desafio, removendo o bug da borda presa! */}
              <div key={currentChallenge?.id}>
                {ActiveGameComponent && currentChallenge && (
                   <ActiveGameComponent challenge={currentChallenge} onAnswer={handleAnswer} />
