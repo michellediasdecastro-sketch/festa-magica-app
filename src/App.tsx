@@ -53,6 +53,10 @@ export function App() {
     );
   }
 
+  // Identifica o nome correto da criança independentemente da propriedade na base de dados
+  const childDisplayName = partyData?.birthdayChildName || partyData?.childName || partyData?.name || "Aniversariante";
+  const childAgeDisplay = partyData?.childAge || partyData?.age || "5";
+
   return (
     <main className="relative min-h-[100dvh] w-full flex flex-col items-center justify-center p-3 sm:p-6 text-white overflow-x-hidden overflow-y-auto bg-black">
       {/* Imagem de Fundo Estrita do Tema */}
@@ -79,7 +83,7 @@ export function App() {
             <div className="relative -mt-10 mb-0">
               <div className="w-24 h-24 rounded-full border-4 border-[#bef264] bg-black/60 shadow-xl overflow-hidden flex items-center justify-center relative backdrop-blur-md">
                 {partyData.photoUrl ? (
-                  <img src={partyData.photoUrl} alt={partyData.childName} className="w-full h-full object-cover" />
+                  <img src={partyData.photoUrl} alt={childDisplayName} className="w-full h-full object-cover" />
                 ) : (
                   <Cake className="size-10 text-[#bef264]" />
                 )}
@@ -99,17 +103,17 @@ export function App() {
               </h1>
             </div>
 
-            {/* Informações da Festa (Blocos internos com opacidade ligeiramente ajustada para melhor leitura) */}
+            {/* Informações da Festa */}
             <div className="w-full flex flex-col gap-2.5 text-left text-xs sm:text-sm">
               
-              {/* Idade / Aniversariante com o nome antes */}
+              {/* Idade / Aniversariante com o nome explícito antes */}
               <div className="flex items-start gap-3 bg-black/45 border border-white/30 px-4 py-3 rounded-2xl backdrop-blur-md shadow-md">
                 <span className="p-2 rounded-xl bg-white/10 text-[#bef264] shrink-0 mt-0.5">
                   <Cake className="size-4" />
                 </span>
                 <div>
                   <strong className="text-white font-bold block">
-                    {partyData.childName} está fazendo {partyData.childAge || partyData.age} anos!
+                    {childDisplayName} está fazendo {childAgeDisplay} anos!
                   </strong>
                   <span className="text-white/80 text-[11px]">E você foi convidado para essa aventura.</span>
                 </div>
