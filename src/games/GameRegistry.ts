@@ -1,11 +1,11 @@
-import { Puzzle, Brain, Search, Sparkles, Calculator, Map as MapIcon, Eye, Palette } from "lucide-react";
+import { Puzzle, Brain, Search, Sparkles, Calculator, Map as MapIcon, Eye, Palette, Trophy } from "lucide-react";
 import { MemoryGameModule } from "./modules/MemoryGame";
 import { LogicGameModule } from "./modules/LogicGame";
 import { MathGameModule } from "./modules/MathGame";
 
 // Catálogo Mestre Organizador
 export const Categories: Record<string, any[]> = {
-  // FAIXA 4-5 ANOS (As 8 Categorias Exigidas)
+  // FAIXA 4-5 ANOS
   "4-5": [
     { id: "busca", title: "Caça ao Tesouro", icon: Search },
     { id: "memoria", title: "Memória Mágica", icon: Sparkles },
@@ -26,7 +26,7 @@ export const Categories: Record<string, any[]> = {
     { id: "logica", title: "Sequências e Padrões", icon: Brain },
     { id: "labirinto", title: "Labirintos com Regras", icon: MapIcon },
     { id: "quebra-cabeca", title: "Montagem de Cenas", icon: Puzzle },
-    { id: "missoes", title: "Missões de Lógica", icon: Trophy }, // Trophy imported if needed, or reuse Brain
+    { id: "missoes", title: "Missões de Lógica", icon: Trophy }, 
   ],
   
   // FAIXA 8-9 ANOS
@@ -54,7 +54,7 @@ export const Categories: Record<string, any[]> = {
   ]
 };
 
-// Aqui nós ligamos os componentes físicos às categorias acima
+// Aqui nós ligamos os componentes físicos às categorias
 export const GameRegistry = [
   MemoryGameModule,
   LogicGameModule,
