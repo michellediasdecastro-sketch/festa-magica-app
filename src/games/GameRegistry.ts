@@ -20,6 +20,9 @@ import { Maze6GameModule } from "./modules/Maze6Game";
 import { Scene6GameModule } from "./modules/Scene6Game";
 import { Logic6GameModule } from "./modules/Logic6Game";
 
+// Módulos 8-9 Anos
+import { Maze8GameModule } from "./modules/Maze8Game";
+
 export const Categories: Record<string, any[]> = {
   "4-5": [
     { id: "busca-4", title: "Caça ao Tesouro", icon: Search },
@@ -82,5 +85,8 @@ export const GameRegistry = [
   { ...Search6GameModule, categoryId: "misterios-6", supportedAges: ["6-7"] },
   { ...Maze6GameModule, categoryId: "labirinto-6", supportedAges: ["6-7"] },
   { ...Scene6GameModule, categoryId: "montagem-6", supportedAges: ["6-7"] },
-  { ...Logic6GameModule, categoryId: "missoes-6", supportedAges: ["6-7"] }
+  { ...Logic6GameModule, categoryId: "missoes-6", supportedAges: ["6-7"] },
+
+  // 8-9 ANOS
+  { ...Maze8GameModule, categoryId: "labirinto-8", supportedAges: ["8-9"] }
 ];
