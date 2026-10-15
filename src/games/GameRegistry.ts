@@ -1,6 +1,6 @@
 import { Puzzle, Brain, Search, Sparkles, Calculator, Map as MapIcon, Eye, Palette, Trophy, Fingerprint, Lock, Route, Compass } from "lucide-react";
 
-// Módulos atuais (que agora serão restritos para 4-5 anos)
+// Módulos 4-5 Anos
 import { MemoryGameModule } from "./modules/MemoryGame";
 import { LogicGameModule } from "./modules/LogicGame";
 import { MathGameModule } from "./modules/MathGame";
@@ -10,7 +10,9 @@ import { PuzzleGameModule } from "./modules/PuzzleGame";
 import { MazeGameModule } from "./modules/MazeGame";
 import { AttentionGameModule } from "./modules/AttentionGame";
 
-// (Os novos módulos das outras idades serão importados aqui à medida que os criarmos)
+// Módulos 6-7 Anos
+import { MathAdvancedGameModule } from "./modules/MathAdvancedGame";
+import { WordsGameModule } from "./modules/WordsGame";
 
 export const Categories: Record<string, any[]> = {
   "4-5": [
@@ -55,10 +57,8 @@ export const Categories: Record<string, any[]> = {
   ]
 };
 
-// Aqui nós ligamos os componentes físicos aos IDs únicos das categorias.
-// Desta forma, o jogo "matematica-4" é fisicamente diferente do "matematica-10".
 export const GameRegistry = [
-  // JOGOS 4-5 ANOS (Restringindo os antigos apenas para esta faixa)
+  // JOGOS 4-5 ANOS
   { ...MemoryGameModule, categoryId: "memoria-4", supportedAges: ["4-5"] },
   { ...LogicGameModule, categoryId: "logica-4", supportedAges: ["4-5"] },
   { ...MathGameModule, categoryId: "matematica-4", supportedAges: ["4-5"] },
@@ -66,5 +66,9 @@ export const GameRegistry = [
   { ...ShadowGameModule, categoryId: "cores-formas-4", supportedAges: ["4-5"] },
   { ...PuzzleGameModule, categoryId: "quebra-cabeca-4", supportedAges: ["4-5"] },
   { ...MazeGameModule, categoryId: "labirinto-4", supportedAges: ["4-5"] },
-  { ...AttentionGameModule, categoryId: "atencao-4", supportedAges: ["4-5"] }
+  { ...AttentionGameModule, categoryId: "atencao-4", supportedAges: ["4-5"] },
+  
+  // JOGOS 6-7 ANOS
+  { ...MathAdvancedGameModule, categoryId: "matematica-6", supportedAges: ["6-7"] },
+  { ...WordsGameModule, categoryId: "letras-6", supportedAges: ["6-7"] }
 ];
