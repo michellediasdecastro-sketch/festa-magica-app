@@ -42,7 +42,7 @@ const generateMaze6Challenge = (difficulty: number, context: PartyContext, histo
   return {
     id: `maze-real-6-${Date.now()}-${Math.random()}`,
     instruction: "Trace o caminho para escapar!",
-    spokenText: "Arraste o dedo ou o rato para desenhar o caminho até à saída.",
+    spokenText: "Arraste o dedo ou o mouse para desenhar o caminho até à saída.",
     data: { grid, size, avatar, target }
   };
 };
