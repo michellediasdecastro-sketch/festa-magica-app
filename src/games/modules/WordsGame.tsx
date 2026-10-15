@@ -14,12 +14,35 @@ const DINO_DB: Record<string, any> = {
   "IGUANODON": { word: "DENTES", display: "DENTES", phrase: "Tem", suffix: "fortes", syllables: 2, trait: "Dentes Fortes" },
   "CARNOTAURUS": { word: "CHIFRES", display: "CHIFRES", phrase: "Pequenos", suffix: "na cabeça", syllables: 2, trait: "Chifres Pequenos" },
   "THERIZINOSAURUS": { word: "UNHAS", display: "UNHAS", phrase: "Tem", suffix: "gigantes", syllables: 2, trait: "Unhas Gigantes" },
-  // Adicionados os 3 dinossauros que faltavam da sua lista!
   "PACHYCEPHALOSAURUS": { word: "CABECA", display: "CABEÇA", phrase: "Tem uma", suffix: "muito dura", syllables: 3, trait: "Cabeça Dura" },
   "COMPSOGNATHUS": { word: "TAMANHO", display: "TAMANHO", phrase: "É do", suffix: "de uma galinha", syllables: 3, trait: "Tamanho Pequeno" },
   "ARCHAEOPTERYX": { word: "PENAS", display: "PENAS", phrase: "Tem", suffix: "pelo corpo", syllables: 2, trait: "Penas no Corpo" },
-  "DEFAULT": { word: "CAUDA", display: "CAUDA", phrase: "Tem uma", suffix: "forte", syllables: 2, trait: "Cauda Forte" }
+  "TYRANNOSAURUS": { word: "DENTES", display: "DENTES", phrase: "Tem", suffix: "gigantes", syllables: 2, trait: "Dentes Gigantes" },
+  "TREX": { word: "DENTES", display: "DENTES", phrase: "Tem", suffix: "gigantes", syllables: 2, trait: "Dentes Gigantes" },
+  "APATOSAURUS": { word: "PESCOCO", display: "PESCOÇO", phrase: "Tem um", suffix: "muito longo", syllables: 3, trait: "Pescoço Longo" },
+  "DIPLODOCUS": { word: "CAUDA", display: "CAUDA", phrase: "Parece um", suffix: "chicote", syllables: 2, trait: "Cauda de Chicote" },
+  "ALLOSAURUS": { word: "GARRAS", display: "GARRAS", phrase: "Tem", suffix: "poderosas", syllables: 2, trait: "Garras Poderosas" },
+  "GALLIMIMUS": { word: "PERNAS", display: "PERNAS", phrase: "Tem", suffix: "rápidas", syllables: 2, trait: "Pernas Rápidas" },
+  "MOSASAURUS": { word: "BARBATANA", display: "BARBATANA", phrase: "Usa a", suffix: "para nadar", syllables: 4, trait: "Barbatana Grande" },
+  "PLESIOSAURUS": { word: "PESCOCO", display: "PESCOÇO", phrase: "Tem um", suffix: "na água", syllables: 3, trait: "Pescoço Aquático" },
+  "BARYONYX": { word: "FOCINHO", display: "FOCINHO", phrase: "Parece um", suffix: "crocodilo", syllables: 3, trait: "Focinho Comprido" },
+  "OVIRAPTOR": { word: "BICO", display: "BICO", phrase: "Tem um", suffix: "forte", syllables: 2, trait: "Bico Forte" },
+  "MICRORAPTOR": { word: "PENAS", display: "PENAS", phrase: "Tem", suffix: "nas quatro patas", syllables: 2, trait: "Penas nas Patas" },
+  "GIGANOTOSAURUS": { word: "TAMANHO", display: "TAMANHO", phrase: "É um", suffix: "gigante", syllables: 3, trait: "Tamanho Gigante" },
+  "CORYTHOSAURUS": { word: "CRESTA", display: "CRESTA", phrase: "Tem uma", suffix: "redonda", syllables: 2, trait: "Cresta Redonda" },
+  "STYRACOSAURUS": { word: "CHIFRES", display: "CHIFRES", phrase: "Tem", suffix: "no pescoço", syllables: 2, trait: "Chifres no Pescoço" },
+  "KENTROSAURUS": { word: "ESPINHOS", display: "ESPINHOS", phrase: "Tem", suffix: "nas costas", syllables: 3, trait: "Espinhos nas Costas" },
+  "MAIASAURA": { word: "NINHO", display: "NINHO", phrase: "Cuida do", suffix: "com os filhotes", syllables: 2, trait: "Cuida do Ninho" },
+  "DIMETRODON": { word: "VELA", display: "VELA", phrase: "Tem uma", suffix: "grande nas costas", syllables: 2, trait: "Vela Grande" },
+  "RAPTOR": { word: "GARRAS", display: "GARRAS", phrase: "Tem", suffix: "curvadas", syllables: 2, trait: "Garras Curvadas" }
 };
+
+const FALLBACK_TRAITS = [
+  { word: "CAUDA", display: "CAUDA", phrase: "Tem uma", suffix: "forte", syllables: 2, trait: "Cauda Forte" },
+  { word: "PATAS", display: "PATAS", phrase: "Tem", suffix: "fortes", syllables: 2, trait: "Patas Fortes" },
+  { word: "ESCAMAS", display: "ESCAMAS", phrase: "Tem", suffix: "duras", syllables: 3, trait: "Escamas Duras" },
+  { word: "OLHOS", display: "OLHOS", phrase: "Tem", suffix: "atentos", syllables: 2, trait: "Olhos Atentos" }
+];
 
 const extractDinoKey = (url: string): string => {
   if (!url || !url.startsWith('http')) return "DEFAULT";
@@ -41,26 +64,30 @@ const generateWordsChallenge = (difficulty: number, context: PartyContext, histo
   const source = (context.gameImages && context.gameImages.length > 0) ? context.gameImages : ["🍎"];
   
   let attempts = 0;
-  let signature = "";
-  let variation = 0;
   let item = "";
   let dinoKey = "";
   let dinoInfo: any = null;
+  let variation = 0;
+
+  // TRAVA ANTI-REPETIÇÃO ABSOLUTA: Verifica se o dinossauro exato já foi usado recentemente
+  do {
+    item = source[Math.floor(Math.random() * source.length)];
+    dinoKey = extractDinoKey(item);
+    
+    if (dinoKey === "DEFAULT") {
+      dinoInfo = FALLBACK_TRAITS[Math.floor(Math.random() * FALLBACK_TRAITS.length)];
+    } else {
+      dinoInfo = DINO_DB[dinoKey];
+    }
+    
+    variation = Math.floor(Math.random() * 3);
+    attempts++;
+  } while (history.some(h => h.includes(item)) && attempts < 30); // Usa o link do item para bloquear repetição da mesma imagem
+
   let instruction = "";
   let spokenText = "";
   let options: any[] = [];
   let answer: any = "";
-
-  // TRAVA ANTI-REPETIÇÃO: Impede que o mesmo dinossauro com a mesma variação repita logo a seguir
-  do {
-    item = source[Math.floor(Math.random() * source.length)];
-    dinoKey = extractDinoKey(item);
-    dinoInfo = DINO_DB[dinoKey] || DINO_DB["DEFAULT"];
-    variation = Math.floor(Math.random() * 3);
-    
-    signature = `words-${variation}-${dinoKey}`;
-    attempts++;
-  } while (history.some(h => h.startsWith(signature)) && attempts < 20);
 
   if (variation === 0) {
     instruction = "Qual é a primeira letra?";
@@ -92,7 +119,7 @@ const generateWordsChallenge = (difficulty: number, context: PartyContext, histo
     answer = dinoInfo.trait;
     
     const optionsSet = new Set<string>([answer]);
-    const allKeys = Object.keys(DINO_DB).filter(k => k !== "DEFAULT" && k !== dinoKey);
+    const allKeys = Object.keys(DINO_DB).filter(k => k !== dinoKey);
     const shuffledKeys = allKeys.sort(() => Math.random() - 0.5);
     
     for (let i = 0; i < 3 && i < shuffledKeys.length; i++) {
@@ -101,16 +128,17 @@ const generateWordsChallenge = (difficulty: number, context: PartyContext, histo
     options = Array.from(optionsSet).sort(() => Math.random() - 0.5);
   }
 
+  // O ID guarda a imagem exata no histórico para a bloquear nas rondas seguintes
   return {
-    id: `${signature}-${Date.now()}`,
+    id: `words-${Date.now()}-${item}`, 
     instruction,
     spokenText,
-    data: { variation, item, dinoInfo, options, answer }
+    data: { variation, item, dinoInfo, options, answer, dinoKey }
   };
 };
 
 const WordsComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: boolean, scoreDelta: number) => void }> = ({ challenge, onAnswer }) => {
-  const { variation, item, dinoInfo, options, answer } = challenge.data;
+  const { variation, item, dinoInfo, options, answer, dinoKey } = challenge.data;
   const isImage = item && item.startsWith('http');
   const isTraitMode = variation === 2;
 
@@ -143,7 +171,7 @@ const WordsComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: boo
 
           {variation === 2 && (
             <div className="text-xl sm:text-2xl font-black text-white/90">
-               Este Dinossauro
+               {dinoKey !== "DEFAULT" ? dinoKey : "Este Dinossauro"}
             </div>
           )}
         </div>
