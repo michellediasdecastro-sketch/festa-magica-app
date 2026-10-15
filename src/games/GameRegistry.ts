@@ -13,6 +13,8 @@ import { AttentionGameModule } from "./modules/AttentionGame";
 // Módulos 6-7 Anos
 import { MathAdvancedGameModule } from "./modules/MathAdvancedGame";
 import { WordsGameModule } from "./modules/WordsGame";
+import { Puzzle6GameModule } from "./modules/Puzzle6Game";
+import { Memory6GameModule } from "./modules/Memory6Game";
 
 export const Categories: Record<string, any[]> = {
   "4-5": [
@@ -70,5 +72,7 @@ export const GameRegistry = [
   
   // JOGOS 6-7 ANOS
   { ...MathAdvancedGameModule, categoryId: "matematica-6", supportedAges: ["6-7"] },
-  { ...WordsGameModule, categoryId: "letras-6", supportedAges: ["6-7"] }
+  { ...WordsGameModule, categoryId: "letras-6", supportedAges: ["6-7"] },
+  { ...Puzzle6GameModule, categoryId: "sequencias-6", supportedAges: ["6-7"] },
+  { ...Memory6GameModule, categoryId: "memoria-6", supportedAges: ["6-7"] }
 ];
