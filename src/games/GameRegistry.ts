@@ -15,6 +15,10 @@ import { MathAdvancedGameModule } from "./modules/MathAdvancedGame";
 import { WordsGameModule } from "./modules/WordsGame";
 import { Puzzle6GameModule } from "./modules/Puzzle6Game";
 import { Memory6GameModule } from "./modules/Memory6Game";
+import { Search6GameModule } from "./modules/Search6Game";
+import { Maze6GameModule } from "./modules/Maze6Game";
+import { Scene6GameModule } from "./modules/Scene6Game";
+import { Logic6GameModule } from "./modules/Logic6Game";
 
 export const Categories: Record<string, any[]> = {
   "4-5": [
@@ -60,7 +64,7 @@ export const Categories: Record<string, any[]> = {
 };
 
 export const GameRegistry = [
-  // JOGOS 4-5 ANOS
+  // 4-5 ANOS
   { ...MemoryGameModule, categoryId: "memoria-4", supportedAges: ["4-5"] },
   { ...LogicGameModule, categoryId: "logica-4", supportedAges: ["4-5"] },
   { ...MathGameModule, categoryId: "matematica-4", supportedAges: ["4-5"] },
@@ -70,9 +74,13 @@ export const GameRegistry = [
   { ...MazeGameModule, categoryId: "labirinto-4", supportedAges: ["4-5"] },
   { ...AttentionGameModule, categoryId: "atencao-4", supportedAges: ["4-5"] },
   
-  // JOGOS 6-7 ANOS
+  // 6-7 ANOS
   { ...MathAdvancedGameModule, categoryId: "matematica-6", supportedAges: ["6-7"] },
   { ...WordsGameModule, categoryId: "letras-6", supportedAges: ["6-7"] },
   { ...Puzzle6GameModule, categoryId: "sequencias-6", supportedAges: ["6-7"] },
-  { ...Memory6GameModule, categoryId: "memoria-6", supportedAges: ["6-7"] }
+  { ...Memory6GameModule, categoryId: "memoria-6", supportedAges: ["6-7"] },
+  { ...Search6GameModule, categoryId: "misterios-6", supportedAges: ["6-7"] },
+  { ...Maze6GameModule, categoryId: "labirinto-6", supportedAges: ["6-7"] },
+  { ...Scene6GameModule, categoryId: "montagem-6", supportedAges: ["6-7"] },
+  { ...Logic6GameModule, categoryId: "missoes-6", supportedAges: ["6-7"] }
 ];
