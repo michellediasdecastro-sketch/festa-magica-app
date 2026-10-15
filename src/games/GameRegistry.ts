@@ -30,6 +30,14 @@ import { Words8GameModule } from "./modules/Words8Game";
 import { Logic8GameModule } from "./modules/Logic8Game";
 import { Clues8GameModule } from "./modules/Clues8Game";
 
+// Módulos 10-11 Anos
+import { Math10GameModule } from "./modules/Math10Game";
+import { Crypto10GameModule } from "./modules/Crypto10Game";
+import { Logic10GameModule } from "./modules/Logic10Game";
+import { Routes10GameModule } from "./modules/Routes10Game";
+import { Resources10GameModule } from "./modules/Resources10Game";
+import { Cases10GameModule } from "./modules/Cases10Game";
+
 export const Categories: Record<string, any[]> = {
   "4-5": [
     { id: "busca-4", title: "Caça ao Tesouro", icon: Search },
@@ -102,5 +110,17 @@ export const GameRegistry = [
   { ...Strategy8GameModule, categoryId: "estrategia-8", supportedAges: ["8-9"] },
   { ...Words8GameModule, categoryId: "palavras-8", supportedAges: ["8-9"] },
   { ...Logic8GameModule, categoryId: "logica-8", supportedAges: ["8-9"] },
-  { ...Clues8GameModule, categoryId: "pistas-8", supportedAges: ["8-9"] }
+  { ...Clues8GameModule, categoryId: "pistas-8", supportedAges: ["8-9"] },
+
+  // 10-11 ANOS
+  { ...Math10GameModule, categoryId: "matematica-10", supportedAges: ["10-11"] },
+  { ...Crypto10GameModule, categoryId: "criptogramas-10", supportedAges: ["10-11"] },
+  { ...Logic10GameModule, categoryId: "deducao-10", supportedAges: ["10-11"] },
+  { ...Routes10GameModule, categoryId: "rotas-10", supportedAges: ["10-11"] },
+  { ...Resources10GameModule, categoryId: "recursos-10", supportedAges: ["10-11"] },
+  
+  // Reutilização inteligente do módulo de "Casos" para cobrir as 3 facetas investigativas
+  { ...Cases10GameModule, categoryId: "casos-10", supportedAges: ["10-11"] },
+  { ...Cases10GameModule, categoryId: "interpretacao-10", supportedAges: ["10-11"] },
+  { ...Cases10GameModule, categoryId: "decisoes-10", supportedAges: ["10-11"] }
 ];
