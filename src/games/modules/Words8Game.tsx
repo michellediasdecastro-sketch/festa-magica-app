@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 
-const WORDS_DB = [
-  "CHIFRES", "PLACAS", "ARMADURA", "PESCOCO", "CRISTA", "VELA", "GARRAS", "ASAS", 
-  "VENENO", "DENTES", "UNHAS", "CABECA", "TAMANHO", "PENAS", "CAUDA", "PATAS", "ESCAMAS"
+// Base de Palavras Universais para Anagramas (Sem acentos para facilitar o teclado)
+const UNIVERSAL_WORDS = [
+  "FESTA", "BOLO", "MAGIA", "TESOURO", "CORAGEM", "AMIGO", "SEGREDO", 
+  "CHAVE", "PREMIO", "ALEGRIA", "FORCA", "VELA", "DOCE", "VITORIA", 
+  "MISTERIO", "DESAFIO", "ENIGMA", "CODIGO", "MAPA"
 ];
 
 const generateWords8Challenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
@@ -13,21 +15,22 @@ const generateWords8Challenge = (difficulty: number, context: PartyContext, hist
   let targetWord = "";
   let attempts = 0;
   do {
-    targetWord = WORDS_DB[Math.floor(Math.random() * WORDS_DB.length)];
+    targetWord = UNIVERSAL_WORDS[Math.floor(Math.random() * UNIVERSAL_WORDS.length)];
     attempts++;
   } while (history.some(h => h.includes(targetWord)) && attempts < 20);
 
   const letters = targetWord.split("");
   let scrambled = [...letters].sort(() => Math.random() - 0.5);
   
+  // Garante que o baralhamento não gerou a palavra certa por acidente
   while (scrambled.join("") === targetWord && targetWord.length > 1) {
     scrambled = [...letters].sort(() => Math.random() - 0.5);
   }
 
   return {
     id: `words8-${Date.now()}-${targetWord}`,
-    instruction: "Desembaralhe a palavra!",
-    spokenText: "As letras estão todas misturadas. Toque nelas na ordem certa para formar a palavra.",
+    instruction: "Desembaralhe a Senha!",
+    spokenText: "A palavra secreta foi toda misturada! Toque nas letras na ordem certa para revelar a senha de acesso.",
     data: { item, targetWord, scrambled: scrambled.map((l, i) => ({ id: i, char: l })) }
   };
 };
@@ -49,13 +52,15 @@ const Words8Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: bo
     setSelectedLetters(newSelected);
     setAvailableLetters(availableLetters.filter(l => l.id !== letterObj.id));
 
+    // Quando a criança escolhe todas as letras, o sistema verifica se acertou a palavra
     if (newSelected.length === targetWord.length) {
       const formedWord = newSelected.map(l => l.char).join("");
       setTimeout(() => {
         if (formedWord === targetWord) {
           onAnswer(true, 30);
         } else {
-          onAnswer(false, 0);
+          onAnswer(false, 0); // Toca o erro
+          // Limpa o teclado para tentar novamente a mesma palavra
           setSelectedLetters([]);
           setAvailableLetters(scrambled);
         }
@@ -70,6 +75,10 @@ const Words8Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: bo
 
   return (
     <div className="flex flex-col items-center gap-6 w-full max-w-lg mx-auto">
+      <div className="text-[#bef264] text-sm font-bold uppercase tracking-widest text-center mb-[-1rem] z-10">
+          A Senha Secreta:
+      </div>
+      
       <div className="w-24 h-24 sm:w-32 sm:h-32 flex items-center justify-center bg-black/40 rounded-3xl border border-white/20 p-2 shadow-inner">
         {isImage ? (
            <img src={item} alt="item" className="w-full h-full object-contain drop-shadow-md pointer-events-none" onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }} />
