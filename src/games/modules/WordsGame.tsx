@@ -14,6 +14,10 @@ const DINO_DB: Record<string, any> = {
   "IGUANODON": { word: "DENTES", display: "DENTES", phrase: "Tem", suffix: "fortes", syllables: 2, trait: "Dentes Fortes" },
   "CARNOTAURUS": { word: "CHIFRES", display: "CHIFRES", phrase: "Pequenos", suffix: "na cabeça", syllables: 2, trait: "Chifres Pequenos" },
   "THERIZINOSAURUS": { word: "UNHAS", display: "UNHAS", phrase: "Tem", suffix: "gigantes", syllables: 2, trait: "Unhas Gigantes" },
+  // Adicionados os 3 dinossauros que faltavam da sua lista!
+  "PACHYCEPHALOSAURUS": { word: "CABECA", display: "CABEÇA", phrase: "Tem uma", suffix: "muito dura", syllables: 3, trait: "Cabeça Dura" },
+  "COMPSOGNATHUS": { word: "TAMANHO", display: "TAMANHO", phrase: "É do", suffix: "de uma galinha", syllables: 3, trait: "Tamanho Pequeno" },
+  "ARCHAEOPTERYX": { word: "PENAS", display: "PENAS", phrase: "Tem", suffix: "pelo corpo", syllables: 2, trait: "Penas no Corpo" },
   "DEFAULT": { word: "CAUDA", display: "CAUDA", phrase: "Tem uma", suffix: "forte", syllables: 2, trait: "Cauda Forte" }
 };
 
@@ -35,17 +39,28 @@ const extractDinoKey = (url: string): string => {
 
 const generateWordsChallenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
   const source = (context.gameImages && context.gameImages.length > 0) ? context.gameImages : ["🍎"];
-  const item = source[Math.floor(Math.random() * source.length)];
   
-  const dinoKey = extractDinoKey(item);
-  const dinoInfo = DINO_DB[dinoKey] || DINO_DB["DEFAULT"];
-
-  const variation = Math.floor(Math.random() * 3);
-  
+  let attempts = 0;
+  let signature = "";
+  let variation = 0;
+  let item = "";
+  let dinoKey = "";
+  let dinoInfo: any = null;
   let instruction = "";
   let spokenText = "";
   let options: any[] = [];
   let answer: any = "";
+
+  // TRAVA ANTI-REPETIÇÃO: Impede que o mesmo dinossauro com a mesma variação repita logo a seguir
+  do {
+    item = source[Math.floor(Math.random() * source.length)];
+    dinoKey = extractDinoKey(item);
+    dinoInfo = DINO_DB[dinoKey] || DINO_DB["DEFAULT"];
+    variation = Math.floor(Math.random() * 3);
+    
+    signature = `words-${variation}-${dinoKey}`;
+    attempts++;
+  } while (history.some(h => h.startsWith(signature)) && attempts < 20);
 
   if (variation === 0) {
     instruction = "Qual é a primeira letra?";
@@ -87,7 +102,7 @@ const generateWordsChallenge = (difficulty: number, context: PartyContext, histo
   }
 
   return {
-    id: `words-${variation}-${dinoKey}-${Date.now()}`,
+    id: `${signature}-${Date.now()}`,
     instruction,
     spokenText,
     data: { variation, item, dinoInfo, options, answer }
