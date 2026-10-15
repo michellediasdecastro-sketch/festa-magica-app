@@ -9,22 +9,14 @@ const generateMemoryChallenge = (difficulty: number, context: PartyContext, hist
   const targetPairCount = Math.min(8, Math.max(2, Math.floor(difficulty + 1))); 
   const finalPairCount = Math.min(targetPairCount, source.length); 
   
-  let attempts = 0;
-  let signature = "";
-  let deck: any[] = [];
-  
-  do {
-    const selectedImages = [...source].sort(() => Math.random() - 0.5).slice(0, finalPairCount);
-    deck = [...selectedImages, ...selectedImages]
-      .sort(() => Math.random() - 0.5)
-      .map((img, idx) => ({ id: idx, content: img }));
-      
-    signature = `mem-${finalPairCount}-${deck.map(d => d.content.substring(0,3)).join('')}`;
-    attempts++;
-  } while (history.includes(signature) && attempts < 10);
+  const selectedImages = [...source].sort(() => Math.random() - 0.5).slice(0, finalPairCount);
+  const deck = [...selectedImages, ...selectedImages]
+    .sort(() => Math.random() - 0.5)
+    .map((img, idx) => ({ id: idx, content: img }));
 
   return {
-    id: signature || Date.now().toString(),
+    // ID 100% ÚNICO: Garante que o React apaga sempre o tabuleiro anterior!
+    id: `mem-${Date.now()}-${Math.random()}`,
     instruction: "Encontre os pares escondidos!",
     spokenText: `Encontre os pares iguais!`,
     data: { deck, pairCount: finalPairCount }
@@ -87,7 +79,7 @@ const MemoryComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: bo
                   src={card.content} 
                   alt="card" 
                   className="w-full h-full object-cover pointer-events-none"
-                  onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }} // Esconde se quebrar
+                  onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }}
                 />
               ) : <span className="text-4xl pointer-events-none">{card.content}</span>
             ) : (
