@@ -22,6 +22,9 @@ import { Logic6GameModule } from "./modules/Logic6Game";
 
 // Módulos 8-9 Anos
 import { Maze8GameModule } from "./modules/Maze8Game";
+import { Math8GameModule } from "./modules/Math8Game";
+import { Code8GameModule } from "./modules/Code8Game";
+import { Search8GameModule } from "./modules/Search8Game";
 
 export const Categories: Record<string, any[]> = {
   "4-5": [
@@ -88,5 +91,8 @@ export const GameRegistry = [
   { ...Logic6GameModule, categoryId: "missoes-6", supportedAges: ["6-7"] },
 
   // 8-9 ANOS
-  { ...Maze8GameModule, categoryId: "labirinto-8", supportedAges: ["8-9"] }
+  { ...Maze8GameModule, categoryId: "labirinto-8", supportedAges: ["8-9"] },
+  { ...Math8GameModule, categoryId: "matematica-8", supportedAges: ["8-9"] },
+  { ...Code8GameModule, categoryId: "codigos-8", supportedAges: ["8-9"] },
+  { ...Search8GameModule, categoryId: "investigacao-8", supportedAges: ["8-9"] }
 ];
