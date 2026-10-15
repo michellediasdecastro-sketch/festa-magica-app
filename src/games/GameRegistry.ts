@@ -2,10 +2,11 @@ import { Puzzle, Brain, Search, Sparkles, Calculator, Map as MapIcon, Eye, Palet
 import { MemoryGameModule } from "./modules/MemoryGame";
 import { LogicGameModule } from "./modules/LogicGame";
 import { MathGameModule } from "./modules/MathGame";
+import { TreasureHuntGameModule } from "./modules/TreasureHuntGame";
+import { ShadowGameModule } from "./modules/ShadowGame";
 
 // Catálogo Mestre Organizador
 export const Categories: Record<string, any[]> = {
-  // FAIXA 4-5 ANOS
   "4-5": [
     { id: "busca", title: "Caça ao Tesouro", icon: Search },
     { id: "memoria", title: "Memória Mágica", icon: Sparkles },
@@ -16,47 +17,43 @@ export const Categories: Record<string, any[]> = {
     { id: "labirinto", title: "Labirintos Encantados", icon: MapIcon },
     { id: "atencao", title: "Atenção e Observação", icon: Eye },
   ],
-  
-  // FAIXA 6-7 ANOS
   "6-7": [
-    { id: "investigacao", title: "Mistérios e Pistas", icon: Search },
+    { id: "busca", title: "Mistérios e Pistas", icon: Search },
     { id: "memoria", title: "Memória e Atenção", icon: Sparkles },
     { id: "matematica", title: "Matemática Interativa", icon: Calculator },
-    { id: "letras", title: "Letras e Palavras", icon: Palette },
+    { id: "cores-formas", title: "Silhuetas e Cores", icon: Palette },
     { id: "logica", title: "Sequências e Padrões", icon: Brain },
     { id: "labirinto", title: "Labirintos com Regras", icon: MapIcon },
     { id: "quebra-cabeca", title: "Montagem de Cenas", icon: Puzzle },
-    { id: "missoes", title: "Missões de Lógica", icon: Trophy }, 
+    { id: "atencao", title: "Missões de Lógica", icon: Trophy }, 
   ],
-  
-  // FAIXA 8-9 ANOS
   "8-9": [
-    { id: "investigacao", title: "Investigação e Dedução", icon: Search },
-    { id: "estrategia", title: "Estratégia e Planos", icon: Brain },
+    { id: "busca", title: "Investigação e Dedução", icon: Search },
+    { id: "atencao", title: "Estratégia e Planos", icon: Brain },
     { id: "matematica", title: "Matemática por Desafios", icon: Calculator },
-    { id: "codigos", title: "Códigos Secretos", icon: Eye },
-    { id: "letras", title: "Palavras e Enigmas", icon: Palette },
+    { id: "memoria", title: "Códigos Secretos", icon: Eye },
+    { id: "cores-formas", title: "Palavras e Enigmas", icon: Palette },
     { id: "logica", title: "Lógica Avançada", icon: Puzzle },
     { id: "labirinto", title: "Labirintos Estratégicos", icon: MapIcon },
-    { id: "missoes", title: "Pistas Encadeadas", icon: Sparkles },
+    { id: "quebra-cabeca", title: "Pistas Encadeadas", icon: Sparkles },
   ],
-  
-  // FAIXA 10-11 ANOS
   "10-11": [
-    { id: "investigacao", title: "Casos de Investigação", icon: Search },
-    { id: "estrategia", title: "Recursos Limitados", icon: Brain },
+    { id: "busca", title: "Casos de Investigação", icon: Search },
+    { id: "atencao", title: "Recursos Limitados", icon: Brain },
     { id: "logica", title: "Lógica e Dedução", icon: Puzzle },
-    { id: "codigos", title: "Criptogramas", icon: Eye },
+    { id: "memoria", title: "Criptogramas", icon: Eye },
     { id: "matematica", title: "Matemática Complexa", icon: Calculator },
-    { id: "letras", title: "Interpretação", icon: Palette },
+    { id: "cores-formas", title: "Interpretação Visual", icon: Palette },
     { id: "labirinto", title: "Planejamento de Rotas", icon: MapIcon },
-    { id: "missoes", title: "Decisões e Consequências", icon: Sparkles },
+    { id: "quebra-cabeca", title: "Decisões Críticas", icon: Sparkles },
   ]
 };
 
-// Aqui nós ligamos os componentes físicos às categorias
+// LIGAÇÃO DOS MÓDULOS (Agora com 5 Jogos!)
 export const GameRegistry = [
   MemoryGameModule,
   LogicGameModule,
-  MathGameModule
+  MathGameModule,
+  TreasureHuntGameModule,
+  ShadowGameModule
 ];
