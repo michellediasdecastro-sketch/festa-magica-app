@@ -2,12 +2,10 @@ import React, { useState, useEffect } from "react";
 import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 
 const generateMemoryChallenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
-  // Limpa imagens repetidas caso você tenha colado o mesmo link duas vezes
   const uniqueImages = Array.from(new Set(context.gameImages));
   const fallback = ["🍎", "🚗", "🐶", "⭐", "🎈", "🚀", "⚽", "🐻"];
   const source = uniqueImages.length >= 2 ? uniqueImages : fallback;
 
-  // Dificuldade dinâmica: NUNCA pede mais pares do que o total de imagens que você colocou!
   const targetPairCount = Math.min(8, Math.max(2, Math.floor(difficulty + 1))); 
   const finalPairCount = Math.min(targetPairCount, source.length); 
   
@@ -28,7 +26,7 @@ const generateMemoryChallenge = (difficulty: number, context: PartyContext, hist
   return {
     id: signature || Date.now().toString(),
     instruction: "Encontre os pares escondidos!",
-    spokenText: `Ajude o ${context.characterName} a encontrar os pares iguais!`,
+    spokenText: `Encontre os pares iguais!`,
     data: { deck, pairCount: finalPairCount }
   };
 };
@@ -56,9 +54,8 @@ const MemoryComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: bo
       if (card1 === card2) {
         setMatched(prev => {
           const newMatched = [...prev, card1];
-          // Lógica 100% segura para avançar quando encontrar o último par
           if (newMatched.length === pairCount) {
-            setTimeout(() => onAnswer(true, pairCount * 10), 600); // Dá tempo da criança ver a carta virar
+            setTimeout(() => onAnswer(true, pairCount * 10), 600);
           }
           return newMatched;
         });
@@ -85,7 +82,14 @@ const MemoryComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: bo
               ${isRevealed ? 'bg-white/20 border-[#bef264] scale-100 rotate-y-180' : 'bg-black/60 border-white/20 hover:bg-black/40 hover:scale-105'}`}
           >
             {isRevealed ? (
-              isImage ? <img src={card.content} alt="card" className="w-full h-full object-cover pointer-events-none" /> : <span className="text-4xl pointer-events-none">{card.content}</span>
+              isImage ? (
+                <img 
+                  src={card.content} 
+                  alt="card" 
+                  className="w-full h-full object-cover pointer-events-none"
+                  onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }} // Esconde se quebrar
+                />
+              ) : <span className="text-4xl pointer-events-none">{card.content}</span>
             ) : (
               <span className="text-3xl text-white/40 pointer-events-none">❓</span>
             )}
@@ -100,7 +104,7 @@ export const MemoryGameModule: GameModule = {
   id: "memory-core",
   title: "Jogo da Memória",
   categoryId: "memoria",
-  supportedAges: ["4-5", "6-7", "8-9", "10-11"], // TODAS AS IDADES PERMITIDAS
+  supportedAges: ["4-5", "6-7", "8-9", "10-11"],
   generateChallenge: generateMemoryChallenge,
   component: MemoryComponent
 };
