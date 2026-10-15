@@ -4,25 +4,32 @@ import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 const generateCases10Challenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
   const source = context.gameImages.length >= 4 ? context.gameImages : ["🍎", "🚗", "🐶", "⭐", "🎈"];
   
-  // Escolhe 4 imagens únicas para serem os suspeitos
-  const suspects = [...source].sort(() => Math.random() - 0.5).slice(0, 4);
-  const culprit = suspects[0];
-  const innocent1 = suspects[1];
-  const innocent2 = suspects[2];
+  // Escolhe 4 imagens únicas e baralha
+  const options = [...source].sort(() => Math.random() - 0.5).slice(0, 4);
+  
+  // O culpado será um deles aleatoriamente
+  const culpritIndex = Math.floor(Math.random() * 4);
+  const culprit = options[culpritIndex];
+  
+  // Identifica os índices dos inocentes (0 a 3)
+  const innocents = [0, 1, 2, 3].filter(i => i !== culpritIndex);
 
-  // Gera premissas dinâmicas
-  const premises = [
-    "O suspeito não é a primeira nem a última imagem.",
-    `Uma testemunha garante que não foi a figura #${suspects.indexOf(innocent1) + 1}.`,
-    `As câmaras provam que a figura #${suspects.indexOf(innocent2) + 1} tem um álibi sólido.`
-  ];
+  // Pista 1: Elimina o primeiro inocente
+  const p1 = `As câmaras de segurança provam que a Figura ${innocents[0] + 1} não estava no local.`;
+  
+  // Pista 2: Elimina o segundo inocente (com variação de texto)
+  const p2 = `A testemunha garante que o culpado não é a Figura ${innocents[1] + 1}.`;
+  
+  // Pista 3: Elimina o terceiro inocente
+  const p3 = `Encontramos provas que inocentam totalmente a Figura ${innocents[2] + 1}.`;
 
-  const options = [...suspects].sort(() => Math.random() - 0.5);
+  // Baralha a ordem das pistas para não ser sempre igual
+  const premises = [p1, p2, p3].sort(() => Math.random() - 0.5);
 
   return {
     id: `cases10-${Date.now()}-${Math.random()}`,
     instruction: "Descubra o Culpado!",
-    spokenText: "Analise as pistas lógicas para eliminar os inocentes e encontrar o culpado.",
+    spokenText: "Leia o relatório policial com atenção. Elimine os suspeitos inocentes para encontrar o culpado.",
     data: { premises, options, culprit }
   };
 };
@@ -49,7 +56,7 @@ const Cases10Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: b
             onClick={() => onAnswer(opt === culprit, 50)}
             className="relative aspect-square bg-black/60 border border-white/30 rounded-3xl hover:border-red-400 flex items-center justify-center p-4 shadow-xl active:scale-95 transition-all group"
           >
-            <span className="absolute top-2 left-3 text-xs font-bold text-white/30 group-hover:text-red-400/50">Figura #{idx + 1}</span>
+            <span className="absolute top-2 left-3 text-xs font-bold text-white/40">Figura {idx + 1}</span>
             {opt.startsWith('http') ? (
               <img src={opt} alt={`figura ${idx + 1}`} className="w-full h-full object-contain pointer-events-none drop-shadow-md mt-4" onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }} />
             ) : (
