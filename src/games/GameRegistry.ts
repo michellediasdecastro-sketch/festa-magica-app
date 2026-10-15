@@ -4,6 +4,9 @@ import { LogicGameModule } from "./modules/LogicGame";
 import { MathGameModule } from "./modules/MathGame";
 import { TreasureHuntGameModule } from "./modules/TreasureHuntGame";
 import { ShadowGameModule } from "./modules/ShadowGame";
+import { PuzzleGameModule } from "./modules/PuzzleGame";
+import { MazeGameModule } from "./modules/MazeGame";
+import { AttentionGameModule } from "./modules/AttentionGame";
 
 // Catálogo Mestre Organizador
 export const Categories: Record<string, any[]> = {
@@ -25,23 +28,23 @@ export const Categories: Record<string, any[]> = {
     { id: "logica", title: "Sequências e Padrões", icon: Brain },
     { id: "labirinto", title: "Labirintos com Regras", icon: MapIcon },
     { id: "quebra-cabeca", title: "Montagem de Cenas", icon: Puzzle },
-    { id: "atencao", title: "Missões de Lógica", icon: Trophy }, 
+    { id: "atencao", title: "Missões de Atenção", icon: Trophy }, 
   ],
   "8-9": [
     { id: "busca", title: "Investigação e Dedução", icon: Search },
-    { id: "atencao", title: "Estratégia e Planos", icon: Brain },
+    { id: "atencao", title: "Atenção Rápida", icon: Brain },
     { id: "matematica", title: "Matemática por Desafios", icon: Calculator },
-    { id: "memoria", title: "Códigos Secretos", icon: Eye },
-    { id: "cores-formas", title: "Palavras e Enigmas", icon: Palette },
+    { id: "memoria", title: "Memória Complexa", icon: Eye },
+    { id: "cores-formas", title: "Sombras e Formas", icon: Palette },
     { id: "logica", title: "Lógica Avançada", icon: Puzzle },
     { id: "labirinto", title: "Labirintos Estratégicos", icon: MapIcon },
-    { id: "quebra-cabeca", title: "Pistas Encadeadas", icon: Sparkles },
+    { id: "quebra-cabeca", title: "Padrões Ocultos", icon: Sparkles },
   ],
   "10-11": [
-    { id: "busca", title: "Casos de Investigação", icon: Search },
-    { id: "atencao", title: "Recursos Limitados", icon: Brain },
+    { id: "busca", title: "Busca Impossível", icon: Search },
+    { id: "atencao", title: "Atenção Máxima", icon: Brain },
     { id: "logica", title: "Lógica e Dedução", icon: Puzzle },
-    { id: "memoria", title: "Criptogramas", icon: Eye },
+    { id: "memoria", title: "Super Memória", icon: Eye },
     { id: "matematica", title: "Matemática Complexa", icon: Calculator },
     { id: "cores-formas", title: "Interpretação Visual", icon: Palette },
     { id: "labirinto", title: "Planejamento de Rotas", icon: MapIcon },
@@ -49,11 +52,14 @@ export const Categories: Record<string, any[]> = {
   ]
 };
 
-// LIGAÇÃO DOS MÓDULOS (Agora com 5 Jogos!)
+// O seu projeto tem agora 8 JOGOS diferentes e completos a funcionar!
 export const GameRegistry = [
   MemoryGameModule,
   LogicGameModule,
   MathGameModule,
   TreasureHuntGameModule,
-  ShadowGameModule
+  ShadowGameModule,
+  PuzzleGameModule,
+  MazeGameModule,
+  AttentionGameModule
 ];
