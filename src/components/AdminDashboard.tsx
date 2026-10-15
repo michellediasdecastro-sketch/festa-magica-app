@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Sparkles, PlusCircle, Layers, Calendar as CalendarIcon, ArrowLeft, Trash2, Edit2, Image as ImageIcon } from "lucide-react";
+import { Layers, Calendar, ArrowLeft, Trash2, Edit2 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 interface AdminDashboardProps {
@@ -30,13 +30,15 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
   }, []);
 
   async function loadThemes() {
-    const { data } = await supabase.from("themes").select("*");
+    const { data, error } = await supabase.from("themes").select("*");
     if (data) setThemes(data);
+    if (error) console.error("Erro ao carregar temas:", error);
   }
 
   async function loadParties() {
-    const { data } = await supabase.from("parties").select("*");
+    const { data, error } = await supabase.from("parties").select("*");
     if (data) setParties(data);
+    if (error) console.error("Erro ao carregar festas:", error);
   }
 
   function handleEditTheme(t: any) {
@@ -151,7 +153,7 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
               <Layers className="inline size-4 mr-1.5" /> Temas
             </button>
             <button onClick={() => { setActiveTab("parties"); resetPartyForm(); }} className={`px-5 py-2.5 rounded-xl text-sm font-bold ${activeTab === 'parties' ? 'bg-[#bef264] text-black' : 'bg-white/10 hover:bg-white/20'}`}>
-              <CalendarIcon className="inline size-4 mr-1.5" /> Festas
+              <Calendar className="inline size-4 mr-1.5" /> Festas
             </button>
           </div>
         </div>
