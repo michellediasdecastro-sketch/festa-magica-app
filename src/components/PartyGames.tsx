@@ -24,15 +24,14 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
   const [currentChallenge, setCurrentChallenge] = useState<any>(null);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
 
-  // Usa a idade do convidado informada no login. Se falhar, usa a da festa ou 5.
   const age = partyData.guestAge || partyData.child_age || partyData.childAge || 5;
   const ageGroup: AgeGroup = age <= 5 ? "4-5" : age <= 7 ? "6-7" : age <= 9 ? "8-9" : "10-11";
 
-  const fallbackImages = ["🍎", "🚗", "🐶", "⭐", "🎈", "🚀", "🐱", "⚽", "🐻", "🦄", "🐼", "🦊", "🦕", "🦋"];
+  const fallbackImages = ["🍎", "🚗", "🐶", "⭐", "🎈", "🚀", "🐱", "⚽"];
 
   const partyContext: PartyContext = useMemo(() => ({
     theme: partyData.theme || "Aventura",
-    childName: partyData.guestName || "Aventureiro", // Usa o NOME DO CONVIDADO
+    childName: partyData.guestName || "Aventureiro",
     childAge: age,
     characterName: partyData.character_name || partyData.characterName || "Mascote",
     gameImages: themeImages.length > 0 ? themeImages : fallbackImages
@@ -93,11 +92,15 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
 
   const handleSelectCategory = (catId: string) => {
     playSfx('click');
-    setActiveCategory(catId);
-    
     const availableGames = GameRegistry.filter(g => g.categoryId === catId && g.supportedAges.includes(ageGroup));
-    if (availableGames.length === 0) return setActiveCategory(null);
+    
+    // AVISO INTELIGENTE: Impede falhas silenciosas
+    if (availableGames.length === 0) {
+      alert("Esta categoria está em construção! Tente outra missão por enquanto.");
+      return;
+    }
 
+    setActiveCategory(catId);
     const selectedGame = availableGames[Math.floor(Math.random() * availableGames.length)];
     setActiveGameId(selectedGame.id);
     
