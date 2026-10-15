@@ -25,6 +25,12 @@ const Strategy8Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrect:
   const [playerTurn, setPlayerTurn] = useState(false);
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   const [playerStep, setPlayerStep] = useState(0);
+  const [playCount, setPlayCount] = useState(0); // Controla os recomeços em caso de erro
+
+  // Reseta o contador de replays quando muda de desafio
+  useEffect(() => {
+    setPlayCount(0);
+  }, [challenge.id]);
 
   useEffect(() => {
     let isMounted = true;
@@ -33,7 +39,8 @@ const Strategy8Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrect:
     setActiveIdx(null);
 
     const playSequence = async () => {
-      await new Promise(r => setTimeout(r, 800));
+      // Espera um pouco antes de começar a piscar para a criança se preparar
+      await new Promise(r => setTimeout(r, 1000)); 
       for (let i = 0; i < sequence.length; i++) {
         if (!isMounted) return;
         setActiveIdx(sequence[i]);
@@ -47,30 +54,40 @@ const Strategy8Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrect:
 
     playSequence();
     return () => { isMounted = false; };
-  }, [challenge.id, sequence]);
+  }, [challenge.id, sequence, playCount]);
 
   const handleBoxClick = (idx: number) => {
     if (!playerTurn) return;
 
     setActiveIdx(idx);
-    setTimeout(() => setActiveIdx(null), 200);
-
+    
     if (idx === sequence[playerStep]) {
+      // Acertou no passo atual
+      setTimeout(() => { if (playerTurn) setActiveIdx(null) }, 200);
       const nextStep = playerStep + 1;
       setPlayerStep(nextStep);
+      
       if (nextStep === sequence.length) {
+        // Acertou a sequência toda!
         setPlayerTurn(false);
         setTimeout(() => onAnswer(true, 40), 500);
       }
     } else {
+      // ERROU!
       setPlayerTurn(false);
-      setTimeout(() => onAnswer(false, 0), 400);
+      setActiveIdx(null);
+      onAnswer(false, 0); // Aciona o ecrã vermelho e som de erro
+      
+      // Espera o ecrã vermelho passar e repete a sequência
+      setTimeout(() => {
+         setPlayCount(pc => pc + 1);
+      }, 1200);
     }
   };
 
   return (
     <div className="flex flex-col items-center gap-6 w-full max-w-md mx-auto">
-      <div className="text-xl font-bold text-[#bef264] h-8">
+      <div className="text-xl sm:text-2xl font-bold text-[#bef264] h-8 transition-all">
         {!playerTurn ? "Observe com atenção..." : "Sua vez! Repita a ordem."}
       </div>
       <div className="grid grid-cols-2 gap-4 w-full">
