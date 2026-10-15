@@ -1,7 +1,6 @@
 import React from "react";
 import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 
-// Base de Dados Interna de Dinossauros e suas Características
 const DINO_DB: Record<string, any> = {
   "TRICERATOPS": { word: "CHIFRES", display: "CHIFRES", phrase: "Tem três", suffix: "na cabeça", syllables: 2, trait: "Três Chifres" },
   "STEGOSAURUS": { word: "PLACAS", display: "PLACAS", phrase: "Tem", suffix: "nas costas", syllables: 2, trait: "Placas nas Costas" },
@@ -18,15 +17,15 @@ const DINO_DB: Record<string, any> = {
   "DEFAULT": { word: "CAUDA", display: "CAUDA", phrase: "Tem uma", suffix: "forte", syllables: 2, trait: "Cauda Forte" }
 };
 
-// Deteta qual o dinossauro com base no link do Postimages
 const extractDinoKey = (url: string): string => {
-  if (!url.startsWith('http')) return "DEFAULT";
+  if (!url || !url.startsWith('http')) return "DEFAULT";
   try {
     let filename = url.split('/').pop() || "";
     filename = filename.split('.')[0];
-    filename = filename.replace(/[^a-zA-ZÀ-ÿ]/g, '').toUpperCase();
+    if (!filename) return "DEFAULT";
+    const cleanName = filename.replace(/[^a-zA-ZÀ-ÿ]/g, '').toUpperCase();
     for (const key in DINO_DB) {
-      if (filename.includes(key)) return key;
+      if (cleanName.includes(key)) return key;
     }
     return "DEFAULT";
   } catch (e) {
@@ -35,13 +34,12 @@ const extractDinoKey = (url: string): string => {
 };
 
 const generateWordsChallenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
-  const source = context.gameImages.length > 0 ? context.gameImages : ["🍎"];
+  const source = (context.gameImages && context.gameImages.length > 0) ? context.gameImages : ["🍎"];
   const item = source[Math.floor(Math.random() * source.length)];
   
   const dinoKey = extractDinoKey(item);
   const dinoInfo = DINO_DB[dinoKey] || DINO_DB["DEFAULT"];
 
-  // Variedade: 0 = Letra, 1 = Sílabas, 2 = Característica Visual
   const variation = Math.floor(Math.random() * 3);
   
   let instruction = "";
@@ -50,7 +48,6 @@ const generateWordsChallenge = (difficulty: number, context: PartyContext, histo
   let answer: any = "";
 
   if (variation === 0) {
-    // Missão: Primeira Letra da Característica
     instruction = "Qual é a primeira letra?";
     spokenText = "O que falta nessa palavra?";
     answer = dinoInfo.word.charAt(0);
@@ -63,20 +60,18 @@ const generateWordsChallenge = (difficulty: number, context: PartyContext, histo
     options = Array.from(optionsSet).sort(() => Math.random() - 0.5);
 
   } else if (variation === 1) {
-    // Missão: Separar Sílabas
     instruction = "Quantas sílabas tem?";
     spokenText = `Bata palmas para a palavra ${dinoInfo.display}. Quantas sílabas ela tem?`;
     answer = dinoInfo.syllables;
     
     const optionsSet = new Set<number>([answer]);
     while (optionsSet.size < 4) {
-      const wrong = Math.floor(Math.random() * 5) + 1; // Sílabas de 1 a 5
+      const wrong = Math.floor(Math.random() * 5) + 1;
       if (wrong !== answer) optionsSet.add(wrong);
     }
     options = Array.from(optionsSet).sort(() => Math.random() - 0.5);
 
   } else {
-    // Missão: Característica Principal
     instruction = "O que ele tem de especial?";
     spokenText = "Observe bem este dinossauro. O que o torna especial?";
     answer = dinoInfo.trait;
@@ -85,7 +80,7 @@ const generateWordsChallenge = (difficulty: number, context: PartyContext, histo
     const allKeys = Object.keys(DINO_DB).filter(k => k !== "DEFAULT" && k !== dinoKey);
     const shuffledKeys = allKeys.sort(() => Math.random() - 0.5);
     
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 3 && i < shuffledKeys.length; i++) {
       optionsSet.add(DINO_DB[shuffledKeys[i]].trait);
     }
     options = Array.from(optionsSet).sort(() => Math.random() - 0.5);
@@ -101,30 +96,25 @@ const generateWordsChallenge = (difficulty: number, context: PartyContext, histo
 
 const WordsComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: boolean, scoreDelta: number) => void }> = ({ challenge, onAnswer }) => {
   const { variation, item, dinoInfo, options, answer } = challenge.data;
-  const isImage = item.startsWith('http');
-
-  // Ajusta o tamanho da fonte e layout dos botões dependendo se é uma letra (grande) ou frase (menor)
+  const isImage = item && item.startsWith('http');
   const isTraitMode = variation === 2;
 
   return (
     <div className="flex flex-col items-center gap-6 w-full max-w-md mx-auto">
-      
-      {/* Imagem Central e Perguntas Dinâmicas */}
       <div className="flex flex-col items-center gap-4 bg-black/40 p-4 sm:p-6 rounded-[2.5rem] border border-white/20 shadow-inner w-full">
         <div className="w-28 h-28 sm:w-36 sm:h-36 flex items-center justify-center">
           {isImage ? (
              <img src={item} alt="item" className="w-full h-full object-contain drop-shadow-xl pointer-events-none" onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }} />
-          ) : <span className="text-7xl drop-shadow-xl pointer-events-none">{item}</span>}
+          ) : <span className="text-7xl drop-shadow-xl pointer-events-none">{item || "❓"}</span>}
         </div>
         
-        {/* Renderiza o desafio com base na Variação Sorteada */}
-        <div className="w-full text-center">
+        <div className="w-full text-center min-h-[4rem] flex flex-col justify-center">
           {variation === 0 && (
             <div className="text-lg sm:text-2xl font-bold text-white flex flex-col items-center leading-tight">
                <span className="text-white/70 mb-1">{dinoInfo.phrase}</span>
-               <div className="text-3xl sm:text-4xl font-black text-[#bef264] tracking-widest bg-black/50 px-4 py-2 rounded-xl">
-                 <span className="border-b-4 border-[#bef264] text-white/20 animate-pulse mr-1">_</span>
-                 {dinoInfo.display.substring(1)}
+               <div className="text-3xl sm:text-4xl font-black text-[#bef264] tracking-widest bg-black/50 px-4 py-2 rounded-xl flex items-center justify-center w-fit mx-auto">
+                 <span className="border-b-4 border-[#bef264] text-white/20 animate-pulse mr-1 min-w-[1rem] inline-block text-center">_</span>
+                 <span>{dinoInfo.display.substring(1)}</span>
                </div>
                <span className="text-white/70 mt-1">{dinoInfo.suffix}</span>
             </div>
@@ -138,13 +128,12 @@ const WordsComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: boo
 
           {variation === 2 && (
             <div className="text-xl sm:text-2xl font-black text-white/90">
-               {dinoKey !== "DEFAULT" ? dinoKey : "Este Dinossauro"}
+               Este Dinossauro
             </div>
           )}
         </div>
       </div>
 
-      {/* Botões adaptativos */}
       <div className={`grid gap-3 w-full ${isTraitMode ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'}`}>
         {options.map((opt: any, idx: number) => (
           <button
@@ -166,7 +155,7 @@ export const WordsGameModule: GameModule = {
   id: "words-initial-6",
   title: "Letras, Sílabas e Palavras",
   categoryId: "letras-6",
-  supportedAges: ["6-7"], // 6 a 7 anos
+  supportedAges: ["6-7"],
   generateChallenge: generateWordsChallenge,
   component: WordsComponent
 };
