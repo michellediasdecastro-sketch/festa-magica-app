@@ -12,7 +12,7 @@ export function App() {
   const [themeBackgrounds, setThemeBackgrounds] = useState<Record<string, string>>({});
   const [isInitializing, setIsInitializing] = useState(true);
 
-  // MEMÓRIA RAIZ: Verifica a sessão salva assim que o site é aberto!
+  // Hook 1: Verifica a sessão salva no dispositivo
   useEffect(() => {
     const savedSession = localStorage.getItem('@party_guest_session');
     if (savedSession) {
@@ -28,6 +28,7 @@ export function App() {
     setIsInitializing(false);
   }, []);
 
+  // Hook 2: Verifica se o utilizador está a tentar entrar no painel admin
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("admin") === "true") {
@@ -35,6 +36,7 @@ export function App() {
     }
   }, []);
 
+  // Hook 3: Carrega os fundos e as vozes
   useEffect(() => {
     async function fetchThemeBackgrounds() {
       const { data } = await supabase.from("themes").select("theme_name, background_url");
@@ -54,25 +56,6 @@ export function App() {
       window.speechSynthesis.getVoices();
     }
   }, [isAdminOpen, partyData]);
-
-  function getBackgroundForTheme(themeName: string) {
-    if (!themeName) return "";
-    const key = themeName.trim().toLowerCase();
-    return themeBackgrounds[key] || "";
-  }
-
-  const bgImage = partyData 
-    ? (getBackgroundForTheme(partyData.theme) || partyData.photoUrl || "https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1920&auto=format&fit=crop")
-    : "https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1920&auto=format&fit=crop";
-
-  if (isAdminOpen) {
-    return (
-      <AdminDashboard onBackToApp={() => {
-        window.history.replaceState({}, document.title, window.location.pathname);
-        setIsAdminOpen(false);
-      }} />
-    );
-  }
 
   const childDisplayName = partyData?.childName || "Aniversariante";
   const childAgeDisplay = partyData?.childAge || "5";
@@ -102,11 +85,13 @@ export function App() {
     window.speechSynthesis.speak(utterance2);
   };
 
+  // Hook 4: Toca a voz (Agora perfeitamente posicionado antes dos retornos visuais)
   useEffect(() => {
-    if (partyData && !isInGames) {
-      setTimeout(() => speakWelcome(), 500);
+    if (partyData && !isInGames && !isAdminOpen) {
+      const timer = setTimeout(() => speakWelcome(), 500);
+      return () => clearTimeout(timer);
     }
-  }, [partyData, isInGames]);
+  }, [partyData, isInGames, isAdminOpen]);
 
   const handleLogout = () => {
     localStorage.removeItem('@party_guest_session');
@@ -115,8 +100,29 @@ export function App() {
     window.speechSynthesis.cancel();
   };
 
+  function getBackgroundForTheme(themeName: string) {
+    if (!themeName) return "";
+    const key = themeName.trim().toLowerCase();
+    return themeBackgrounds[key] || "";
+  }
+
+  const bgImage = partyData 
+    ? (getBackgroundForTheme(partyData.theme) || partyData.photoUrl || "https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1920&auto=format&fit=crop")
+    : "https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1920&auto=format&fit=crop";
+
+  // --- RENDERS VISUAIS (Apenas depois de TODOS os hooks acima!) ---
+
   if (isInitializing) {
     return <div className="min-h-screen w-full bg-black flex items-center justify-center"><Sparkles className="size-8 text-[#bef264] animate-spin" /></div>;
+  }
+
+  if (isAdminOpen) {
+    return (
+      <AdminDashboard onBackToApp={() => {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        setIsAdminOpen(false);
+      }} />
+    );
   }
 
   return (
