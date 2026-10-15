@@ -1,4 +1,6 @@
-import { Puzzle, Brain, Search, Sparkles, Calculator, Map as MapIcon, Eye, Palette, Trophy } from "lucide-react";
+import { Puzzle, Brain, Search, Sparkles, Calculator, Map as MapIcon, Eye, Palette, Trophy, Fingerprint, Lock, Route, Compass } from "lucide-react";
+
+// Módulos atuais (que agora serão restritos para 4-5 anos)
 import { MemoryGameModule } from "./modules/MemoryGame";
 import { LogicGameModule } from "./modules/LogicGame";
 import { MathGameModule } from "./modules/MathGame";
@@ -8,58 +10,61 @@ import { PuzzleGameModule } from "./modules/PuzzleGame";
 import { MazeGameModule } from "./modules/MazeGame";
 import { AttentionGameModule } from "./modules/AttentionGame";
 
-// Catálogo Mestre Organizador
+// (Os novos módulos das outras idades serão importados aqui à medida que os criarmos)
+
 export const Categories: Record<string, any[]> = {
   "4-5": [
-    { id: "busca", title: "Caça ao Tesouro", icon: Search },
-    { id: "memoria", title: "Memória Mágica", icon: Sparkles },
-    { id: "quebra-cabeca", title: "Quebra-Cabeças", icon: Puzzle },
-    { id: "cores-formas", title: "Cores e Tamanhos", icon: Palette },
-    { id: "matematica", title: "Contagem Divertida", icon: Calculator },
-    { id: "logica", title: "Lógica dos Personagens", icon: Brain },
-    { id: "labirinto", title: "Labirintos Encantados", icon: MapIcon },
-    { id: "atencao", title: "Atenção e Observação", icon: Eye },
+    { id: "busca-4", title: "Caça ao Tesouro", icon: Search },
+    { id: "memoria-4", title: "Memória Mágica", icon: Sparkles },
+    { id: "quebra-cabeca-4", title: "Quebra-Cabeças", icon: Puzzle },
+    { id: "cores-formas-4", title: "Cores e Tamanhos", icon: Palette },
+    { id: "matematica-4", title: "Contagem Divertida", icon: Calculator },
+    { id: "logica-4", title: "Lógica dos Personagens", icon: Brain },
+    { id: "labirinto-4", title: "Labirintos Encantados", icon: MapIcon },
+    { id: "atencao-4", title: "Atenção e Observação", icon: Eye },
   ],
   "6-7": [
-    { id: "busca", title: "Mistérios e Pistas", icon: Search },
-    { id: "memoria", title: "Memória e Atenção", icon: Sparkles },
-    { id: "matematica", title: "Matemática Interativa", icon: Calculator },
-    { id: "cores-formas", title: "Silhuetas e Cores", icon: Palette },
-    { id: "logica", title: "Sequências e Padrões", icon: Brain },
-    { id: "labirinto", title: "Labirintos com Regras", icon: MapIcon },
-    { id: "quebra-cabeca", title: "Montagem de Cenas", icon: Puzzle },
-    { id: "atencao", title: "Missões de Atenção", icon: Trophy }, 
+    { id: "misterios-6", title: "Mistérios e Pistas", icon: Search },
+    { id: "memoria-6", title: "Memória e Atenção", icon: Sparkles },
+    { id: "matematica-6", title: "Matemática Interativa", icon: Calculator },
+    { id: "letras-6", title: "Letras, Sílabas e Palavras", icon: Palette },
+    { id: "sequencias-6", title: "Sequências e Padrões", icon: Brain },
+    { id: "labirinto-6", title: "Labirintos com Regras", icon: MapIcon },
+    { id: "montagem-6", title: "Montagem de Cenas", icon: Puzzle },
+    { id: "missoes-6", title: "Missões de Lógica", icon: Trophy }, 
   ],
   "8-9": [
-    { id: "busca", title: "Investigação e Dedução", icon: Search },
-    { id: "atencao", title: "Atenção Rápida", icon: Brain },
-    { id: "matematica", title: "Matemática por Desafios", icon: Calculator },
-    { id: "memoria", title: "Memória Complexa", icon: Eye },
-    { id: "cores-formas", title: "Sombras e Formas", icon: Palette },
-    { id: "logica", title: "Lógica Avançada", icon: Puzzle },
-    { id: "labirinto", title: "Labirintos Estratégicos", icon: MapIcon },
-    { id: "quebra-cabeca", title: "Padrões Ocultos", icon: Sparkles },
+    { id: "investigacao-8", title: "Investigação e Dedução", icon: Search },
+    { id: "estrategia-8", title: "Estratégia e Planejamento", icon: Brain },
+    { id: "matematica-8", title: "Matemática por Desafios", icon: Calculator },
+    { id: "codigos-8", title: "Códigos e Mensagens", icon: Eye },
+    { id: "palavras-8", title: "Palavras e Enigmas", icon: Palette },
+    { id: "logica-8", title: "Sequências e Lógica Avançada", icon: Puzzle },
+    { id: "labirinto-8", title: "Labirintos Estratégicos", icon: MapIcon },
+    { id: "pistas-8", title: "Missões com Pistas", icon: Compass },
   ],
   "10-11": [
-    { id: "busca", title: "Busca Impossível", icon: Search },
-    { id: "atencao", title: "Atenção Máxima", icon: Brain },
-    { id: "logica", title: "Lógica e Dedução", icon: Puzzle },
-    { id: "memoria", title: "Super Memória", icon: Eye },
-    { id: "matematica", title: "Matemática Complexa", icon: Calculator },
-    { id: "cores-formas", title: "Interpretação Visual", icon: Palette },
-    { id: "labirinto", title: "Planejamento de Rotas", icon: MapIcon },
-    { id: "quebra-cabeca", title: "Decisões Críticas", icon: Sparkles },
+    { id: "casos-10", title: "Casos de Investigação", icon: Fingerprint },
+    { id: "recursos-10", title: "Estratégia e Recursos", icon: Brain },
+    { id: "deducao-10", title: "Lógica e Dedução", icon: Puzzle },
+    { id: "criptogramas-10", title: "Códigos e Criptogramas", icon: Lock },
+    { id: "matematica-10", title: "Matemática em Múltiplas Etapas", icon: Calculator },
+    { id: "interpretacao-10", title: "Interpretação e Enigmas", icon: Eye },
+    { id: "rotas-10", title: "Planejamento de Rotas", icon: Route },
+    { id: "decisoes-10", title: "Decisões e Consequências", icon: Trophy },
   ]
 };
 
-// O seu projeto tem agora 8 JOGOS diferentes e completos a funcionar!
+// Aqui nós ligamos os componentes físicos aos IDs únicos das categorias.
+// Desta forma, o jogo "matematica-4" é fisicamente diferente do "matematica-10".
 export const GameRegistry = [
-  MemoryGameModule,
-  LogicGameModule,
-  MathGameModule,
-  TreasureHuntGameModule,
-  ShadowGameModule,
-  PuzzleGameModule,
-  MazeGameModule,
-  AttentionGameModule
+  // JOGOS 4-5 ANOS (Restringindo os antigos apenas para esta faixa)
+  { ...MemoryGameModule, categoryId: "memoria-4", supportedAges: ["4-5"] },
+  { ...LogicGameModule, categoryId: "logica-4", supportedAges: ["4-5"] },
+  { ...MathGameModule, categoryId: "matematica-4", supportedAges: ["4-5"] },
+  { ...TreasureHuntGameModule, categoryId: "busca-4", supportedAges: ["4-5"] },
+  { ...ShadowGameModule, categoryId: "cores-formas-4", supportedAges: ["4-5"] },
+  { ...PuzzleGameModule, categoryId: "quebra-cabeca-4", supportedAges: ["4-5"] },
+  { ...MazeGameModule, categoryId: "labirinto-4", supportedAges: ["4-5"] },
+  { ...AttentionGameModule, categoryId: "atencao-4", supportedAges: ["4-5"] }
 ];
