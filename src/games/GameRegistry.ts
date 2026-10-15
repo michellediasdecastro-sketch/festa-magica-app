@@ -25,6 +25,10 @@ import { Maze8GameModule } from "./modules/Maze8Game";
 import { Math8GameModule } from "./modules/Math8Game";
 import { Code8GameModule } from "./modules/Code8Game";
 import { Search8GameModule } from "./modules/Search8Game";
+import { Strategy8GameModule } from "./modules/Strategy8Game";
+import { Words8GameModule } from "./modules/Words8Game";
+import { Logic8GameModule } from "./modules/Logic8Game";
+import { Clues8GameModule } from "./modules/Clues8Game";
 
 export const Categories: Record<string, any[]> = {
   "4-5": [
@@ -94,5 +98,9 @@ export const GameRegistry = [
   { ...Maze8GameModule, categoryId: "labirinto-8", supportedAges: ["8-9"] },
   { ...Math8GameModule, categoryId: "matematica-8", supportedAges: ["8-9"] },
   { ...Code8GameModule, categoryId: "codigos-8", supportedAges: ["8-9"] },
-  { ...Search8GameModule, categoryId: "investigacao-8", supportedAges: ["8-9"] }
+  { ...Search8GameModule, categoryId: "investigacao-8", supportedAges: ["8-9"] },
+  { ...Strategy8GameModule, categoryId: "estrategia-8", supportedAges: ["8-9"] },
+  { ...Words8GameModule, categoryId: "palavras-8", supportedAges: ["8-9"] },
+  { ...Logic8GameModule, categoryId: "logica-8", supportedAges: ["8-9"] },
+  { ...Clues8GameModule, categoryId: "pistas-8", supportedAges: ["8-9"] }
 ];
