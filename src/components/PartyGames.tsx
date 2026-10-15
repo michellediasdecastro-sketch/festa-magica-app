@@ -94,7 +94,6 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
     playSfx('click');
     const availableGames = GameRegistry.filter(g => g.categoryId === catId && g.supportedAges.includes(ageGroup));
     
-    // AVISO INTELIGENTE: Impede falhas silenciosas
     if (availableGames.length === 0) {
       alert("Esta categoria está em construção! Tente outra missão por enquanto.");
       return;
@@ -104,9 +103,15 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
     const selectedGame = availableGames[Math.floor(Math.random() * availableGames.length)];
     setActiveGameId(selectedGame.id);
     
-    const challenge = selectedGame.generateChallenge(difficulty, partyContext, history);
-    setCurrentChallenge(challenge);
-    setTimeout(() => speak(challenge.spokenText), 300);
+    try {
+      const challenge = selectedGame.generateChallenge(difficulty, partyContext, history);
+      setCurrentChallenge(challenge);
+      setTimeout(() => speak(challenge.spokenText), 300);
+    } catch (error) {
+      console.error("Erro na geração do desafio:", error);
+      alert("Ops, este desafio está confuso! Vamos tentar outro.");
+      setActiveCategory(null);
+    }
   };
 
   const handleAnswer = (isCorrect: boolean, scoreDelta: number) => {
@@ -121,9 +126,16 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
         setFeedback(null);
         const game = GameRegistry.find(g => g.id === activeGameId);
         if (game) {
-          const nextChallenge = game.generateChallenge(Math.floor(difficulty + 0.5), partyContext, history);
-          setCurrentChallenge(nextChallenge);
-          speak(nextChallenge.spokenText);
+          try {
+            const nextChallenge = game.generateChallenge(Math.floor(difficulty + 0.5), partyContext, history);
+            setCurrentChallenge(nextChallenge);
+            speak(nextChallenge.spokenText);
+          } catch (error) {
+            console.error("Erro bloqueado pelo sistema anti-crash:", error);
+            alert("Uau, você foi tão rápido que o desafio tropeçou! Vamos escolher outra missão.");
+            setActiveCategory(null);
+            setCurrentChallenge(null);
+          }
         }
       }, 1000);
 
