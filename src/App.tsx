@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { AccessLogin } from "./components/AccessLogin";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { PartyGames } from "./components/PartyGames";
-import { Sparkles, Volume2, Gamepad2, ArrowRight } from "lucide-react";
+import { Sparkles, Volume2 } from "lucide-react";
 import { supabase } from "./lib/supabase";
 import { getMissionCatalog, InteractiveMission } from "./lib/MissionEngine";
 
@@ -11,9 +11,8 @@ export function App() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   
-  // Controles da Nova Missão
-  const [missionCleared, setMissionCleared] = useState(false); // Trava de Segurança
-  const [missionIndex, setMissionIndex] = useState(0); // 0 a 49
+  const [missionCleared, setMissionCleared] = useState(false); 
+  const [missionIndex, setMissionIndex] = useState(0); 
   const [backgrounds, setBackgrounds] = useState<string[]>([]);
 
   useEffect(() => {
@@ -24,7 +23,6 @@ export function App() {
         if (parsed && parsed.guestName) {
           setPartyData(parsed);
           
-          // Recupera o progresso deste convidado específico! Persistência garantida.
           const progressKey = `@mission_progress_${parsed.guestName}_${parsed.partyId}`;
           const savedIndex = localStorage.getItem(progressKey);
           if (savedIndex !== null) {
@@ -42,25 +40,28 @@ export function App() {
     setIsInitializing(false);
   }, []);
 
-  // Carrega Múltiplos Backgrounds para a Rotação
+  // Busca os fundos rotativos direto da tabela THEMES
   useEffect(() => {
     async function fetchBackgrounds() {
       if (!partyData?.theme) return;
-      // Aqui o ideal será a tabela themes ter uma coluna background_urls (array) no futuro. 
-      // Por agora, garantimos que puxa o fundo principal e permite a mecânica.
-      const { data } = await supabase.from("themes").select("background_url").eq('theme_name', partyData.theme);
+      
+      const { data } = await supabase.from("themes").select("background_url, background_urls").eq('theme_name', partyData.theme);
+      
       if (data && data.length > 0) {
-        setBackgrounds(data.map(d => d.background_url));
+        const themeData = data[0];
+        if (themeData.background_urls && themeData.background_urls.length > 0) {
+          setBackgrounds(themeData.background_urls);
+        } else if (themeData.background_url) {
+          setBackgrounds([themeData.background_url]);
+        }
       }
     }
     fetchBackgrounds();
   }, [partyData]);
 
-  // Gestão de Áudio (Suporta voz real gravada ou robô TTS)
   const playAudio = (type: 'instruction' | 'success', textToSpeak: string) => {
-    window.speechSynthesis.cancel(); // Para áudios anteriores
+    window.speechSynthesis.cancel();
     
-    // Se existir áudio gravado no painel, usa-o! (Custo zero IA, emoção máxima)
     const customAudioUrl = type === 'instruction' ? partyData?.welcomeAudioUrl : partyData?.successAudioUrl;
     
     if (customAudioUrl) {
@@ -69,7 +70,6 @@ export function App() {
       return;
     }
 
-    // Fallback: Robô (Text-to-Speech)
     if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(textToSpeak);
       utterance.lang = 'pt-BR';
@@ -82,7 +82,6 @@ export function App() {
     setMissionCleared(true);
     playAudio('success', `Uhuu, ${partyData.guestName}! Você conseguiu ajudar o ${partyData.childName || 'aniversariante'}! Jogos liberados!`);
     
-    // Avança o índice para a próxima vez que ele entrar na app! (Ciclo de 50)
     const nextIndex = (missionIndex + 1) % 50;
     const progressKey = `@mission_progress_${partyData.guestName}_${partyData.partyId}`;
     localStorage.setItem(progressKey, nextIndex.toString());
@@ -104,11 +103,9 @@ export function App() {
     return <AdminDashboard onBackToApp={() => { window.history.replaceState({}, document.title, window.location.pathname); setIsAdminOpen(false); }} />;
   }
 
-  // Lógica de Rotação Cíclica
   const catalog = getMissionCatalog();
   const currentMission = catalog[missionIndex];
   
-  // Rotação da imagem de fundo baseada na missão atual (evita repetições na mesma sessão)
   const activeBg = backgrounds.length > 0 
     ? backgrounds[missionIndex % backgrounds.length] 
     : partyData?.photoUrl || "https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1920&auto=format&fit=crop";
@@ -116,7 +113,6 @@ export function App() {
   return (
     <main className="relative min-h-[100dvh] w-full flex flex-col items-center justify-center p-3 sm:p-6 text-white bg-black overflow-hidden">
       
-      {/* Background Rotativo */}
       <div className="absolute inset-0 bg-cover bg-center bg-no-repeat filter brightness-100 saturate-110" style={{ backgroundImage: `url('${activeBg}')` }} />
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
 
@@ -125,14 +121,11 @@ export function App() {
         {!partyData ? (
           <AccessLogin onLoginSuccess={(data) => { setPartyData(data); setMissionCleared(false); }} />
         ) : missionCleared ? (
-          // JOGOS DESBLOQUEADOS APENAS AQUI!
-          <PartyGames partyData={partyData} onBackToMain={() => { /* Bloqueamos o botão voltar para forçar a ficar nos jogos ou sair */ }} />
+          <PartyGames partyData={partyData} onBackToMain={() => {}} />
         ) : (
           
-          // NOVA TELA DE MISSÃO OBRIGATÓRIA
           <div className="w-full bg-black/40 border border-white/20 rounded-[2.5rem] p-6 shadow-2xl backdrop-blur-md text-center flex flex-col items-center animate-fade-in relative">
             
-            {/* Avatar do Aniversariante */}
             <div className="relative -mt-12 mb-4">
               <div className="w-28 h-28 rounded-full border-4 border-[#bef264] bg-black/80 shadow-2xl overflow-hidden flex items-center justify-center">
                 {partyData.childAvatarUrl ? (
@@ -153,7 +146,6 @@ export function App() {
             </h2>
             <p className="text-sm text-white/80 font-medium px-4">{currentMission.instruction}</p>
 
-            {/* Injeta a Missão Interativa */}
             <InteractiveMission 
               mission={currentMission} 
               images={partyData.gameImages || ["🍎", "⭐", "🎈", "🚗"]} 
