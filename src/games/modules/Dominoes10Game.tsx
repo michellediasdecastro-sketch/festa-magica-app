@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 
-// Componente visual para desenhar um dominó com "pontinhos"
-const DominoPiece: React.FC<{ left: number, right: number, isOption?: boolean }> = ({ left, right, isOption }) => {
+// Componente para desenhar o dominó
+const DominoPiece: React.FC<{ left: number, right: number, isHand?: boolean }> = ({ left, right, isHand }) => {
   const renderDots = (num: number) => {
     const dots = Array(9).fill(false);
     if (num === 1) dots[4] = true;
@@ -13,7 +13,7 @@ const DominoPiece: React.FC<{ left: number, right: number, isOption?: boolean }>
     else if (num === 6) { dots[0] = true; dots[2] = true; dots[3] = true; dots[5] = true; dots[6] = true; dots[8] = true; }
 
     return (
-      <div className="grid grid-cols-3 grid-rows-3 gap-1 w-full h-full p-1 sm:p-2">
+      <div className="grid grid-cols-3 grid-rows-3 gap-0.5 sm:gap-1 w-full h-full p-1">
         {dots.map((active, i) => (
           <div key={i} className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${active ? 'bg-black' : 'bg-transparent'}`} />
         ))}
@@ -22,7 +22,7 @@ const DominoPiece: React.FC<{ left: number, right: number, isOption?: boolean }>
   };
 
   return (
-    <div className={`flex bg-white rounded-xl border-[3px] border-black/80 shadow-md ${isOption ? 'w-24 h-12' : 'w-20 h-10 sm:w-24 sm:h-12'}`}>
+    <div className={`flex bg-white rounded-lg sm:rounded-xl border-[3px] border-black/80 shadow-md ${isHand ? 'w-16 h-8 sm:w-20 sm:h-10' : 'w-14 h-7 sm:w-16 sm:h-8 shrink-0'}`}>
       <div className="flex-1 border-r-2 border-black/80 flex items-center justify-center">
         {renderDots(left)}
       </div>
@@ -34,74 +34,141 @@ const DominoPiece: React.FC<{ left: number, right: number, isOption?: boolean }>
 };
 
 const generateDominoesChallenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
-  // Gera uma cadeia lógica de 3 dominós (A-B, B-C, C-D)
+  // Gera uma sequência válida de 5 peças
   const a = Math.floor(Math.random() * 6) + 1;
   const b = Math.floor(Math.random() * 6) + 1;
   const c = Math.floor(Math.random() * 6) + 1;
   const d = Math.floor(Math.random() * 6) + 1;
   const e = Math.floor(Math.random() * 6) + 1;
+  const f = Math.floor(Math.random() * 6) + 1;
 
-  const sequence = [
-    { left: a, right: b },
-    { left: b, right: c },
-    { left: c, right: d }
+  const fullChain = [
+    { id: 1, left: a, right: b },
+    { id: 2, left: b, right: c },
+    { id: 3, left: c, right: d }, // Esta será a peça inicial no tabuleiro
+    { id: 4, left: d, right: e },
+    { id: 5, left: e, right: f }
   ];
 
-  // A resposta correta deve começar por 'd'
-  const answer = { left: d, right: e };
-
-  // Gera opções erradas (nenhuma pode começar por 'd' para não haver duas certas)
-  const optionsSet = new Set<string>([JSON.stringify(answer)]);
-  while (optionsSet.size < 4) {
-    const wrongL = Math.floor(Math.random() * 6) + 1;
-    const wrongR = Math.floor(Math.random() * 6) + 1;
-    if (wrongL !== d) {
-      optionsSet.add(JSON.stringify({ left: wrongL, right: wrongR }));
+  const boardStart = [fullChain[2]]; // Peça do meio vai pro tabuleiro
+  
+  // As outras vão para a mão do jogador, de forma embaralhada
+  const handPieces = [fullChain[0], fullChain[1], fullChain[3], fullChain[4]];
+  handPieces.forEach(p => {
+    // Inverte a peça aleatoriamente na mão para dificultar
+    if (Math.random() > 0.5) {
+      const temp = p.left;
+      p.left = p.right;
+      p.right = temp;
     }
-  }
-
-  const options = Array.from(optionsSet).map(o => JSON.parse(o)).sort(() => Math.random() - 0.5);
+  });
+  handPieces.sort(() => Math.random() - 0.5);
 
   return {
-    id: `dominoes10-${Date.now()}-${d}`,
-    instruction: "Complete a Sequência!",
-    spokenText: "Observe como as peças se encaixam! Qual é o dominó correto para fechar a linha?",
-    data: { sequence, options, answer }
+    id: `dominoes-interactive-${Date.now()}`,
+    instruction: "Monte o Caminho!",
+    spokenText: "Toque nas suas peças para encaixá-las nas pontas certas do dominó. Use todas as peças da sua mão!",
+    data: { boardStart, handPieces }
   };
 };
 
 const Dominoes10Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: boolean, scoreDelta: number) => void }> = ({ challenge, onAnswer }) => {
-  const { sequence, options, answer } = challenge.data;
+  const { boardStart, handPieces } = challenge.data;
+  
+  const [board, setBoard] = useState<any[]>(boardStart);
+  const [hand, setHand] = useState<any[]>(handPieces);
+  const [errorShake, setErrorShake] = useState<number | null>(null);
+
+  useEffect(() => {
+    setBoard(boardStart);
+    setHand(handPieces);
+  }, [challenge.id]);
+
+  const handlePieceClick = (piece: any) => {
+    const leftEnd = board[0].left;
+    const rightEnd = board[board.length - 1].right;
+    
+    let newBoard = [...board];
+    let matched = false;
+
+    // Tenta encaixar no lado Esquerdo
+    if (piece.right === leftEnd) {
+      newBoard.unshift(piece); // Encaixa direto
+      matched = true;
+    } else if (piece.left === leftEnd) {
+      newBoard.unshift({ ...piece, left: piece.right, right: piece.left }); // Vira e encaixa
+      matched = true;
+    } 
+    // Se não deu no esquerdo, tenta encaixar no lado Direito
+    else if (piece.left === rightEnd) {
+      newBoard.push(piece); // Encaixa direto
+      matched = true;
+    } else if (piece.right === rightEnd) {
+      newBoard.push({ ...piece, left: piece.right, right: piece.left }); // Vira e encaixa
+      matched = true;
+    }
+
+    if (matched) {
+      const newHand = hand.filter(p => p.id !== piece.id);
+      setBoard(newBoard);
+      setHand(newHand);
+      
+      // Ganhou o jogo se a mão ficar vazia
+      if (newHand.length === 0) {
+        setTimeout(() => onAnswer(true, 50), 600);
+      }
+    } else {
+      // Vibra a peça se não encaixar em nenhum lado
+      setErrorShake(piece.id);
+      setTimeout(() => setErrorShake(null), 400);
+    }
+  };
 
   return (
-    <div className="flex flex-col items-center gap-8 w-full max-w-2xl mx-auto">
+    <div className="flex flex-col items-center gap-6 w-full max-w-2xl mx-auto">
       
-      {/* Sequência de Dominós */}
-      <div className="flex items-center gap-2 sm:gap-4 bg-black/40 p-6 rounded-3xl border border-white/20 shadow-inner w-full overflow-x-auto justify-center">
-        {sequence.map((domino: any, idx: number) => (
-          <div key={idx} className="flex items-center gap-2 sm:gap-4">
-            <DominoPiece left={domino.left} right={domino.right} />
-            <span className="text-white/30 font-black">→</span>
-          </div>
-        ))}
-        {/* Espaço Vazio para o Encaixe */}
-        <div className="w-20 h-10 sm:w-24 sm:h-12 border-2 border-dashed border-[#bef264] rounded-xl flex items-center justify-center bg-white/5 animate-pulse">
-          <span className="text-[#bef264] font-black">?</span>
+      {/* Área do Tabuleiro */}
+      <div className="w-full bg-black/40 p-4 sm:p-6 rounded-3xl border border-white/20 shadow-inner flex flex-col items-center min-h-[8rem] justify-center overflow-hidden">
+        <span className="text-[#bef264] text-xs font-bold uppercase tracking-widest mb-4">Tabuleiro</span>
+        <div className="flex items-center gap-1 sm:gap-2 max-w-full overflow-x-auto pb-2 px-2 snap-x">
+          {board.map((domino: any) => (
+            <div key={domino.id} className="snap-center animate-fade-in">
+              <DominoPiece left={domino.left} right={domino.right} />
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Opções */}
-      <div className="grid grid-cols-2 gap-4 w-full">
-        {options.map((opt: any, idx: number) => (
-          <button
-            key={idx}
-            onClick={() => onAnswer(opt.left === answer.left && opt.right === answer.right, 40)}
-            className="flex items-center justify-center py-6 rounded-3xl bg-black/60 border border-white/30 hover:border-[#bef264] hover:bg-white/10 transition-all shadow-xl active:scale-95"
-          >
-            <DominoPiece left={opt.left} right={opt.right} isOption={true} />
-          </button>
-        ))}
+      {/* Área das Peças na Mão */}
+      <div className="w-full bg-[#bef264]/10 p-4 rounded-3xl border border-[#bef264]/30 shadow-md">
+        <span className="block text-center text-white/80 text-sm font-bold uppercase tracking-widest mb-4">A Sua Mão</span>
+        <div className="flex flex-wrap justify-center gap-3 sm:gap-4 min-h-[4rem]">
+          {hand.map((piece: any) => (
+            <button
+              key={piece.id}
+              onClick={() => handlePieceClick(piece)}
+              className={`transition-all hover:scale-105 active:scale-95 ${errorShake === piece.id ? 'animate-[shake_0.4s_ease-in-out]' : ''}`}
+            >
+              <DominoPiece left={piece.left} right={piece.right} isHand={true} />
+            </button>
+          ))}
+          {hand.length === 0 && (
+             <span className="text-[#bef264] font-black text-xl animate-pulse">Perfeito!</span>
+          )}
+        </div>
       </div>
+
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-5px) rotate(-5deg); }
+          50% { transform: translateX(5px) rotate(5deg); }
+          75% { transform: translateX(-5px) rotate(-5deg); }
+        }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+      `}</style>
+
     </div>
   );
 };
