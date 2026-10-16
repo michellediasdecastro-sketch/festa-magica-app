@@ -71,7 +71,6 @@ const TicTacToe10Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrec
       const playerCount = values.filter(v => v === player).length;
       const emptyCount = values.filter(v => v === "").length;
       
-      // Se falta apenas 1 para ganhar, encontra o índice vazio
       if (playerCount === size - 1 && emptyCount === 1) {
         return line[values.indexOf("")];
       }
@@ -85,15 +84,13 @@ const TicTacToe10Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrec
 
     let chosenMove = -1;
     
-    // IA EQUILIBRADA: 60% de probabilidade de jogar com inteligência máxima
     if (Math.random() < 0.6) {
-      chosenMove = findWinningMove(currentBoard, "O"); // 1. Tenta Ganhar
+      chosenMove = findWinningMove(currentBoard, "O"); 
       if (chosenMove === -1) {
-        chosenMove = findWinningMove(currentBoard, "X"); // 2. Tenta Bloquear o Jogador
+        chosenMove = findWinningMove(currentBoard, "X"); 
       }
     }
 
-    // Se não encontrou jogada inteligente (ou caiu nos 40% de distração) joga à sorte
     if (chosenMove === -1) {
       chosenMove = available[Math.floor(Math.random() * available.length)];
     }
@@ -117,11 +114,18 @@ const TicTacToe10Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrec
       setTimeout(() => onAnswer(true, 50), 1000);
     } else if (winner === "O") {
       setMessage("💻 O Sistema Venceu!");
+      // CORREÇÃO: Dispara o erro e limpa o tabuleiro para tentar de novo
       setTimeout(() => {
-        onAnswer(false, 0); // Ecrã vermelho de erro, a criança tentará noutra rodada
-      }, 1500);
+        onAnswer(false, 0); 
+        setTimeout(() => {
+          setBoard(Array(size * size).fill(""));
+          setIsPlayerTurn(true);
+          setMessage(`Tente de novo! Você é o X`);
+        }, 1200);
+      }, 1000);
     } else {
       setMessage("🤝 Empate! Tente novamente.");
+      // CORREÇÃO: Limpa o tabuleiro em caso de empate
       setTimeout(() => {
         setBoard(Array(size * size).fill(""));
         setIsPlayerTurn(true);
@@ -132,7 +136,7 @@ const TicTacToe10Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrec
 
   return (
     <div className="flex flex-col items-center gap-6 w-full max-w-sm mx-auto">
-      <div className="bg-black/60 px-6 py-3 rounded-2xl border border-white/20 shadow-md text-center">
+      <div className="bg-black/60 px-6 py-3 rounded-2xl border border-white/20 shadow-md text-center w-full">
         <div className={`text-lg font-black tracking-widest ${isPlayerTurn ? 'text-[#bef264]' : 'text-red-400'}`}>
           {message}
         </div>
