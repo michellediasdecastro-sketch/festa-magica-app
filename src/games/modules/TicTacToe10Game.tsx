@@ -2,16 +2,14 @@ import React, { useState, useEffect } from "react";
 import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 
 const generateTicTacToeChallenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
-  // Conta quantas vezes o jogo da velha já foi jogado nesta sessão
   const roundsPlayed = history.filter(h => h.includes('tictactoe10')).length;
-  
-  // Primeiras 10 rodadas (0 a 9) = 3x3. Da 11ª em diante = 4x4.
+  // Primeiras 10 rodadas = 3x3. Da 11ª em diante = 4x4.
   const size = roundsPlayed >= 10 ? 4 : 3; 
   
   return {
     id: `tictactoe10-${size}x${size}-${Date.now()}`,
     instruction: "Vença o Computador!",
-    spokenText: "Jogue o clássico Jogo da Velha contra o sistema. Consegue ganhar?",
+    spokenText: "Jogue o clássico Jogo da Velha contra o sistema. Atenção, o computador é inteligente, mas comete erros!",
     data: { size }
   };
 };
@@ -28,18 +26,19 @@ const TicTacToe10Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrec
     setMessage(`Sua vez! Você é o X (Junte ${size}!)`);
   }, [challenge.id, size]);
 
-  const checkWinner = (squares: string[]) => {
+  const getLines = () => {
     const lines: number[][] = [];
-    
-    // Linhas e Colunas
     for (let i = 0; i < size; i++) {
-      lines.push(Array.from({length: size}, (_, k) => i * size + k)); // Linha
-      lines.push(Array.from({length: size}, (_, k) => k * size + i)); // Coluna
+      lines.push(Array.from({length: size}, (_, k) => i * size + k)); 
+      lines.push(Array.from({length: size}, (_, k) => k * size + i)); 
     }
-    // Diagonais
     lines.push(Array.from({length: size}, (_, k) => k * size + k));
     lines.push(Array.from({length: size}, (_, k) => k * size + (size - 1 - k)));
+    return lines;
+  };
 
+  const checkWinner = (squares: string[]) => {
+    const lines = getLines();
     for (let line of lines) {
       const first = squares[line[0]];
       if (first && line.every(idx => squares[idx] === first)) return first;
@@ -61,19 +60,46 @@ const TicTacToe10Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrec
       finishGame(winner);
     } else {
       setMessage("O sistema está a pensar...");
-      setTimeout(() => makeAIMove(newBoard), 600);
+      setTimeout(() => makeAIMove(newBoard), 800);
     }
+  };
+
+  const findWinningMove = (currentBoard: string[], player: string) => {
+    const lines = getLines();
+    for (let line of lines) {
+      const values = line.map(idx => currentBoard[idx]);
+      const playerCount = values.filter(v => v === player).length;
+      const emptyCount = values.filter(v => v === "").length;
+      
+      // Se falta apenas 1 para ganhar, encontra o índice vazio
+      if (playerCount === size - 1 && emptyCount === 1) {
+        return line[values.indexOf("")];
+      }
+    }
+    return -1;
   };
 
   const makeAIMove = (currentBoard: string[]) => {
     const available = currentBoard.map((val, idx) => val === "" ? idx : null).filter(val => val !== null) as number[];
     if (available.length === 0) return;
 
-    // AI Simples: Escolhe um espaço aleatório
-    const randomMove = available[Math.floor(Math.random() * available.length)];
+    let chosenMove = -1;
+    
+    // IA EQUILIBRADA: 60% de probabilidade de jogar com inteligência máxima
+    if (Math.random() < 0.6) {
+      chosenMove = findWinningMove(currentBoard, "O"); // 1. Tenta Ganhar
+      if (chosenMove === -1) {
+        chosenMove = findWinningMove(currentBoard, "X"); // 2. Tenta Bloquear o Jogador
+      }
+    }
+
+    // Se não encontrou jogada inteligente (ou caiu nos 40% de distração) joga à sorte
+    if (chosenMove === -1) {
+      chosenMove = available[Math.floor(Math.random() * available.length)];
+    }
     
     const newBoard = [...currentBoard];
-    newBoard[randomMove] = "O";
+    newBoard[chosenMove] = "O";
     setBoard(newBoard);
 
     const winner = checkWinner(newBoard);
@@ -81,7 +107,7 @@ const TicTacToe10Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrec
       finishGame(winner);
     } else {
       setIsPlayerTurn(true);
-      setMessage(`Sua vez! Você é o X (Junte ${size}!)`);
+      setMessage(`Sua vez! Você é o X`);
     }
   };
 
@@ -92,14 +118,14 @@ const TicTacToe10Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrec
     } else if (winner === "O") {
       setMessage("💻 O Sistema Venceu!");
       setTimeout(() => {
-        onAnswer(false, 0);
-      }, 1000);
+        onAnswer(false, 0); // Ecrã vermelho de erro, a criança tentará noutra rodada
+      }, 1500);
     } else {
       setMessage("🤝 Empate! Tente novamente.");
       setTimeout(() => {
         setBoard(Array(size * size).fill(""));
         setIsPlayerTurn(true);
-        setMessage(`Sua vez! Você é o X (Junte ${size}!)`);
+        setMessage(`Sua vez! Você é o X`);
       }, 1500);
     }
   };
