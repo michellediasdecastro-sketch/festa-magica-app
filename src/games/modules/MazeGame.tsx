@@ -2,53 +2,52 @@ import React, { useState, useEffect, useCallback } from "react";
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from "lucide-react";
 import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 
-// Lista de rotas simples e divertidas 5x5 para 4-5 anos (0 = estrada, 1 = parede)
-const SIMPLE_MAZES = [
-  [
-    [0, 1, 1, 1, 1],
-    [0, 0, 0, 1, 1],
-    [1, 1, 0, 1, 1],
-    [1, 1, 0, 0, 0],
-    [1, 1, 1, 1, 0]
-  ],
-  [
-    [0, 0, 1, 1, 1],
-    [1, 0, 0, 0, 1],
-    [1, 1, 1, 0, 1],
-    [1, 1, 1, 0, 0],
-    [1, 1, 1, 1, 0]
-  ],
-  [
-    [0, 1, 1, 1, 1],
-    [0, 0, 1, 1, 1],
-    [1, 0, 0, 0, 1],
-    [1, 1, 1, 0, 1],
-    [1, 1, 1, 0, 0]
-  ],
-  [
-    [0, 0, 0, 1, 1],
-    [1, 1, 0, 1, 1],
-    [1, 1, 0, 0, 0],
-    [1, 1, 1, 1, 0],
-    [1, 1, 1, 1, 0]
-  ]
-];
+// Gerador procedural de caminhos simples para 4-5 anos (Tamanho 5x5)
+const generateSimpleMaze = () => {
+  const size = 5;
+  const grid = Array.from({ length: size }, () => Array(size).fill(1));
+  
+  let x = 0;
+  let y = 0;
+  grid[y][x] = 0; // Ponto de partida (0,0)
+
+  // Caminha passo a passo até ao canto oposto (4,4) criando uma estrada livre de becos sem saída complexos
+  while (x < size - 1 || y < size - 1) {
+    const options: string[] = [];
+    if (x < size - 1) options.push("RIGHT");
+    if (y < size - 1) options.push("DOWN");
+    // Ocasionalmente permite recuar ligeiramente para dar curvas, mantendo a simplicidade
+    if (x > 0 && Math.random() > 0.8) options.push("LEFT");
+    if (y > 0 && Math.random() > 0.8) options.push("UP");
+
+    const move = options[Math.floor(Math.random() * options.length)];
+    if (move === "RIGHT") x++;
+    else if (move === "DOWN") y++;
+    else if (move === "LEFT") x--;
+    else if (move === "UP") y--;
+
+    grid[y][x] = 0;
+  }
+
+  // Garante que o canto final está sempre aberto
+  grid[size - 1][size - 1] = 0;
+  grid[0][0] = 0;
+
+  return { grid, size };
+};
 
 const generateMaze4Challenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
   const source = context.gameImages.length > 0 ? context.gameImages : ["🍎", "⭐"];
   const avatar = source[0];
   const target = source.length > 1 ? source[1] : "🎈";
 
-  // Escolhe um labirinto aleatório da lista simples
-  const grid = SIMPLE_MAZES[Math.floor(Math.random() * SIMPLE_MAZES.length)];
-  const cols = 5;
-  const rows = 5;
+  const { grid, size } = generateSimpleMaze();
 
   return {
-    id: `maze-4-${Date.now()}-${Math.random()}`,
+    id: `maze-4-dynamic-${Date.now()}-${Math.random()}`,
     instruction: "Leve o personagem até o fim!",
-    spokenText: "Use as setas para guiar o seu personagem até o objetivo. É bem fácil e divertido!",
-    data: { grid, cols, rows, avatar, target }
+    spokenText: "Use as setas para guiar o seu personagem até o objetivo. Siga a estrada!",
+    data: { grid, cols: size, rows: size, avatar, target }
   };
 };
 
