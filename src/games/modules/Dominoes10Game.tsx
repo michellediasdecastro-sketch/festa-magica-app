@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 
-// Componente para desenhar o dominó
 const DominoPiece: React.FC<{ left: number, right: number, isHand?: boolean }> = ({ left, right, isHand }) => {
   const renderDots = (num: number) => {
     const dots = Array(9).fill(false);
@@ -34,7 +33,6 @@ const DominoPiece: React.FC<{ left: number, right: number, isHand?: boolean }> =
 };
 
 const generateDominoesChallenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
-  // Gera uma sequência válida de 5 peças
   const a = Math.floor(Math.random() * 6) + 1;
   const b = Math.floor(Math.random() * 6) + 1;
   const c = Math.floor(Math.random() * 6) + 1;
@@ -45,17 +43,15 @@ const generateDominoesChallenge = (difficulty: number, context: PartyContext, hi
   const fullChain = [
     { id: 1, left: a, right: b },
     { id: 2, left: b, right: c },
-    { id: 3, left: c, right: d }, // Esta será a peça inicial no tabuleiro
+    { id: 3, left: c, right: d },
     { id: 4, left: d, right: e },
     { id: 5, left: e, right: f }
   ];
 
-  const boardStart = [fullChain[2]]; // Peça do meio vai pro tabuleiro
+  const boardStart = [fullChain[2]]; 
   
-  // As outras vão para a mão do jogador, de forma embaralhada
   const handPieces = [fullChain[0], fullChain[1], fullChain[3], fullChain[4]];
   handPieces.forEach(p => {
-    // Inverte a peça aleatoriamente na mão para dificultar
     if (Math.random() > 0.5) {
       const temp = p.left;
       p.left = p.right;
@@ -67,7 +63,7 @@ const generateDominoesChallenge = (difficulty: number, context: PartyContext, hi
   return {
     id: `dominoes-interactive-${Date.now()}`,
     instruction: "Monte o Caminho!",
-    spokenText: "Toque nas suas peças para encaixá-las nas pontas certas do dominó. Use todas as peças da sua mão!",
+    spokenText: "Toque nas suas peças para encaixá-las nas pontas certas do dominó. Pense bem para não bloquear o jogo!",
     data: { boardStart, handPieces }
   };
 };
@@ -78,33 +74,34 @@ const Dominoes10Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrect
   const [board, setBoard] = useState<any[]>(boardStart);
   const [hand, setHand] = useState<any[]>(handPieces);
   const [errorShake, setErrorShake] = useState<number | null>(null);
+  const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
     setBoard(boardStart);
     setHand(handPieces);
+    setIsBlocked(false);
   }, [challenge.id]);
 
   const handlePieceClick = (piece: any) => {
+    if (isBlocked) return;
+
     const leftEnd = board[0].left;
     const rightEnd = board[board.length - 1].right;
     
     let newBoard = [...board];
     let matched = false;
 
-    // Tenta encaixar no lado Esquerdo
     if (piece.right === leftEnd) {
-      newBoard.unshift(piece); // Encaixa direto
+      newBoard.unshift(piece);
       matched = true;
     } else if (piece.left === leftEnd) {
-      newBoard.unshift({ ...piece, left: piece.right, right: piece.left }); // Vira e encaixa
+      newBoard.unshift({ ...piece, left: piece.right, right: piece.left });
       matched = true;
-    } 
-    // Se não deu no esquerdo, tenta encaixar no lado Direito
-    else if (piece.left === rightEnd) {
-      newBoard.push(piece); // Encaixa direto
+    } else if (piece.left === rightEnd) {
+      newBoard.push(piece);
       matched = true;
     } else if (piece.right === rightEnd) {
-      newBoard.push({ ...piece, left: piece.right, right: piece.left }); // Vira e encaixa
+      newBoard.push({ ...piece, left: piece.right, right: piece.left });
       matched = true;
     }
 
@@ -113,24 +110,43 @@ const Dominoes10Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrect
       setBoard(newBoard);
       setHand(newHand);
       
-      // Ganhou o jogo se a mão ficar vazia
       if (newHand.length === 0) {
         setTimeout(() => onAnswer(true, 50), 600);
+      } else {
+        // CORREÇÃO: Verifica se as peças que sobraram conseguem jogar
+        const newLeftEnd = newBoard[0].left;
+        const newRightEnd = newBoard[newBoard.length - 1].right;
+        
+        const canPlay = newHand.some(p => 
+          p.left === newLeftEnd || p.right === newLeftEnd || 
+          p.left === newRightEnd || p.right === newRightEnd
+        );
+
+        if (!canPlay) {
+          setIsBlocked(true);
+          setTimeout(() => {
+            onAnswer(false, 0); // Ecrã vermelho de erro
+            // Devolve as peças e reinicia o tabuleiro
+            setTimeout(() => {
+              setBoard(boardStart);
+              setHand(handPieces);
+              setIsBlocked(false);
+            }, 1200);
+          }, 800);
+        }
       }
     } else {
-      // Vibra a peça se não encaixar em nenhum lado
       setErrorShake(piece.id);
       setTimeout(() => setErrorShake(null), 400);
     }
   };
 
   return (
-    <div className="flex flex-col items-center gap-6 w-full max-w-2xl mx-auto">
+    <div className="flex flex-col items-center gap-6 w-full max-w-2xl mx-auto relative">
       
-      {/* Área do Tabuleiro */}
-      <div className="w-full bg-black/40 p-4 sm:p-6 rounded-3xl border border-white/20 shadow-inner flex flex-col items-center min-h-[8rem] justify-center overflow-hidden">
+      <div className="w-full bg-black/40 p-4 sm:p-6 rounded-3xl border border-white/20 shadow-inner flex flex-col items-center min-h-[8rem] justify-center overflow-hidden relative">
         <span className="text-[#bef264] text-xs font-bold uppercase tracking-widest mb-4">Tabuleiro</span>
-        <div className="flex items-center gap-1 sm:gap-2 max-w-full overflow-x-auto pb-2 px-2 snap-x">
+        <div className="flex items-center gap-1 sm:gap-2 max-w-full overflow-x-auto pb-2 px-2 snap-x transition-all">
           {board.map((domino: any) => (
             <div key={domino.id} className="snap-center animate-fade-in">
               <DominoPiece left={domino.left} right={domino.right} />
@@ -139,20 +155,22 @@ const Dominoes10Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrect
         </div>
       </div>
 
-      {/* Área das Peças na Mão */}
-      <div className="w-full bg-[#bef264]/10 p-4 rounded-3xl border border-[#bef264]/30 shadow-md">
-        <span className="block text-center text-white/80 text-sm font-bold uppercase tracking-widest mb-4">A Sua Mão</span>
+      <div className={`w-full p-4 rounded-3xl border shadow-md transition-all ${isBlocked ? 'bg-red-500/20 border-red-500/50' : 'bg-[#bef264]/10 border-[#bef264]/30'}`}>
+        <span className={`block text-center text-sm font-bold uppercase tracking-widest mb-4 ${isBlocked ? 'text-red-400 animate-pulse' : 'text-white/80'}`}>
+          {isBlocked ? 'JOGO BLOQUEADO! REINICIANDO...' : 'A Sua Mão'}
+        </span>
         <div className="flex flex-wrap justify-center gap-3 sm:gap-4 min-h-[4rem]">
           {hand.map((piece: any) => (
             <button
               key={piece.id}
               onClick={() => handlePieceClick(piece)}
-              className={`transition-all hover:scale-105 active:scale-95 ${errorShake === piece.id ? 'animate-[shake_0.4s_ease-in-out]' : ''}`}
+              disabled={isBlocked}
+              className={`transition-all hover:scale-105 active:scale-95 ${errorShake === piece.id ? 'animate-[shake_0.4s_ease-in-out]' : ''} ${isBlocked ? 'opacity-50 grayscale' : ''}`}
             >
               <DominoPiece left={piece.left} right={piece.right} isHand={true} />
             </button>
           ))}
-          {hand.length === 0 && (
+          {hand.length === 0 && !isBlocked && (
              <span className="text-[#bef264] font-black text-xl animate-pulse">Perfeito!</span>
           )}
         </div>
