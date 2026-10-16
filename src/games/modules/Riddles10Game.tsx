@@ -7,21 +7,33 @@ const RIDDLES = [
   { q: "O que é, o que é? Quanto mais se tira, maior fica.", a: "BURACO", wrong: ["BOLO", "SOMBRA", "DÍVIDA"] },
   { q: "O que é, o que é? Nasce grande e morre pequeno.", a: "LÁPIS", wrong: ["SOL", "SAPATO", "ÁRVORE"] },
   { q: "O que é, o que é? Feito para andar e não anda.", a: "RUA", wrong: ["CARRO", "SAPATO", "PÉ"] },
-  { q: "O que é, o que é? Tem cabeça e tem dente, não é bicho e nem é gente.", a: "ALHO", wrong: ["PENTE", "SERRA", "ZÍPER"] }
+  { q: "O que é, o que é? Tem cabeça e tem dente, não é bicho e nem é gente.", a: "ALHO", wrong: ["PENTE", "SERRA", "ZÍPER"] },
+  { q: "O que é, o que é? Sobe quando a chuva desce.", a: "GUARDA-CHUVA", wrong: ["BALÃO", "PÁSSARO", "FUMAÇA"] },
+  { q: "O que é, o que é? Tem pescoço e não tem cabeça, tem braços e não tem mãos.", a: "CAMISA", wrong: ["BONECO", "RELÓGIO", "CADEIRA"] },
+  { q: "O que é, o que é? Anda com os pés na cabeça.", a: "PIOLHO", wrong: ["CHAPÉU", "MACACO", "SAPATO"] },
+  { q: "O que é, o que é? Passa a vida na janela e mesmo dentro de casa está fora dela.", a: "BOTÃO", wrong: ["CORTINA", "VIDRO", "VENTO"] },
+  { q: "O que é, o que é? Tem bico, mas não bica. Tem asa, mas não voa.", a: "BULE", wrong: ["PATO", "AVIÃO", "XÍCARA"] },
+  { q: "O que é, o que é? De dia tem 4 pés, de noite tem 6.", a: "CAMA", wrong: ["MESA", "GATO", "CADEIRA"] },
+  { q: "O que é, o que é? Quanto mais cresce, menos se vê.", a: "ESCURIDÃO", wrong: ["NUVEM", "NEBLINA", "SOMBRA"] },
+  { q: "O que é, o que é? Fica cheio de boca para baixo e vazio de boca para cima.", a: "CHAPÉU", wrong: ["COPO", "BALDE", "MALA"] },
+  { q: "O que é, o que é? Entra na água e não se molha.", a: "SOMBRA", wrong: ["PEIXE", "BARCO", "PEDRA"] },
+  { q: "O que é, o que é? Tem folhas, mas não é árvore. Tem capa, mas não é herói.", a: "LIVRO", wrong: ["CADERNO", "CAMA", "ALFACE"] }
 ];
 
 const generateRiddlesChallenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
   let riddle;
   let attempts = 0;
+  
+  // A trava verifica a resposta exata no histórico para nunca repetir a charada
   do {
     riddle = RIDDLES[Math.floor(Math.random() * RIDDLES.length)];
     attempts++;
-  } while (history.some(h => h.includes(riddle.a)) && attempts < 20);
+  } while (history.some(h => h.includes(riddle.a)) && attempts < 40);
 
   const options = [riddle.a, ...riddle.wrong].sort(() => Math.random() - 0.5);
 
   return {
-    id: `riddle10-${Date.now()}-${riddle.a}`,
+    id: `riddle10-${Date.now()}-${riddle.a}`, // A resposta vai no ID para a trava funcionar
     instruction: "O que é, o que é?",
     spokenText: "Leia a charada com muita atenção e tente adivinhar a resposta certa.",
     data: { question: riddle.q, options, answer: riddle.a }
@@ -56,7 +68,7 @@ const Riddles10Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrect:
 
 export const Riddles10GameModule: GameModule = {
   id: "riddles-10",
-  title: "Decisões e Consequências",
+  title: "Charadas e Enigmas",
   categoryId: "decisoes-10",
   supportedAges: ["10-11"],
   generateChallenge: generateRiddlesChallenge,
