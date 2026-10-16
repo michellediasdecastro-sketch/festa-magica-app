@@ -93,6 +93,17 @@ export function App() {
     }
   }, [partyData, isInGames, isAdminOpen]);
 
+  // NOVO HOOK: Trava de Áudio ao sair do jogo
+  useEffect(() => {
+    // Quando a variável 'isInGames' for alterada e passar a ser false (a criança saiu do jogo e voltou para a tela inicial)...
+    if (!isInGames) {
+      // ...nós cancelamos imediatamente qualquer voz que esteja a ser reproduzida no background
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    }
+  }, [isInGames]);
+
   const handleLogout = () => {
     localStorage.removeItem('@party_guest_session');
     setPartyData(null);
