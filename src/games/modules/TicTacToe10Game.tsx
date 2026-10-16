@@ -2,8 +2,11 @@ import React, { useState, useEffect } from "react";
 import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 
 const generateTicTacToeChallenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
-  // Se a dificuldade for maior, o tabuleiro cresce para 4x4
-  const size = difficulty >= 6 ? 4 : 3; 
+  // Conta quantas vezes o jogo da velha já foi jogado nesta sessão
+  const roundsPlayed = history.filter(h => h.includes('tictactoe10')).length;
+  
+  // Primeiras 10 rodadas (0 a 9) = 3x3. Da 11ª em diante = 4x4.
+  const size = roundsPlayed >= 10 ? 4 : 3; 
   
   return {
     id: `tictactoe10-${size}x${size}-${Date.now()}`,
@@ -90,7 +93,6 @@ const TicTacToe10Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrec
       setMessage("💻 O Sistema Venceu!");
       setTimeout(() => {
         onAnswer(false, 0);
-        // Se perder, o jogo avisa o sistema e o ecrã vermelho vai aparecer, podendo tentar noutro minijogo
       }, 1000);
     } else {
       setMessage("🤝 Empate! Tente novamente.");
