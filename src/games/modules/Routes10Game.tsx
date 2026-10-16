@@ -1,83 +1,124 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 
 const generateRoutes10Challenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
-  const source = context.gameImages.length >= 3 ? context.gameImages : ["🍎", "⭐", "🚗"];
-  const shuffled = [...source].sort(() => Math.random() - 0.5);
+  const size = 5;
+  const grid = Array(size * size).fill(0); // 0 = vazio, 1 = obstáculo
   
-  const pointC = shuffled[0]; // Destino final
-  
-  // Distâncias aleatórias
-  const distAB = Math.floor(Math.random() * 20) + 10;
-  const distBC = Math.floor(Math.random() * 25) + 15;
-  const distDirect = distAB + distBC - (Math.floor(Math.random() * 10) + 2); // Caminho direto é ligeiramente mais curto, mas a missão pede com escala
-  
-  const answer = distAB + distBC; // A rota solicitada é A -> B -> C
+  const start = 0; // Canto superior esquerdo
+  const end = 24;  // Canto inferior direito
 
-  const optionsSet = new Set<number>([answer, distDirect, distAB, distBC]);
-  while (optionsSet.size < 4) {
-    const wrong = answer + (Math.floor(Math.random() * 15) - 7);
-    if (wrong > 0 && !optionsSet.has(wrong)) optionsSet.add(wrong);
+  // Adiciona 6 obstáculos aleatórios que não bloqueiam as extremidades
+  let obstaclesAdded = 0;
+  while (obstaclesAdded < 6) {
+    const idx = Math.floor(Math.random() * 25);
+    if (idx !== start && idx !== end && idx !== 1 && idx !== 5 && idx !== 23 && idx !== 19 && grid[idx] === 0) {
+      grid[idx] = 1;
+      obstaclesAdded++;
+    }
   }
-  const options = Array.from(optionsSet).sort(() => Math.random() - 0.5);
 
   return {
-    id: `routes10-${Date.now()}-${Math.random()}`,
-    instruction: "Calcule a Rota Completa!",
-    spokenText: "Precisamos chegar ao destino final, mas fazendo uma paragem no meio do caminho. Qual é a distância total?",
-    data: { distAB, distBC, distDirect, pointC, options, answer }
+    id: `routes10-grid-${Date.now()}`,
+    instruction: "Trace a Rota Segura!",
+    spokenText: "Arraste o dedo para criar um caminho seguro até ao destino, desviando das zonas de perigo.",
+    data: { grid, size, start, end }
   };
 };
 
 const Routes10Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: boolean, scoreDelta: number) => void }> = ({ challenge, onAnswer }) => {
-  const { distAB, distBC, distDirect, pointC, options, answer } = challenge.data;
+  const { grid, size, start, end } = challenge.data;
+  const [path, setPath] = useState<number[]>([start]);
+  const [isDrawing, setIsDrawing] = useState(false);
+
+  useEffect(() => {
+    setPath([start]);
+    setIsDrawing(false);
+  }, [challenge.id]);
+
+  const processMove = (index: number) => {
+    setPath(prev => {
+      const current = prev[prev.length - 1];
+      if (index === current) return prev;
+      
+      // Permite apagar voltando atrás
+      if (prev.length > 1 && index === prev[prev.length - 2]) {
+        return prev.slice(0, -1);
+      }
+
+      // Valida movimento (cima, baixo, esquerda, direita) e evita obstáculos
+      const diff = index - current;
+      let valid = false;
+      if (diff === -size) valid = true; // Cima
+      if (diff === 1 && (current % size) !== size - 1) valid = true; // Direita
+      if (diff === size) valid = true; // Baixo
+      if (diff === -1 && (current % size) !== 0) valid = true; // Esquerda
+
+      if (valid && grid[index] === 0 && !prev.includes(index)) {
+        const newPath = [...prev, index];
+        if (index === end) {
+          setIsDrawing(false);
+          setTimeout(() => onAnswer(true, 45), 300);
+        }
+        return newPath;
+      }
+      return prev;
+    });
+  };
+
+  const handlePointerDown = (index: number) => {
+    if (index === path[path.length - 1]) setIsDrawing(true);
+  };
+  const handlePointerUp = () => setIsDrawing(false);
+  const handlePointerEnter = (index: number) => { if (isDrawing) processMove(index); };
+  
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDrawing) return;
+    const touch = e.touches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (el) {
+      const idx = el.getAttribute("data-index");
+      if (idx !== null) processMove(Number(idx));
+    }
+  };
 
   return (
-    <div className="flex flex-col items-center gap-6 w-full max-w-lg mx-auto">
-      <div className="bg-black/40 p-6 rounded-3xl border border-white/20 w-full shadow-inner flex flex-col gap-4 relative">
-        <h4 className="text-[#bef264] font-black text-sm uppercase tracking-widest text-center">Mapa de Navegação</h4>
-        
-        {/* Grafo Visual da Rota */}
-        <div className="relative h-32 w-full mt-4">
-          <div className="absolute top-4 left-4 w-12 h-12 bg-white/10 border-2 border-white/40 rounded-full flex items-center justify-center font-bold text-xl z-10">A</div>
-          <div className="absolute top-4 right-4 w-12 h-12 bg-white/10 border-2 border-white/40 rounded-full flex items-center justify-center font-bold text-xl z-10">B</div>
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-16 h-16 bg-[#bef264]/20 border-2 border-[#bef264] rounded-full flex items-center justify-center z-10 shadow-[0_0_15px_rgba(190,242,100,0.3)]">
-            {pointC.startsWith('http') ? (
-              <img src={pointC} alt="C" className="w-3/4 h-3/4 object-contain drop-shadow-md pointer-events-none" onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }} />
-            ) : <span className="text-3xl pointer-events-none">{pointC}</span>}
-          </div>
+    <div 
+      className="flex flex-col items-center gap-4 w-full max-w-sm mx-auto p-4 bg-black/40 rounded-3xl border border-white/20 touch-none select-none"
+      style={{ touchAction: 'none' }}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+      onTouchEnd={handlePointerUp}
+      onTouchMove={handleTouchMove}
+    >
+      <div 
+        className="grid w-full aspect-square bg-[#1a1a1a] rounded-xl overflow-hidden shadow-inner p-1 border-4 border-black/80 gap-1"
+        style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }}
+      >
+        {grid.map((cell: number, idx: number) => {
+          const isObstacle = cell === 1;
+          const inPath = path.includes(idx);
+          const isStart = idx === start;
+          const isEnd = idx === end;
 
-          {/* Linhas de conexão */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
-            {/* A para B */}
-            <line x1="15%" y1="20%" x2="85%" y2="20%" stroke="rgba(255,255,255,0.3)" strokeWidth="3" strokeDasharray="6 6" />
-            <text x="50%" y="15%" fill="rgba(255,255,255,0.7)" fontSize="14" textAnchor="middle" fontWeight="bold">{distAB} km</text>
-            
-            {/* B para C */}
-            <line x1="85%" y1="20%" x2="50%" y2="80%" stroke="rgba(255,255,255,0.3)" strokeWidth="3" strokeDasharray="6 6" />
-            <text x="75%" y="60%" fill="rgba(255,255,255,0.7)" fontSize="14" textAnchor="middle" fontWeight="bold">{distBC} km</text>
-            
-            {/* A para C (Direto) */}
-            <line x1="15%" y1="20%" x2="50%" y2="80%" stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
-            <text x="25%" y="60%" fill="rgba(255,255,255,0.3)" fontSize="12" textAnchor="middle">{distDirect} km</text>
-          </svg>
-        </div>
-
-        <div className="bg-black/50 p-3 rounded-xl border border-white/10 mt-2 text-center text-white/80 font-medium">
-          Missão: Viajar de <strong className="text-white">A</strong> até ao <strong className="text-[#bef264]">Destino Final</strong>, com paragem obrigatória em <strong className="text-white">B</strong>.
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 w-full">
-        {options.map((opt: number, idx: number) => (
-          <button
-            key={idx}
-            onClick={() => onAnswer(opt === answer, 45)}
-            className="py-4 rounded-3xl bg-black/60 border border-white/30 hover:border-[#bef264] transition-all text-3xl sm:text-4xl font-black shadow-xl active:scale-95 text-white"
-          >
-            {opt}
-          </button>
-        ))}
+          return (
+            <div
+              key={idx}
+              data-index={idx}
+              onPointerDown={() => handlePointerDown(idx)}
+              onPointerEnter={() => handlePointerEnter(idx)}
+              className={`relative w-full h-full flex items-center justify-center rounded-lg transition-colors duration-150
+                ${isObstacle ? 'bg-red-500/80 border-2 border-red-900 shadow-inner' : 'bg-white/5 border border-white/10'}
+                ${inPath ? 'bg-[#bef264]/40 border-2 border-[#bef264]' : ''}
+              `}
+            >
+              {inPath && !isStart && !isEnd && <div className="w-4 h-4 bg-[#bef264] rounded-full shadow-[0_0_10px_#bef264]" />}
+              {isStart && <span className="text-2xl z-10">A</span>}
+              {isEnd && <span className="text-2xl opacity-80 z-10">B</span>}
+              {isObstacle && <span className="text-2xl pointer-events-none">❌</span>}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
