@@ -1,34 +1,34 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from "lucide-react";
 import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 
-// Gerador de Labirintos Perfeitos (Bifurcações e Becos Sem Saída)
-const generatePerfectMaze = (size: number) => {
-  const cells = Array.from({ length: size * size }, () => ({ t: 1, r: 1, b: 1, l: 1, v: 0 }));
-  const stack = [0];
-  cells[0].v = 1;
+// Motor DFS de Geração de Labirintos
+const generateGrid = (cols: number, rows: number) => {
+  const grid = Array.from({ length: rows }, () => Array(cols).fill(1));
+  const stack = [[1, 1]];
+  grid[1][1] = 0;
 
   while (stack.length > 0) {
-    const curr = stack[stack.length - 1];
-    const x = curr % size;
-    const y = Math.floor(curr / size);
-    const neighbors = [];
+    const [x, y] = stack[stack.length - 1];
+    const dirs = [[0, -2], [0, 2], [-2, 0], [2, 0]].sort(() => Math.random() - 0.5);
 
-    if (y > 0 && cells[curr - size].v === 0) neighbors.push({ idx: curr - size, wall: 't', opp: 'b' });
-    if (x < size - 1 && cells[curr + 1].v === 0) neighbors.push({ idx: curr + 1, wall: 'r', opp: 'l' });
-    if (y < size - 1 && cells[curr + size].v === 0) neighbors.push({ idx: curr + size, wall: 'b', opp: 't' });
-    if (x > 0 && cells[curr - 1].v === 0) neighbors.push({ idx: curr - 1, wall: 'l', opp: 'r' });
-
-    if (neighbors.length > 0) {
-      const next = neighbors[Math.floor(Math.random() * neighbors.length)];
-      cells[curr][next.wall as keyof typeof cells[0]] = 0;
-      cells[next.idx][next.opp as keyof typeof cells[0]] = 0;
-      cells[next.idx].v = 1;
-      stack.push(next.idx);
-    } else {
-      stack.pop();
+    let carved = false;
+    for (let [dx, dy] of dirs) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (nx > 0 && nx < cols - 1 && ny > 0 && ny < rows - 1 && grid[ny][nx] === 1) {
+        grid[y + dy / 2][x + dx / 2] = 0;
+        grid[ny][nx] = 0;
+        stack.push([nx, ny]);
+        carved = true;
+        break;
+      }
     }
+    if (!carved) stack.pop();
   }
-  return cells;
+  grid[0][1] = 0; 
+  grid[rows - 1][cols - 2] = 0; 
+  return grid;
 };
 
 const generateMaze8Challenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
@@ -36,143 +36,121 @@ const generateMaze8Challenge = (difficulty: number, context: PartyContext, histo
   const avatar = source[0];
   const target = source.length > 1 ? source[1] : "🎈";
 
-  // Aumentamos o tamanho para 10x10: cria muitos becos sem saída e rotas falsas
-  const size = 10; 
-  const grid = generatePerfectMaze(size);
+  // Dificuldade dinâmica: cresce de 13x13 até um impressionante 21x21 para 8-9 anos
+  const size = Math.min(21, 13 + Math.floor(difficulty) * 2); 
+  const cols = size;
+  const rows = size;
+  
+  const grid = generateGrid(cols, rows);
 
   return {
-    id: `maze-strat-8-${Date.now()}-${Math.random()}`,
-    instruction: "Encontre a saída!",
-    spokenText: "Este labirinto é perigoso. Se errar o caminho, volte atrás para encontrar a rota certa.",
-    data: { grid, size, avatar, target }
+    id: `maze-drive-8-${size}-${Date.now()}`,
+    instruction: "Rotas Estratégicas!",
+    spokenText: "Neste labirinto gigante, planear o percurso é essencial. Use as setas para encontrar a saída correta.",
+    data: { grid, cols, rows, avatar, target }
   };
 };
 
 const Maze8Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: boolean, scoreDelta: number) => void }> = ({ challenge, onAnswer }) => {
-  const { grid, size, avatar, target } = challenge.data;
-  const [path, setPath] = useState<number[]>([0]);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const { grid, cols, rows, avatar, target } = challenge.data;
+  const [playerPos, setPlayerPos] = useState({ x: 1, y: 0 });
+  const [finished, setFinished] = useState(false);
 
   useEffect(() => {
-    setPath([0]);
-    setIsDrawing(false);
+    setPlayerPos({ x: 1, y: 0 });
+    setFinished(false);
   }, [challenge.id]);
 
-  const processMove = (index: number) => {
-    setPath((prevPath) => {
-      const current = prevPath[prevPath.length - 1];
-      if (index === current) return prevPath;
-
-      // Retorno: permite "apagar" o caminho errado voltando para trás na bifurcação
-      if (prevPath.length > 1 && index === prevPath[prevPath.length - 2]) {
-        return prevPath.slice(0, -1);
-      }
-
-      const diff = index - current;
-      let valid = false;
-
-      if (diff === -size && grid[current].t === 0) valid = true;
-      if (diff === 1 && grid[current].r === 0 && (current % size) !== size - 1) valid = true;
-      if (diff === size && grid[current].b === 0) valid = true;
-      if (diff === -1 && grid[current].l === 0 && (current % size) !== 0) valid = true;
-
-      if (valid && !prevPath.includes(index)) {
-        const newPath = [...prevPath, index];
-        if (index === size * size - 1) {
-          setIsDrawing(false);
-          setTimeout(() => onAnswer(true, 30), 300);
+  const move = useCallback((dx: number, dy: number) => {
+    if (finished) return;
+    setPlayerPos(prev => {
+      const nx = prev.x + dx;
+      const ny = prev.y + dy;
+      if (nx >= 0 && nx < cols && ny >= 0 && ny < rows && grid[ny][nx] === 0) {
+        if (nx === cols - 2 && ny === rows - 1) {
+          setFinished(true);
+          setTimeout(() => onAnswer(true, 50), 300);
         }
-        return newPath;
+        return { x: nx, y: ny };
       }
-      return prevPath;
+      return prev;
     });
-  };
+  }, [cols, rows, grid, finished, onAnswer]);
 
-  const handlePointerDown = (index: number) => {
-    if (index === path[path.length - 1]) setIsDrawing(true);
-  };
-
-  const handlePointerUp = () => setIsDrawing(false);
-
-  const handlePointerEnter = (index: number) => {
-    if (isDrawing) processMove(index);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDrawing) return;
-    const touch = e.touches[0];
-    const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    if (el) {
-      const idx = el.getAttribute("data-index");
-      if (idx !== null) processMove(Number(idx));
-    }
-  };
+  // Suporte a teclado para quem jogar no computador
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowUp") move(0, -1);
+      if (e.key === "ArrowDown") move(0, 1);
+      if (e.key === "ArrowLeft") move(-1, 0);
+      if (e.key === "ArrowRight") move(1, 0);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [move]);
 
   return (
-    <div 
-      className="flex flex-col items-center gap-4 w-full max-w-md mx-auto p-4 bg-black/40 rounded-3xl border border-white/20 touch-none select-none"
-      style={{ touchAction: 'none' }}
-      onPointerUp={handlePointerUp}
-      onPointerLeave={handlePointerUp}
-      onTouchEnd={handlePointerUp}
-      onTouchMove={handleTouchMove}
-    >
+    <div className="flex flex-col items-center gap-4 w-full max-w-lg mx-auto">
+      
+      {/* Grelha do Labirinto */}
       <div 
-        ref={containerRef}
-        className="grid w-full aspect-square bg-[#1a1a1a] rounded-xl overflow-hidden shadow-inner p-1 border-4 border-black/80"
-        style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }}
+        className="grid bg-[#5e3023] rounded-xl overflow-hidden shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] p-1 border-4 border-black/80 w-full aspect-square"
+        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
       >
-        {grid.map((cell: any, idx: number) => {
-          const inPath = path.includes(idx);
-          const isCurrent = path[path.length - 1] === idx;
-          const isStart = idx === 0;
-          const isEnd = idx === size * size - 1;
+        {grid.flat().map((cell: number, idx: number) => {
+          const x = idx % cols;
+          const y = Math.floor(idx / cols);
+          const isPlayer = playerPos.x === x && playerPos.y === y;
+          const isTarget = x === cols - 2 && y === rows - 1;
+          const isRoad = cell === 0;
 
           return (
             <div
               key={idx}
-              data-index={idx}
-              onPointerDown={() => handlePointerDown(idx)}
-              onPointerEnter={() => handlePointerEnter(idx)}
-              className="relative w-full h-full flex items-center justify-center transition-colors duration-100"
-              style={{
-                borderTop: cell.t ? '2px solid #bef264' : '1px solid transparent',
-                borderRight: cell.r ? '2px solid #bef264' : '1px solid transparent',
-                borderBottom: cell.b ? '2px solid #bef264' : '1px solid transparent',
-                borderLeft: cell.l ? '2px solid #bef264' : '1px solid transparent',
-                backgroundColor: inPath ? 'rgba(190, 242, 100, 0.3)' : 'transparent',
-              }}
+              className={`relative flex items-center justify-center transition-all duration-75
+                ${isRoad ? 'bg-[#9d8189]' : 'bg-[#5e3023]'}
+                ${isPlayer ? 'z-10 scale-125' : ''}
+              `}
             >
-              {inPath && !isStart && !isEnd && (
-                <div className="w-2 h-2 bg-[#bef264] rounded-full shadow-[0_0_5px_#bef264]" />
-              )}
-
-              {isStart && (
-                avatar.startsWith('http') 
-                  ? <img src={avatar} alt="start" className="w-[90%] h-[90%] object-contain drop-shadow-md pointer-events-none z-10" />
-                  : <span className="text-xl pointer-events-none z-10">{avatar}</span>
-              )}
-
-              {isEnd && (
-                target.startsWith('http') 
-                  ? <img src={target} alt="end" className="w-[90%] h-[90%] object-contain drop-shadow-md pointer-events-none opacity-80" />
-                  : <span className="text-xl pointer-events-none opacity-80">{target}</span>
+              {isTarget && (
+                <div className="w-full h-full bg-[#bef264]/80 flex items-center justify-center animate-pulse rounded-sm">
+                  {target.startsWith('http') ? <img src={target} alt="fim" className="w-[85%] h-[85%] object-contain drop-shadow-md" /> : <span className="text-xl sm:text-2xl">{target}</span>}
+                </div>
               )}
               
-              {isCurrent && !isEnd && (
-                <div className="absolute inset-0 bg-[#bef264]/50 animate-pulse rounded-sm pointer-events-none" />
+              {isPlayer && (
+                avatar.startsWith('http') 
+                  ? <img src={avatar} alt="player" className="w-[120%] h-[120%] object-contain drop-shadow-xl z-20" />
+                  : <span className="text-2xl sm:text-3xl drop-shadow-md z-20">{avatar}</span>
               )}
             </div>
           );
         })}
+      </div>
+
+      {/* Controles D-Pad Direcionais (Visual inspirado na imagem) */}
+      <div className="flex flex-col items-center gap-2 bg-[#892b64]/30 p-4 rounded-3xl border border-white/20 shadow-xl mt-1 w-fit">
+        <button onClick={() => move(0, -1)} className="w-14 h-14 sm:w-16 sm:h-16 bg-[#892b64] hover:bg-[#6c224f] active:bg-[#bef264] active:text-black text-white rounded-2xl flex items-center justify-center shadow-md transition-colors active:scale-90 border border-white/20">
+          <ArrowUp size={36} strokeWidth={3} />
+        </button>
+        <div className="flex gap-2">
+          <button onClick={() => move(-1, 0)} className="w-14 h-14 sm:w-16 sm:h-16 bg-[#892b64] hover:bg-[#6c224f] active:bg-[#bef264] active:text-black text-white rounded-2xl flex items-center justify-center shadow-md transition-colors active:scale-90 border border-white/20">
+            <ArrowLeft size={36} strokeWidth={3} />
+          </button>
+          <button onClick={() => move(0, 1)} className="w-14 h-14 sm:w-16 sm:h-16 bg-[#892b64] hover:bg-[#6c224f] active:bg-[#bef264] active:text-black text-white rounded-2xl flex items-center justify-center shadow-md transition-colors active:scale-90 border border-white/20">
+            <ArrowDown size={36} strokeWidth={3} />
+          </button>
+          <button onClick={() => move(1, 0)} className="w-14 h-14 sm:w-16 sm:h-16 bg-[#892b64] hover:bg-[#6c224f] active:bg-[#bef264] active:text-black text-white rounded-2xl flex items-center justify-center shadow-md transition-colors active:scale-90 border border-white/20">
+            <ArrowRight size={36} strokeWidth={3} />
+          </button>
+        </div>
       </div>
     </div>
   );
 };
 
 export const Maze8GameModule: GameModule = {
-  id: "maze-strat-8",
+  id: "maze-drive-8",
   title: "Labirintos Estratégicos",
   categoryId: "labirinto-8",
   supportedAges: ["8-9"],
