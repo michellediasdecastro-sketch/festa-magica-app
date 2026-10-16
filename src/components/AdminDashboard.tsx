@@ -137,7 +137,7 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
       theme: selectedTheme ? selectedTheme.theme_name : "Geral",
       photo_url: selectedTheme ? selectedTheme.background_url : "",
       
-      // Salva os novos campos (removido o character_name antigo)
+      // Salva os novos campos
       child_avatar_url: childAvatarUrl,
       welcome_audio_url: welcomeAudioUrl,
       success_audio_url: successAudioUrl,
@@ -213,4 +213,46 @@ export function AdminDashboard({ onBackToApp }: AdminDashboardProps) {
 
         {activeTab === "parties" && (
           <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <form onSubmit={handleSaveParty} className="flex flex-col gap-4 bg-white/5
+            <form onSubmit={handleSaveParty} className="flex flex-col gap-4 bg-white/5 p-6 rounded-3xl border border-white/10 h-fit">
+              <h2 className="text-xl font-bold text-[#bef264]">{editingPartyId ? "Editar Festa" : "Nova Festa"}</h2>
+              <input type="text" value={partyName} onChange={(e) => setPartyName(e.target.value)} placeholder="Nome da Festa (Ex: Mundo do Lucas)" className="w-full p-3 rounded-xl bg-black/50 border border-white/20 text-white text-sm" />
+              <div className="grid grid-cols-2 gap-2">
+                <input type="text" value={childName} onChange={(e) => setChildName(e.target.value)} placeholder="Nome do Aniversariante" className="w-full p-3 rounded-xl bg-black/50 border border-white/20 text-white text-sm" />
+                <input type="number" value={childAge} onChange={(e) => setChildAge(e.target.value)} placeholder="Idade Exata" className="w-full p-3 rounded-xl bg-black/50 border border-white/20 text-white text-sm" />
+              </div>
+              <select value={selectedThemeId} onChange={(e) => setSelectedThemeId(e.target.value)} className="w-full p-3 rounded-xl bg-black/50 border border-white/20 text-white text-sm">
+                <option value="">Selecione o Tema...</option>
+                {themes.map(t => <option key={t.id} value={t.id}>{t.theme_name}</option>)}
+              </select>
+              
+              <input type="text" value={childAvatarUrl} onChange={(e) => setChildAvatarUrl(e.target.value)} placeholder="URL do Avatar do Aniversariante" className="w-full p-3 rounded-xl bg-black/50 border border-white/20 text-white text-sm" />
+              <input type="text" value={welcomeAudioUrl} onChange={(e) => setWelcomeAudioUrl(e.target.value)} placeholder="URL Áudio da Missão (MP3) - Opcional" className="w-full p-3 rounded-xl bg-black/50 border border-white/20 text-white text-sm" />
+              <input type="text" value={successAudioUrl} onChange={(e) => setSuccessAudioUrl(e.target.value)} placeholder="URL Áudio de Vitória (MP3) - Opcional" className="w-full p-3 rounded-xl bg-black/50 border border-white/20 text-white text-sm" />
+              <textarea value={backgroundUrlsInput} onChange={(e) => setBackgroundUrlsInput(e.target.value)} placeholder="URLs de Fundos Rotativos (separados por vírgula)" rows={3} className="w-full p-3 rounded-xl bg-black/50 border border-white/20 text-white text-sm" />
+
+              <div className="flex gap-2 mt-2">
+                <button type="submit" className="flex-1 py-3 bg-[#bef264] text-black font-bold rounded-xl text-sm">Salvar</button>
+                {editingPartyId && <button type="button" onClick={resetPartyForm} className="px-4 bg-white/10 rounded-xl text-sm font-bold">Cancelar</button>}
+              </div>
+            </form>
+
+            <div className="lg:col-span-2 space-y-4">
+              {parties.map(p => (
+                <div key={p.id} className="flex justify-between items-center p-4 bg-black/40 border border-white/10 rounded-2xl">
+                  <div>
+                    <h3 className="font-bold text-[#bef264]">{p.party_name}</h3>
+                    <p className="text-xs text-white/50">{p.birthday_child_name} ({p.child_age} anos) - Tema: {p.theme}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleEditParty(p)} className="p-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30"><Edit2 className="size-4" /></button>
+                    <button onClick={() => handleDeleteParty(p.id)} className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30"><Trash2 className="size-4" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
