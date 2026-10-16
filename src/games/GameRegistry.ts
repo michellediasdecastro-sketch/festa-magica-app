@@ -37,6 +37,8 @@ import { Logic10GameModule } from "./modules/Logic10Game";
 import { Routes10GameModule } from "./modules/Routes10Game";
 import { Resources10GameModule } from "./modules/Resources10Game";
 import { Cases10GameModule } from "./modules/Cases10Game";
+import { WordSearch10GameModule } from "./modules/WordSearch10Game";
+import { Riddles10GameModule } from "./modules/Riddles10Game";
 
 export const Categories: Record<string, any[]> = {
   "4-5": [
@@ -118,9 +120,7 @@ export const GameRegistry = [
   { ...Logic10GameModule, categoryId: "deducao-10", supportedAges: ["10-11"] },
   { ...Routes10GameModule, categoryId: "rotas-10", supportedAges: ["10-11"] },
   { ...Resources10GameModule, categoryId: "recursos-10", supportedAges: ["10-11"] },
-  
-  // Reutilização inteligente do módulo de "Casos" para cobrir as 3 facetas investigativas
   { ...Cases10GameModule, categoryId: "casos-10", supportedAges: ["10-11"] },
-  { ...Cases10GameModule, categoryId: "interpretacao-10", supportedAges: ["10-11"] },
-  { ...Cases10GameModule, categoryId: "decisoes-10", supportedAges: ["10-11"] }
+  { ...WordSearch10GameModule, categoryId: "interpretacao-10", supportedAges: ["10-11"] },
+  { ...Riddles10GameModule, categoryId: "decisoes-10", supportedAges: ["10-11"] }
 ];
