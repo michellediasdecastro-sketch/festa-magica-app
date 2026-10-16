@@ -1,34 +1,33 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from "lucide-react";
 import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 
-// Algoritmo clássico de geração de labirintos perfeitos (Depth-First Search)
-const generatePerfectMaze = (size: number) => {
-  const cells = Array.from({ length: size * size }, () => ({ t: 1, r: 1, b: 1, l: 1, v: 0 }));
-  const stack = [0];
-  cells[0].v = 1;
+const generateGrid = (cols: number, rows: number) => {
+  const grid = Array.from({ length: rows }, () => Array(cols).fill(1));
+  const stack = [[1, 1]];
+  grid[1][1] = 0;
 
   while (stack.length > 0) {
-    const curr = stack[stack.length - 1];
-    const x = curr % size;
-    const y = Math.floor(curr / size);
-    const neighbors = [];
+    const [x, y] = stack[stack.length - 1];
+    const dirs = [[0, -2], [0, 2], [-2, 0], [2, 0]].sort(() => Math.random() - 0.5);
 
-    if (y > 0 && cells[curr - size].v === 0) neighbors.push({ idx: curr - size, wall: 't', opp: 'b' });
-    if (x < size - 1 && cells[curr + 1].v === 0) neighbors.push({ idx: curr + 1, wall: 'r', opp: 'l' });
-    if (y < size - 1 && cells[curr + size].v === 0) neighbors.push({ idx: curr + size, wall: 'b', opp: 't' });
-    if (x > 0 && cells[curr - 1].v === 0) neighbors.push({ idx: curr - 1, wall: 'l', opp: 'r' });
-
-    if (neighbors.length > 0) {
-      const next = neighbors[Math.floor(Math.random() * neighbors.length)];
-      cells[curr][next.wall as keyof typeof cells[0]] = 0;
-      cells[next.idx][next.opp as keyof typeof cells[0]] = 0;
-      cells[next.idx].v = 1;
-      stack.push(next.idx);
-    } else {
-      stack.pop();
+    let carved = false;
+    for (let [dx, dy] of dirs) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (nx > 0 && nx < cols - 1 && ny > 0 && ny < rows - 1 && grid[ny][nx] === 1) {
+        grid[y + dy / 2][x + dx / 2] = 0;
+        grid[ny][nx] = 0;
+        stack.push([nx, ny]);
+        carved = true;
+        break;
+      }
     }
+    if (!carved) stack.pop();
   }
-  return cells;
+  grid[0][1] = 0; // Início
+  grid[rows - 1][cols - 2] = 0; // Fim
+  return grid;
 };
 
 const generateMaze6Challenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
@@ -36,147 +35,126 @@ const generateMaze6Challenge = (difficulty: number, context: PartyContext, histo
   const avatar = source[0];
   const target = source.length > 1 ? source[1] : "🎈";
 
-  const size = 6; // Labirinto 6x6 para 6-7 anos
-  const grid = generatePerfectMaze(size);
+  // Dificuldade dinâmica: cresce de 9x9 até 13x13
+  const size = Math.min(13, 9 + Math.floor(difficulty) * 2); 
+  const cols = size;
+  const rows = size;
+  
+  const grid = generateGrid(cols, rows);
 
   return {
-    id: `maze-real-6-${Date.now()}-${Math.random()}`,
-    instruction: "Trace o caminho para escapar!",
-    spokenText: "Arraste o dedo ou o mouse para desenhar o caminho até à saída.",
-    data: { grid, size, avatar, target }
+    id: `maze-drive-6-${size}-${Date.now()}`,
+    instruction: "Encontre a Saída!",
+    spokenText: "Use as setas para conduzir até ao destino. Cuidado com os becos sem saída, se errar, volte para trás!",
+    data: { grid, cols, rows, avatar, target }
   };
 };
 
 const Maze6Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: boolean, scoreDelta: number) => void }> = ({ challenge, onAnswer }) => {
-  const { grid, size, avatar, target } = challenge.data;
-  const [path, setPath] = useState<number[]>([0]);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const { grid, cols, rows, avatar, target } = challenge.data;
+  const [playerPos, setPlayerPos] = useState({ x: 1, y: 0 });
+  const [finished, setFinished] = useState(false);
 
   useEffect(() => {
-    setPath([0]);
-    setIsDrawing(false);
+    setPlayerPos({ x: 1, y: 0 });
+    setFinished(false);
   }, [challenge.id]);
 
-  const processMove = (index: number) => {
-    setPath((prevPath) => {
-      const current = prevPath[prevPath.length - 1];
-      if (index === current) return prevPath; // Não moveu
-
-      // Permite apagar o caminho voltando para a célula anterior
-      if (prevPath.length > 1 && index === prevPath[prevPath.length - 2]) {
-        return prevPath.slice(0, -1);
-      }
-
-      // Verifica se o movimento é válido (adjacente e sem parede)
-      const diff = index - current;
-      let valid = false;
-
-      if (diff === -size && grid[current].t === 0) valid = true; // Cima
-      if (diff === 1 && grid[current].r === 0 && (current % size) !== size - 1) valid = true; // Direita
-      if (diff === size && grid[current].b === 0) valid = true; // Baixo
-      if (diff === -1 && grid[current].l === 0 && (current % size) !== 0) valid = true; // Esquerda
-
-      if (valid && !prevPath.includes(index)) {
-        const newPath = [...prevPath, index];
-        if (index === size * size - 1) {
-          setIsDrawing(false);
-          setTimeout(() => onAnswer(true, 25), 300); // Chegou ao fim
+  const move = useCallback((dx: number, dy: number) => {
+    if (finished) return;
+    setPlayerPos(prev => {
+      const nx = prev.x + dx;
+      const ny = prev.y + dy;
+      if (nx >= 0 && nx < cols && ny >= 0 && ny < rows && grid[ny][nx] === 0) {
+        if (nx === cols - 2 && ny === rows - 1) {
+          setFinished(true);
+          setTimeout(() => onAnswer(true, 40), 300);
         }
-        return newPath;
+        return { x: nx, y: ny };
       }
-      return prevPath;
+      return prev;
     });
-  };
+  }, [cols, rows, grid, finished, onAnswer]);
 
-  const handlePointerDown = (index: number) => {
-    if (index === path[path.length - 1]) setIsDrawing(true);
-  };
-
-  const handlePointerUp = () => setIsDrawing(false);
-
-  const handlePointerEnter = (index: number) => {
-    if (isDrawing) processMove(index);
-  };
-
-  // Suporte tátil (arrastar o dedo no telemóvel)
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDrawing) return;
-    const touch = e.touches[0];
-    const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    if (el) {
-      const idx = el.getAttribute("data-index");
-      if (idx !== null) processMove(Number(idx));
-    }
-  };
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowUp") move(0, -1);
+      if (e.key === "ArrowDown") move(0, 1);
+      if (e.key === "ArrowLeft") move(-1, 0);
+      if (e.key === "ArrowRight") move(1, 0);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [move]);
 
   return (
-    <div 
-      className="flex flex-col items-center gap-4 w-full max-w-sm mx-auto p-4 bg-black/40 rounded-3xl border border-white/20 touch-none select-none"
-      style={{ touchAction: 'none' }} // Impede o ecrã de deslizar ao desenhar
-      onPointerUp={handlePointerUp}
-      onPointerLeave={handlePointerUp}
-      onTouchEnd={handlePointerUp}
-      onTouchMove={handleTouchMove}
-    >
+    <div className="flex flex-col items-center gap-4 w-full max-w-md mx-auto">
+      
+      {/* Grelha do Labirinto */}
       <div 
-        ref={containerRef}
-        className="grid w-full aspect-square bg-[#1a1a1a] rounded-xl overflow-hidden shadow-inner p-1 border-4 border-black/80"
-        style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }}
+        className="grid bg-[#386641] rounded-xl overflow-hidden shadow-inner p-1 sm:p-2 border-4 border-black/80 w-full aspect-square"
+        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
       >
-        {grid.map((cell: any, idx: number) => {
-          const inPath = path.includes(idx);
-          const isCurrent = path[path.length - 1] === idx;
-          const isStart = idx === 0;
-          const isEnd = idx === size * size - 1;
+        {grid.flat().map((cell: number, idx: number) => {
+          const x = idx % cols;
+          const y = Math.floor(idx / cols);
+          const isPlayer = playerPos.x === x && playerPos.y === y;
+          const isTarget = x === cols - 2 && y === rows - 1;
+          const isRoad = cell === 0;
 
           return (
             <div
               key={idx}
-              data-index={idx}
-              onPointerDown={() => handlePointerDown(idx)}
-              onPointerEnter={() => handlePointerEnter(idx)}
-              className="relative w-full h-full flex items-center justify-center transition-colors duration-150"
-              style={{
-                borderTop: cell.t ? '2px solid #bef264' : '2px solid transparent',
-                borderRight: cell.r ? '2px solid #bef264' : '2px solid transparent',
-                borderBottom: cell.b ? '2px solid #bef264' : '2px solid transparent',
-                borderLeft: cell.l ? '2px solid #bef264' : '2px solid transparent',
-                backgroundColor: inPath ? 'rgba(190, 242, 100, 0.2)' : 'transparent',
-              }}
+              className={`relative flex items-center justify-center transition-all duration-100
+                ${isRoad ? 'bg-[#adb5bd]' : 'bg-[#386641]'}
+                ${isPlayer ? 'z-10 scale-125' : ''}
+              `}
             >
-              {/* Rasto do caminho percorrido */}
-              {inPath && !isStart && !isEnd && (
-                <div className="w-3 h-3 bg-[#bef264] rounded-full shadow-[0_0_8px_#bef264]" />
-              )}
-
-              {isStart && (
-                avatar.startsWith('http') 
-                  ? <img src={avatar} alt="start" className="w-[85%] h-[85%] object-contain drop-shadow-md pointer-events-none z-10" />
-                  : <span className="text-2xl pointer-events-none z-10">{avatar}</span>
-              )}
-
-              {isEnd && (
-                target.startsWith('http') 
-                  ? <img src={target} alt="end" className="w-[85%] h-[85%] object-contain drop-shadow-md pointer-events-none opacity-80" />
-                  : <span className="text-2xl pointer-events-none opacity-80">{target}</span>
+              {/* Linha tracejada para simular estrada */}
+              {isRoad && !isTarget && !isPlayer && y > 0 && y < rows - 1 && (
+                <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-white/40 rounded-full" />
               )}
               
-              {/* Efeito de pulso onde está o dedo/rato */}
-              {isCurrent && !isEnd && (
-                <div className="absolute inset-0 bg-[#bef264]/40 animate-pulse rounded-sm pointer-events-none" />
+              {isTarget && (
+                <div className="w-full h-full bg-[#ffc300]/80 flex items-center justify-center animate-pulse rounded-sm">
+                  {target.startsWith('http') ? <img src={target} alt="fim" className="w-3/4 h-3/4 object-contain drop-shadow-md" /> : <span className="text-xl sm:text-2xl">{target}</span>}
+                </div>
+              )}
+              
+              {isPlayer && (
+                avatar.startsWith('http') 
+                  ? <img src={avatar} alt="player" className="w-full h-full object-contain drop-shadow-xl z-20" />
+                  : <span className="text-2xl sm:text-3xl drop-shadow-md z-20">{avatar}</span>
               )}
             </div>
           );
         })}
+      </div>
+
+      {/* Controles D-Pad Direcionais */}
+      <div className="flex flex-col items-center gap-2 bg-[#2a9d8f]/30 p-4 rounded-3xl border border-white/20 shadow-xl mt-2 w-fit">
+        <button onClick={() => move(0, -1)} className="w-16 h-16 bg-[#2a9d8f] hover:bg-[#21867a] active:bg-[#bef264] active:text-black text-white rounded-2xl flex items-center justify-center shadow-md transition-colors active:scale-90 border border-white/20">
+          <ArrowUp size={36} strokeWidth={3} />
+        </button>
+        <div className="flex gap-2">
+          <button onClick={() => move(-1, 0)} className="w-16 h-16 bg-[#2a9d8f] hover:bg-[#21867a] active:bg-[#bef264] active:text-black text-white rounded-2xl flex items-center justify-center shadow-md transition-colors active:scale-90 border border-white/20">
+            <ArrowLeft size={36} strokeWidth={3} />
+          </button>
+          <button onClick={() => move(0, 1)} className="w-16 h-16 bg-[#2a9d8f] hover:bg-[#21867a] active:bg-[#bef264] active:text-black text-white rounded-2xl flex items-center justify-center shadow-md transition-colors active:scale-90 border border-white/20">
+            <ArrowDown size={36} strokeWidth={3} />
+          </button>
+          <button onClick={() => move(1, 0)} className="w-16 h-16 bg-[#2a9d8f] hover:bg-[#21867a] active:bg-[#bef264] active:text-black text-white rounded-2xl flex items-center justify-center shadow-md transition-colors active:scale-90 border border-white/20">
+            <ArrowRight size={36} strokeWidth={3} />
+          </button>
+        </div>
       </div>
     </div>
   );
 };
 
 export const Maze6GameModule: GameModule = {
-  id: "maze-rules-6",
-  title: "Labirintos com Regras",
+  id: "maze-drive-6",
+  title: "Labirintos Interativos",
   categoryId: "labirinto-6",
   supportedAges: ["6-7"],
   generateChallenge: generateMaze6Challenge,
