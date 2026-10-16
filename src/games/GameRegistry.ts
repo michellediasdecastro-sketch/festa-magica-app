@@ -31,10 +31,10 @@ import { Logic8GameModule } from "./modules/Logic8Game";
 import { Clues8GameModule } from "./modules/Clues8Game";
 
 // Módulos 10-11 Anos
-import { Math10GameModule } from "./modules/Math10Game";
+import { Dominoes10GameModule } from "./modules/Dominoes10Game";
 import { Crypto10GameModule } from "./modules/Crypto10Game";
 import { Logic10GameModule } from "./modules/Logic10Game";
-import { Routes10GameModule } from "./modules/Routes10Game";
+import { TicTacToe10GameModule } from "./modules/TicTacToe10Game";
 import { Resources10GameModule } from "./modules/Resources10Game";
 import { Cases10GameModule } from "./modules/Cases10Game";
 import { WordSearch10GameModule } from "./modules/WordSearch10Game";
@@ -76,10 +76,10 @@ export const Categories: Record<string, any[]> = {
     { id: "recursos-10", title: "Estratégia e Recursos", icon: Brain },
     { id: "deducao-10", title: "Lógica e Dedução", icon: Puzzle },
     { id: "criptogramas-10", title: "Códigos e Criptogramas", icon: Lock },
-    { id: "matematica-10", title: "Matemática em Múltiplas Etapas", icon: Calculator },
-    { id: "interpretacao-10", title: "Interpretação e Enigmas", icon: Eye },
-    { id: "rotas-10", title: "Planejamento de Rotas", icon: Route },
-    { id: "decisoes-10", title: "Decisões e Consequências", icon: Trophy },
+    { id: "domino-10", title: "Dominó Lógico", icon: Calculator },
+    { id: "interpretacao-10", title: "Caça-Palavras", icon: Eye },
+    { id: "velha-10", title: "Jogo da Velha", icon: Route },
+    { id: "decisoes-10", title: "Charadas e Enigmas", icon: Trophy },
   ]
 };
 
@@ -115,10 +115,10 @@ export const GameRegistry = [
   { ...Clues8GameModule, categoryId: "pistas-8", supportedAges: ["8-9"] },
 
   // 10-11 ANOS
-  { ...Math10GameModule, categoryId: "matematica-10", supportedAges: ["10-11"] },
+  { ...Dominoes10GameModule, categoryId: "domino-10", supportedAges: ["10-11"] },
   { ...Crypto10GameModule, categoryId: "criptogramas-10", supportedAges: ["10-11"] },
   { ...Logic10GameModule, categoryId: "deducao-10", supportedAges: ["10-11"] },
-  { ...Routes10GameModule, categoryId: "rotas-10", supportedAges: ["10-11"] },
+  { ...TicTacToe10GameModule, categoryId: "velha-10", supportedAges: ["10-11"] },
   { ...Resources10GameModule, categoryId: "recursos-10", supportedAges: ["10-11"] },
   { ...Cases10GameModule, categoryId: "casos-10", supportedAges: ["10-11"] },
   { ...WordSearch10GameModule, categoryId: "interpretacao-10", supportedAges: ["10-11"] },
