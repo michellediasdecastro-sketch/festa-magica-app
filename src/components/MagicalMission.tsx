@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, Wand2, Hand, Volume2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sparkles } from 'lucide-react';
 
 interface MagicalMissionProps {
   partyData: any;
@@ -8,255 +8,206 @@ interface MagicalMissionProps {
 }
 
 export const MagicalMission: React.FC<MagicalMissionProps> = ({ partyData, onUnlock, isReplay = false }) => {
-  const [phase, setPhase] = useState<'story' | 'demo' | 'drawing' | 'success'>('story');
-  const [points, setPoints] = useState<{x: number, y: number}[]>([]);
-  const [magicPower, setMagicPower] = useState(0);
+  const [phase, setPhase] = useState<'story' | 'interaction' | 'opening' | 'success'>('story');
   
-  const svgRef = useRef<SVGSVGElement>(null);
-  const isDrawing = useRef(false);
+  // Posições das partículas mágicas pela tela
+  const [particles, setParticles] = useState([
+    { id: 1, top: '15%', left: '25%', gathered: false },
+    { id: 2, top: '30%', left: '80%', gathered: false },
+    { id: 3, top: '55%', left: '15%', gathered: false },
+    { id: 4, top: '75%', left: '75%', gathered: false },
+    { id: 5, top: '85%', left: '30%', gathered: false },
+  ]);
 
   const guestName = partyData?.guestName || "Amigo";
   const childName = partyData?.childName || "Aniversariante";
+  const theme = partyData?.theme || "Mundo Mágico";
 
-  // TEXTOS DA NARRATIVA
+  // TEXTOS
   const storyText = isReplay 
-    ? `Vamos fazer a magia acontecer de novo, ${guestName}? Desenhe a espiral mágica!`
-    : `${childName} descobriu que existe um gesto mágico capaz de liberar as brincadeiras com um feitiço muito especial! E deixou a magia escondida por todo o cenário e precisa que você a desperte. Vamos fazer a magia acontecer?`;
+    ? `Vamos brincar de novo, ${guestName}? Ajude a despertar o poder do portal novamente!`
+    : `O ${childName} descobriu um portal secreto no ${theme}! Mas a magia que o mantém aberto desapareceu. Ajude a despertar o poder do portal!`;
+  
+  const instructionText = "Toque nas luzes mágicas para enviar energia ao portal!";
+  const successTextFallback = `Você conseguiu! O portal está aberto! Você desbloqueou os jogos!`;
 
-  const instructionText = "Coloque o dedo na tela e desenhe a espiral para despertar o poder!";
-  const successTextFallback = `${guestName}, você conseguiu! Divirta-se com os jogos que o ${childName} preparou para você.`;
-
-  // MOTOR DE ÁUDIO REVISADO (Narrador vs Aniversariante)
-  const playAudio = (type: 'story' | 'instruction' | 'success', text: string) => {
+  // MOTOR DE ÁUDIO COM TRANSIÇÃO AUTOMÁTICA (onEnd)
+  const playAudio = (type: 'story' | 'instruction' | 'success', text: string, onEnd?: () => void) => {
     window.speechSynthesis.cancel();
     
     // Sucesso: Tenta tocar a voz real do aniversariante (PLANO A)
     if (type === 'success' && partyData?.successAudioUrl) {
       const audio = new Audio(partyData.successAudioUrl);
-      audio.play().catch(e => console.log("Erro no audio do aniversariante", e));
+      audio.onended = () => { if (onEnd) onEnd(); };
+      audio.play().catch(e => {
+        console.log("Erro no audio do aniversariante", e);
+        if (onEnd) setTimeout(onEnd, 4000); // Fallback se o áudio falhar
+      });
       return;
     }
     
-    // História, Dicas ou Sucesso sem áudio (PLANO B): Usa o Narrador do Sistema
+    // História ou Sucesso sem áudio (PLANO B): Usa o Narrador do Sistema
     if ('speechSynthesis' in window) {
+      let ended = false;
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'pt-BR';
       utterance.rate = 0.9;
+      utterance.onend = () => { 
+        if (!ended) { ended = true; if (onEnd) onEnd(); }
+      };
+      utterance.onerror = () => { 
+        if (!ended) { ended = true; if (onEnd) setTimeout(onEnd, 3000); }
+      };
       window.speechSynthesis.speak(utterance);
+      
+      // Fallback de segurança caso o navegador bloqueie o evento onend
+      setTimeout(() => {
+         if (!ended) { ended = true; if (onEnd) onEnd(); }
+      }, type === 'story' ? 12000 : 5000);
+    } else {
+      if (onEnd) setTimeout(onEnd, 4000);
     }
   };
 
-  // CRONOGRAMA DA CENA MÁGICA
+  // FLUXO PRINCIPAL: HISTÓRIA -> INTERAÇÃO
   useEffect(() => {
-    playAudio('story', storyText);
-    
-    const timer1 = setTimeout(() => {
-      setPhase('demo');
+    playAudio('story', storyText, () => {
+      setPhase('interaction');
       playAudio('instruction', instructionText);
-    }, 12000); // Dá tempo do narrador ler a história maior
-
-    const timer2 = setTimeout(() => {
-      setPhase('drawing');
-    }, 17000); 
-
-    return () => { clearTimeout(timer1); clearTimeout(timer2); window.speechSynthesis.cancel(); };
+    });
+    return () => window.speechSynthesis.cancel();
   }, [isReplay]);
 
-  // SISTEMA DE AJUDA AUTOMÁTICA (IDLE TIMER)
+  // VERIFICA SE TODAS AS PARTÍCULAS FORAM COLETADAS
   useEffect(() => {
-    let idleTimer: NodeJS.Timeout;
-    
-    if (phase === 'drawing' && magicPower === 0) {
-      idleTimer = setTimeout(() => {
-         setPhase('demo');
-         playAudio('instruction', instructionText);
-         
-         setTimeout(() => {
-           setPhase('drawing');
-         }, 4000);
-      }, 10000);
-    }
-    
-    return () => clearTimeout(idleTimer);
-  }, [phase, magicPower]);
-
-  // CAPTURA DO DESENHO MÁGICO
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if (phase !== 'drawing') return;
-    isDrawing.current = true;
-    addPoint(e);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDrawing.current || phase !== 'drawing') return;
-    addPoint(e);
-  };
-
-  const handlePointerUp = () => {
-    isDrawing.current = false;
-  };
-
-  const addPoint = (e: React.PointerEvent) => {
-    if (!svgRef.current) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    setPoints(prev => {
-      const newPoints = [...prev, { x, y }];
-      const newPower = Math.min(100, (newPoints.length / 80) * 100);
-      setMagicPower(newPower);
+    if (phase === 'interaction' && particles.every(p => p.gathered)) {
+      setPhase('opening'); // O Portal treme e brilha
       
-      if (newPower >= 100 && phase === 'drawing') {
-        triggerSuccess();
-      }
-      return newPoints;
-    });
-  };
+      // Espera 2.5 segundos de animação do portal abrindo e vai para o sucesso
+      setTimeout(() => {
+        setPhase('success');
+        
+        // Toca o áudio de sucesso. Quando acabar, ENTRA DIRETO NOS JOGOS!
+        playAudio('success', successTextFallback, () => {
+          onUnlock();
+        });
+      }, 2500);
+    }
+  }, [particles, phase]);
 
-  const triggerSuccess = () => {
-    setPhase('success');
-    isDrawing.current = false;
-    // O playAudio vai decidir se usa o áudio gravado (Plano A) ou a fala do Narrador (Plano B)
-    playAudio('success', successTextFallback);
-  };
-
-  const handleRepeatStory = () => {
-    setPhase('story');
-    setPoints([]);
-    setMagicPower(0);
-    playAudio('story', storyText);
-    setTimeout(() => { setPhase('demo'); playAudio('instruction', instructionText); }, 12000);
-    setTimeout(() => setPhase('drawing'), 17000);
+  const gatherParticle = (id: number) => {
+    if (phase !== 'interaction') return;
+    setParticles(prev => prev.map(p => p.id === id ? { ...p, gathered: true } : p));
   };
 
   return (
-    <div className="w-full max-w-md mx-auto bg-black/40 border border-white/20 rounded-[2.5rem] p-6 shadow-2xl backdrop-blur-md flex flex-col items-center relative overflow-hidden animate-fade-in min-h-[450px]">
+    // fixed inset-0 garante que ocupe a TELA INTEIRA passando por cima de qualquer margem do App.tsx
+    // Sem bg-black/40 para não ter o "retângulo" cinzento! O fundo será a própria imagem da festa (que já está no App.tsx)
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden touch-none">
       
       {/* ------------------------------------------------------------------ */}
-      {/* CENA 1: MISSÃO E DESENHO (Ocultada quando vence)                     */}
+      {/* CENA 1 e 2: NARRATIVA E PORTAL (Ocultado no final)                 */}
       {/* ------------------------------------------------------------------ */}
       {phase !== 'success' && (
-        <div className="w-full flex flex-col items-center animate-fade-in">
+        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center">
           
-          {/* Avatar no Topo (Silencioso, apenas decorativo) */}
-          <div className="relative -mt-12 mb-4 z-10">
-            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white/50 bg-black/80 overflow-hidden flex items-center justify-center shadow-xl">
-              {partyData.childAvatarUrl ? (
-                <img src={partyData.childAvatarUrl} alt="Aniversariante" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-4xl">👑</span>
-              )}
-            </div>
-          </div>
-
-          {/* Texto do Narrador */}
-          <div className={`w-full transition-all duration-500 min-h-[5rem] flex flex-col items-center ${phase === 'story' ? 'opacity-100' : 'opacity-0 hidden'}`}>
-            <div className="bg-white/10 border border-white/20 text-white p-4 rounded-3xl mb-4 text-center">
-              <p className="text-sm sm:text-[15px] font-medium leading-snug drop-shadow-md">
+          {/* Textos da Narrativa (flutuando na tela sem fundo opaco) */}
+          <div className="absolute top-12 md:top-20 px-6 w-full max-w-2xl text-center z-20 pointer-events-none transition-all duration-700">
+            {phase === 'story' && (
+              <h2 className="text-xl md:text-3xl font-black text-white leading-tight drop-shadow-[0_2px_15px_rgba(0,0,0,1)] animate-fade-in">
                 "{storyText}"
-              </p>
-            </div>
+              </h2>
+            )}
+            {phase === 'interaction' && (
+              <h2 className="text-2xl md:text-4xl font-black text-[#bef264] drop-shadow-[0_2px_15px_rgba(0,0,0,1)] animate-pulse">
+                Toque nas luzes para abrir o portal!
+              </h2>
+            )}
           </div>
 
-          <div className={`text-center mb-4 min-h-[2.5rem] flex items-center justify-center transition-all ${phase === 'story' ? 'hidden' : ''}`}>
-            {phase === 'demo' && <h2 className="text-xl font-black text-[#bef264] animate-pulse">Veja como fazer!</h2>}
-            {phase === 'drawing' && <h2 className="text-xl font-black text-white drop-shadow-md">Desenhe a espiral mágica!</h2>}
-          </div>
-
-          {/* Botão de Som da Instrução */}
-          {(phase === 'demo' || phase === 'drawing') && (
-            <button onClick={handleRepeatStory} className="absolute top-4 right-4 p-3 bg-black/50 border border-white/30 rounded-full hover:bg-white/20 transition-all shadow-lg text-[#bef264] z-50">
-              <Volume2 size={20} />
-            </button>
-          )}
-
-          {/* Área Mágica de Desenho */}
-          <div className="relative w-full aspect-square bg-black/50 rounded-3xl border-2 border-dashed border-white/30 overflow-hidden touch-none" style={{ touchAction: 'none' }}>
+          {/* O PORTAL CENTRAL */}
+          <div className={`absolute top-1/2 left-1/2 w-48 h-48 md:w-64 md:h-64 rounded-full border-4 border-transparent transition-all duration-1000 flex items-center justify-center z-10
+            -translate-x-1/2 -translate-y-1/2
+            ${phase === 'story' ? 'opacity-30 scale-75' : 'opacity-100 scale-100'}
+            ${phase === 'opening' ? 'animate-portal-shake border-[#bef264] shadow-[0_0_150px_rgba(190,242,100,1)] scale-125 bg-white/20' : 'border-white/20'}
+          `}>
+            {/* Efeito Giratório dentro do Portal */}
+            <div className={`w-full h-full rounded-full border-[8px] border-dashed border-[#bef264]/60 animate-[spin_8s_linear_infinite] transition-all duration-1000 ${phase === 'opening' ? 'border-[#bef264]' : ''}`} />
             
-            {partyData.photoUrl && (
-               <div className="absolute inset-0 bg-cover bg-center mix-blend-screen opacity-30" style={{ backgroundImage: `url('${partyData.photoUrl}')` }} />
+            {/* Brilho interior intenso ao abrir */}
+            {phase === 'opening' && (
+              <Sparkles className="absolute text-white size-24 animate-pulse drop-shadow-[0_0_20px_#fff]" />
             )}
-
-            {phase === 'drawing' && (
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 w-3/4 h-3 bg-black/60 rounded-full overflow-hidden border border-white/20 z-10">
-                <div className="h-full bg-gradient-to-r from-blue-400 via-purple-400 to-[#bef264] transition-all duration-200" style={{ width: `${magicPower}%` }} />
-              </div>
-            )}
-
-            {phase === 'demo' && (
-              <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-                <div className="animate-[spin_2s_linear_infinite] origin-center opacity-80">
-                  <div className="translate-y-8 animate-[ping_2s_ease-out_infinite]"><Hand className="text-white size-14" /></div>
-                </div>
-                <svg className="absolute inset-0 w-full h-full">
-                  <path d="M 150,150 m 0,-50 a 50,50 0 1,1 0,100 a 50,50 0 1,1 0,-100" fill="none" stroke="#bef264" strokeWidth="4" strokeDasharray="10,15" className="opacity-60 animate-[spin_10s_linear_infinite] origin-center" />
-                </svg>
-              </div>
-            )}
-
-            <svg 
-              ref={svgRef}
-              className={`absolute inset-0 w-full h-full z-40 ${phase === 'drawing' ? 'cursor-crosshair' : 'pointer-events-none'}`}
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerLeave={handlePointerUp}
-            >
-              {points.length > 1 && (
-                <polyline 
-                  points={points.map(p => `${p.x},${p.y}`).join(' ')} 
-                  fill="none" 
-                  stroke="#a78bfa" 
-                  strokeWidth="8" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
-                  className="drop-shadow-[0_0_15px_rgba(190,242,100,0.8)]"
-                />
-              )}
-            </svg>
           </div>
+
+          {/* AS PARTÍCULAS LUMINOSAS */}
+          {particles.map(p => (
+            <div
+              key={p.id}
+              onClick={() => gatherParticle(p.id)}
+              onPointerDown={() => gatherParticle(p.id)} // Funciona com toque rápido também
+              style={{
+                top: p.gathered ? '50%' : p.top,
+                left: p.gathered ? '50%' : p.left,
+                transform: p.gathered ? 'translate(-50%, -50%) scale(0)' : 'translate(-50%, -50%) scale(1)',
+                opacity: phase === 'story' ? 0 : (p.gathered ? 0 : 1)
+              }}
+              className="absolute w-12 h-12 md:w-16 md:h-16 rounded-full cursor-pointer z-30 transition-all duration-700 ease-in flex items-center justify-center
+                         bg-gradient-to-tr from-[#bef264] to-white shadow-[0_0_30px_#bef264] animate-pulse"
+            >
+              <Sparkles className="text-black/50 size-5" />
+            </div>
+          ))}
         </div>
       )}
 
       {/* ------------------------------------------------------------------ */}
-      {/* CENA 2: SUCESSO (Avatar na tela toda e áudio de parabéns)           */}
+      {/* CENA 3: RECOMPENSA E DESBLOQUEIO (Avatar Gigante)                  */}
       {/* ------------------------------------------------------------------ */}
       {phase === 'success' && (
-        <div className="absolute inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-6 animate-fade-in rounded-[2.5rem]">
+        <div className="absolute inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-6 animate-fade-in">
           
-          <Sparkles className="absolute top-10 text-[#bef264] size-32 drop-shadow-[0_0_40px_#bef264] opacity-20 animate-[spin_10s_linear_infinite]" />
+          <Sparkles className="absolute top-1/4 text-[#bef264] size-40 drop-shadow-[0_0_50px_#bef264] opacity-30 animate-[spin_10s_linear_infinite]" />
           
-          {/* Avatar GIGANTE do aniversariante */}
-          <div className="relative z-10 w-48 h-48 sm:w-56 sm:h-56 rounded-full border-8 border-[#bef264] bg-black/80 overflow-hidden flex items-center justify-center shadow-[0_0_80px_rgba(190,242,100,0.5)] mb-8 animate-[bounce_2s_ease-in-out_infinite]">
+          {/* Avatar na TELA INTEIRA (Gigante) */}
+          <div className="relative z-10 w-56 h-56 md:w-72 md:h-72 rounded-full border-[10px] border-[#bef264] bg-black/80 overflow-hidden flex items-center justify-center shadow-[0_0_100px_rgba(190,242,100,0.6)] mb-8 animate-[bounce_2s_ease-in-out_infinite]">
             {partyData.childAvatarUrl ? (
               <img src={partyData.childAvatarUrl} alt="Aniversariante" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-6xl">👑</span>
+              <span className="text-7xl">👑</span>
             )}
           </div>
 
-          <h2 className="text-3xl sm:text-4xl font-black text-[#bef264] drop-shadow-lg mb-8 text-center z-10 uppercase tracking-widest">
-            Magia Desperta!
-          </h2>
+          <h1 className="text-3xl md:text-5xl font-black text-white drop-shadow-[0_5px_15px_rgba(0,0,0,1)] text-center z-10 leading-tight">
+            Você conseguiu!<br/>
+            <span className="text-[#bef264]">O portal está aberto!</span>
+          </h1>
 
-          {/* Plano B Escrito na tela caso o áudio não chame a atenção */}
           {!partyData.successAudioUrl && (
-            <p className="text-white/80 text-center mb-8 font-medium px-4 text-sm z-10">
-              {successTextFallback}
-            </p>
+             <p className="text-white/60 text-center mt-4 font-medium text-sm md:text-base z-10">
+               {successTextFallback}
+             </p>
           )}
 
-          <button
-            onClick={onUnlock}
-            className="w-full py-4 px-6 rounded-2xl bg-[#bef264] text-black font-black text-lg tracking-wide hover:opacity-95 shadow-[0_0_40px_rgba(190,242,100,0.8)] flex items-center justify-center gap-3 transform active:scale-95 z-10"
-          >
-            <Wand2 className="size-8" /> {isReplay ? "VOLTAR AOS JOGOS" : "DESBLOQUEAR OS JOGOS"}
-          </button>
-
+          {/* O sistema já vai entrar direto pelo onUnlock, mas deixamos um aviso discreto ou botão de fallback caso a internet trave o áudio */}
+          <div className="mt-12 opacity-50 animate-pulse text-xs uppercase tracking-widest z-10">
+            Entrando nos jogos...
+          </div>
         </div>
       )}
 
+      {/* Estilos customizados para a vibração do portal */}
+      <style>{`
+        @keyframes portal-shake {
+          0%, 100% { transform: translate(-50%, -50%) rotate(0deg) scale(1.25); }
+          25% { transform: translate(-52%, -48%) rotate(-2deg) scale(1.25); }
+          50% { transform: translate(-48%, -52%) rotate(2deg) scale(1.25); }
+          75% { transform: translate(-52%, -52%) rotate(-2deg) scale(1.25); }
+        }
+        .animate-portal-shake {
+          animation: portal-shake 0.3s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 };
