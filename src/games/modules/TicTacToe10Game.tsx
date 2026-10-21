@@ -6,7 +6,6 @@ const generateTicTacToeChallenge = (difficulty: number, context: PartyContext, h
   const playerIcon = images[0];
   const aiIcon = images[1];
   
-  // Primeiros 5 jogos são 3x3. Depois muda para 4x4.
   const size = history.length < 5 ? 3 : 4;
   
   return {
@@ -18,7 +17,6 @@ const generateTicTacToeChallenge = (difficulty: number, context: PartyContext, h
 };
 
 const checkWin = (board: (string | null)[], size: number, player: string) => {
-  // Linhas e Colunas
   for (let i = 0; i < size; i++) {
     let rowWin = true;
     let colWin = true;
@@ -28,7 +26,6 @@ const checkWin = (board: (string | null)[], size: number, player: string) => {
     }
     if (rowWin || colWin) return true;
   }
-  // Diagonais
   let diag1Win = true;
   let diag2Win = true;
   for (let i = 0; i < size; i++) {
@@ -38,29 +35,24 @@ const checkWin = (board: (string | null)[], size: number, player: string) => {
   return diag1Win || diag2Win;
 };
 
-// IA Heurística: 1. Tenta Vencer -> 2. Tenta Bloquear -> 3. Joga Aleatório
 const getBestMove = (board: (string | null)[], size: number, ai: string, player: string) => {
   const emptyIndices = board.map((v, i) => v === null ? i : -1).filter(i => i !== -1);
   if (emptyIndices.length === 0) return -1;
 
-  // 1. Tenta Vencer
   for (let i of emptyIndices) {
     const tempBoard = [...board];
     tempBoard[i] = ai;
     if (checkWin(tempBoard, size, ai)) return i;
   }
 
-  // 2. Tenta Bloquear
   for (let i of emptyIndices) {
     const tempBoard = [...board];
     tempBoard[i] = player;
     if (checkWin(tempBoard, size, player)) return i;
   }
 
-  // 3. Prioriza o centro se estiver vazio (apenas para 3x3)
   if (size === 3 && board[4] === null) return 4;
 
-  // 4. Joga Aleatório
   return emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
 };
 
@@ -98,11 +90,10 @@ const TicTacToeComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect:
 
     if (!newBoard.includes(null)) {
       setGameOver(true);
-      setTimeout(() => onAnswer(false, 0), 1000); // Empate/Derrota reinicia
+      setTimeout(() => onAnswer(false, 0), 1000); 
       return;
     }
 
-    // Turno da IA
     setTimeout(() => {
       const aiMove = getBestMove(newBoard, size, aiIcon, playerIcon);
       if (aiMove !== -1) {
@@ -111,12 +102,12 @@ const TicTacToeComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect:
         
         if (checkWin(newBoard, size, aiIcon)) {
           setGameOver(true);
-          setTimeout(() => onAnswer(false, 0), 1000); // IA Venceu
+          setTimeout(() => onAnswer(false, 0), 1000); 
           return;
         }
         if (!newBoard.includes(null)) {
           setGameOver(true);
-          setTimeout(() => onAnswer(false, 0), 1000); // Empate
+          setTimeout(() => onAnswer(false, 0), 1000); 
           return;
         }
       }
@@ -148,7 +139,7 @@ const TicTacToeComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect:
   );
 };
 
-export const TicTacToeGameModule: GameModule = {
+export const TicTacToe10GameModule: GameModule = {
   id: "tictactoe-10",
   title: "Jogo da Velha",
   categoryId: "raciocinio-10",
