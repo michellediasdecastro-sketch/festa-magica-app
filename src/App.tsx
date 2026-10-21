@@ -146,7 +146,7 @@ export function App() {
             </div>
             
             <div className="flex-1 overflow-y-auto p-2 sm:p-4">
-              <PartyGames partyData={partyData} onBackToMain={() => {}} />
+              <PartyGames partyData={partyData} onBackToMain={handleLogout} />
             </div>
           </div>
         )}
