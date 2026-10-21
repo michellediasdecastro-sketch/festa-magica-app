@@ -1,95 +1,170 @@
 import React, { useState, useEffect } from "react";
 import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 
-const generateDominoesChallenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
-  // Usa a primeira imagem do tema como o "ponto" do dominó. Se não houver, usa um círculo branco.
-  const themeImage = context.gameImages.length > 0 ? context.gameImages[0] : null;
-  
-  // Gera 6 peças de dominó com números de 0 a 6
-  const pieces = Array.from({ length: 6 }).map((_, i) => ({
-    id: `piece-${i}`,
-    left: Math.floor(Math.random() * 7),
-    right: Math.floor(Math.random() * 7),
-    isVertical: false
-  }));
+interface DominoPiece {
+  id: string;
+  left: number;
+  right: number;
+  flipped?: boolean;
+}
 
+const generateDominoesChallenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
+  const themeImage = context.gameImages.length > 0 ? context.gameImages[0] : null;
   return {
     id: `dominoes-${Date.now()}`,
-    instruction: "Arraste as peças, conecte-as e CLIQUE para girar!",
-    spokenText: "Arraste as peças para o tabuleiro. Você pode clicar em uma peça no tabuleiro para girá-la!",
-    data: { pieces, themeImage }
+    instruction: "Jogue contra o Sistema! Seja o primeiro a ficar sem peças.",
+    spokenText: "O jogo começou! Jogue suas peças combinando os desenhos nas pontas.",
+    data: { themeImage }
   };
 };
 
-const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: boolean, scoreDelta: number) => void }> = ({ challenge, onAnswer }) => {
-  const [hand, setHand] = useState<any[]>([]);
-  const [boardPieces, setBoardPieces] = useState<any[]>([]);
-  const [draggingId, setDraggingId] = useState<string | null>(null);
+// Gera as 28 peças oficiais de um dominó
+const generateDeck = (): DominoPiece[] => {
+  const deck: DominoPiece[] = [];
+  for (let i = 0; i <= 6; i++) {
+    for (let j = i; j <= 6; j++) {
+      deck.push({ id: `p-${i}-${j}`, left: i, right: j });
+    }
+  }
+  return deck.sort(() => Math.random() - 0.5);
+};
 
+const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: boolean, scoreDelta: number) => void }> = ({ challenge, onAnswer }) => {
+  const [playerHand, setPlayerHand] = useState<DominoPiece[]>([]);
+  const [aiHand, setAiHand] = useState<DominoPiece[]>([]);
+  const [board, setBoard] = useState<DominoPiece[]>([]);
+  const [turn, setTurn] = useState<'player' | 'ai'>('player');
+  const [message, setMessage] = useState("Sua vez!");
+  const [gameOver, setGameOver] = useState(false);
+
+  // Inicia o jogo
   useEffect(() => {
-    setHand(challenge.data.pieces);
-    setBoardPieces([]);
-    setDraggingId(null);
+    const deck = generateDeck();
+    setPlayerHand(deck.slice(0, 7));
+    setAiHand(deck.slice(7, 14));
+    // Coloca a primeira peça no tabuleiro para começar o jogo mais fácil
+    setBoard([{ ...deck[14], flipped: false }]);
+    setTurn('player');
+    setGameOver(false);
+    setMessage("Sua vez!");
   }, [challenge.id]);
 
-  const handleDragStart = (e: React.DragEvent, id: string) => {
-    e.dataTransfer.setData("pieceId", id);
-    setDraggingId(id);
+  const getBoardEnds = () => {
+    if (board.length === 0) return { leftEnd: -1, rightEnd: -1 };
+    const leftPiece = board[0];
+    const rightPiece = board[board.length - 1];
+    return {
+      leftEnd: leftPiece.flipped ? leftPiece.right : leftPiece.left,
+      rightEnd: rightPiece.flipped ? leftPiece.left : rightPiece.right
+    };
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const id = e.dataTransfer.getData("pieceId");
-    if (!id) return;
+  const checkPlayable = (piece: DominoPiece, ends: { leftEnd: number, rightEnd: number }) => {
+    return piece.left === ends.leftEnd || piece.right === ends.leftEnd || 
+           piece.left === ends.rightEnd || piece.right === ends.rightEnd;
+  };
 
-    const boardRect = e.currentTarget.getBoundingClientRect();
-    const pieceIndex = hand.findIndex(p => p.id === id);
-    
-    if (pieceIndex !== -1) {
-      // Movendo da mão para o tabuleiro
-      const piece = hand[pieceIndex];
-      // Calcula o centro aproximado da peça (horizontal por padrão)
-      const x = e.clientX - boardRect.left - 48; 
-      const y = e.clientY - boardRect.top - 24;
+  // Motor principal de jogada
+  const playPiece = (piece: DominoPiece, isPlayer: boolean) => {
+    const { leftEnd, rightEnd } = getBoardEnds();
+    let newBoard = [...board];
+    let played = false;
 
-      setHand(hand.filter(p => p.id !== id));
-      setBoardPieces([...boardPieces, { ...piece, x, y }]);
-
-      if (hand.length === 1) {
-        setTimeout(() => onAnswer(true, 50), 1000);
-      }
-    } else {
-      // Movimentando uma peça que já está no tabuleiro
-      const existingPiece = boardPieces.find(p => p.id === id);
-      if (existingPiece) {
-        const x = e.clientX - boardRect.left - (existingPiece.isVertical ? 24 : 48); 
-        const y = e.clientY - boardRect.top - (existingPiece.isVertical ? 48 : 24);
-        setBoardPieces(boardPieces.map(p => p.id === id ? { ...p, x, y } : p));
-      }
+    // Tenta encaixar na direita primeiro
+    if (piece.left === rightEnd) {
+      newBoard.push({ ...piece, flipped: false }); played = true;
+    } else if (piece.right === rightEnd) {
+      newBoard.push({ ...piece, flipped: true }); played = true;
+    } 
+    // Tenta encaixar na esquerda
+    else if (piece.right === leftEnd) {
+      newBoard.unshift({ ...piece, flipped: false }); played = true;
+    } else if (piece.left === leftEnd) {
+      newBoard.unshift({ ...piece, flipped: true }); played = true;
     }
-    setDraggingId(null);
+
+    if (!played) return false;
+
+    setBoard(newBoard);
+    
+    if (isPlayer) {
+      const newHand = playerHand.filter(p => p.id !== piece.id);
+      setPlayerHand(newHand);
+      if (newHand.length === 0) {
+        endGame(true, "Você Venceu!");
+        return true;
+      }
+      setTurn('ai');
+      setMessage("O Sistema está a pensar...");
+    } else {
+      const newHand = aiHand.filter(p => p.id !== piece.id);
+      setAiHand(newHand);
+      if (newHand.length === 0) {
+        endGame(false, "O Sistema Venceu!");
+        return true;
+      }
+      setTurn('player');
+      setMessage("Sua vez!");
+    }
+    return true;
   };
 
-  // Função para girar a peça com um clique
-  const handleRotate = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    setBoardPieces(boardPieces.map(p => p.id === id ? { ...p, isVertical: !p.isVertical } : p));
+  const endGame = (playerWon: boolean, msg: string) => {
+    setGameOver(true);
+    setMessage(msg);
+    setTimeout(() => onAnswer(playerWon, playerWon ? 60 : 0), 2000);
   };
 
-  // Renderiza os pontos do dominó usando um Grid 3x3
+  const handlePlayerMove = (piece: DominoPiece) => {
+    if (turn !== 'player' || gameOver) return;
+    const { leftEnd, rightEnd } = getBoardEnds();
+    if (!checkPlayable(piece, { leftEnd, rightEnd })) return;
+    playPiece(piece, true);
+  };
+
+  const handlePassTurn = () => {
+    if (turn !== 'player' || gameOver) return;
+    setTurn('ai');
+    setMessage("Você passou a vez. Sistema está jogando...");
+  };
+
+  // Lógica da Inteligência Artificial
+  useEffect(() => {
+    if (turn === 'ai' && !gameOver) {
+      const timer = setTimeout(() => {
+        const ends = getBoardEnds();
+        const playablePiece = aiHand.find(p => checkPlayable(p, ends));
+        
+        if (playablePiece) {
+          playPiece(playablePiece, false);
+        } else {
+          // IA não tem peça, passa a vez
+          const playerCanPlay = playerHand.some(p => checkPlayable(p, ends));
+          if (!playerCanPlay) {
+            // Jogo trancado para os dois
+            endGame(false, "Jogo Bloqueado! Ninguém tem peças válidas.");
+          } else {
+            setTurn('player');
+            setMessage("O sistema passou a vez. É a sua vez!");
+          }
+        }
+      }, 1500); // 1.5 segundos de "pensamento"
+      return () => clearTimeout(timer);
+    }
+  }, [turn, aiHand, playerHand, board, gameOver]);
+
+  // Função para saber se a criança tem jogadas (para mostrar ou não o botão "Passar")
+  const playerHasMoves = () => {
+    const ends = getBoardEnds();
+    return playerHand.some(p => checkPlayable(p, ends));
+  };
+
+  // Renderização dos pontos do dominó
   const renderDots = (value: number, iconUrl: string | null) => {
     const dots = [];
-    // Posições dos pontos num grid 3x3 (índices 0 a 8)
     const positions: Record<number, number[]> = {
-      0: [],
-      1: [4],
-      2: [0, 8],
-      3: [0, 4, 8],
-      4: [0, 2, 6, 8],
-      5: [0, 2, 4, 6, 8],
-      6: [0, 2, 3, 5, 6, 8]
+      0: [], 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8]
     };
-    
     for (let i = 0; i < 9; i++) {
       if (positions[value]?.includes(i)) {
         dots.push(
@@ -105,66 +180,80 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
         dots.push(<div key={i} className="pointer-events-none" />);
       }
     }
+    return <div className="grid grid-cols-3 grid-rows-3 w-full h-full p-1 gap-0.5 pointer-events-none">{dots}</div>;
+  };
+
+  // Componente de Peça
+  const PieceRender = ({ p, isHorizontal = false, isBoard = false }: { p: DominoPiece, isHorizontal?: boolean, isBoard?: boolean }) => {
+    const leftVal = p.flipped ? p.right : p.left;
+    const rightVal = p.flipped ? p.left : p.right;
+    const isDouble = leftVal === rightVal;
+    
+    // As buchas (duplos) ficam sempre verticais no tabuleiro
+    const layoutVertical = isBoard ? isDouble : !isHorizontal;
 
     return (
-      <div className="grid grid-cols-3 grid-rows-3 w-full h-full p-1.5 gap-0.5 pointer-events-none">
-        {dots}
+      <div className={`flex bg-white/10 backdrop-blur-md rounded-lg border border-white/30 shadow-lg shrink-0 
+        ${layoutVertical ? 'flex-col w-12 h-24' : 'flex-row w-24 h-12'}
+      `}>
+        <div className={`w-12 h-12 flex items-center justify-center ${layoutVertical ? 'border-b' : 'border-r'} border-white/20`}>
+          {renderDots(leftVal, challenge.data.themeImage)}
+        </div>
+        <div className="w-12 h-12 flex items-center justify-center">
+          {renderDots(rightVal, challenge.data.themeImage)}
+        </div>
       </div>
     );
   };
 
+  const ends = getBoardEnds();
+
   return (
-    <div className="flex flex-col items-center gap-4 w-full">
-      {/* Tabuleiro Livre */}
-      <div 
-        className="w-full h-72 sm:h-96 bg-black/30 border-2 border-dashed border-white/40 rounded-2xl relative overflow-hidden"
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={handleDrop}
-      >
-        <span className="absolute top-2 left-0 w-full text-center text-white/30 text-sm font-bold uppercase tracking-widest pointer-events-none">
-          Tabuleiro (Clique na peça para girar)
-        </span>
-        
-        {boardPieces.map(p => (
-          <div 
-            key={p.id}
-            draggable
-            onDragStart={(e) => handleDragStart(e, p.id)}
-            onClick={(e) => handleRotate(e, p.id)}
-            style={{ left: p.x, top: p.y, position: 'absolute' }}
-            className={`flex bg-white/10 backdrop-blur-md rounded-xl border border-white/30 shadow-lg cursor-grab active:cursor-grabbing hover:scale-105 transition-transform 
-              ${draggingId === p.id ? 'opacity-50' : 'opacity-100'} 
-              ${p.isVertical ? 'flex-col w-14 h-28' : 'flex-row w-28 h-14'}`}
-          >
-            <div className={`w-14 h-14 flex items-center justify-center ${p.isVertical ? 'border-b' : 'border-r'} border-white/20`}>
-              {renderDots(p.left, challenge.data.themeImage)}
-            </div>
-            <div className="w-14 h-14 flex items-center justify-center">
-              {renderDots(p.right, challenge.data.themeImage)}
-            </div>
-          </div>
+    <div className="flex flex-col items-center gap-4 w-full select-none">
+      
+      {/* HUD Superior (Mensagem e Peças do AI) */}
+      <div className="flex justify-between w-full items-center px-4">
+        <div className="text-white/60 text-xs font-bold uppercase tracking-wider">
+          Peças do Sistema: <span className="text-[#bef264] text-sm">{aiHand.length}</span>
+        </div>
+        <div className={`font-black text-sm px-4 py-1.5 rounded-full ${turn === 'player' ? 'bg-[#bef264] text-black' : 'bg-white/20 text-white animate-pulse'}`}>
+          {message}
+        </div>
+      </div>
+
+      {/* Tabuleiro Real (Scrollável) */}
+      <div className="w-full h-40 bg-black/40 border border-white/20 rounded-2xl flex items-center px-4 overflow-x-auto overflow-y-hidden gap-1 hide-scrollbar shadow-inner">
+        {board.map(p => (
+           <PieceRender key={p.id} p={p} isHorizontal={true} isBoard={true} />
         ))}
       </div>
 
       {/* Mão do Jogador */}
-      <div className="w-full min-h-[5rem] p-4 bg-black/40 border border-white/20 rounded-2xl flex flex-wrap gap-3 justify-center items-center">
-        {hand.map(p => (
-          <div 
-            key={p.id}
-            draggable
-            onDragStart={(e) => handleDragStart(e, p.id)}
-            className={`flex flex-row w-28 h-14 bg-white/10 backdrop-blur-md rounded-xl border border-white/30 shadow-lg cursor-grab active:cursor-grabbing hover:-translate-y-1 transition-transform ${draggingId === p.id ? 'opacity-50' : 'opacity-100'}`}
-          >
-            <div className="w-14 h-14 flex items-center justify-center border-r border-white/20">
-              {renderDots(p.left, challenge.data.themeImage)}
-            </div>
-            <div className="w-14 h-14 flex items-center justify-center">
-              {renderDots(p.right, challenge.data.themeImage)}
-            </div>
-          </div>
-        ))}
-        {hand.length === 0 && <span className="text-[#bef264] text-sm font-black">Todas as peças colocadas!</span>}
+      <div className="w-full bg-black/40 border border-white/20 rounded-2xl p-4 flex flex-col gap-2">
+        <div className="text-center text-white/50 text-xs font-bold uppercase mb-2">Suas Peças</div>
+        <div className="flex flex-wrap gap-2 justify-center">
+          {playerHand.map(p => {
+            const playable = checkPlayable(p, ends) && turn === 'player' && !gameOver;
+            return (
+              <div 
+                key={p.id} 
+                onClick={() => playable && handlePlayerMove(p)}
+                className={`transition-all duration-300 ${playable ? 'cursor-pointer hover:-translate-y-2 hover:shadow-[0_0_15px_#bef264] scale-105' : 'opacity-40 cursor-not-allowed scale-95'}`}
+              >
+                <PieceRender p={p} isHorizontal={false} />
+              </div>
+            );
+          })}
+        </div>
       </div>
+
+      {/* Botão de Passar Vez */}
+      {turn === 'player' && !playerHasMoves() && !gameOver && (
+        <button onClick={handlePassTurn} className="px-6 py-3 bg-red-500/80 hover:bg-red-500 text-white font-black rounded-xl border border-white/20 shadow-lg animate-bounce">
+          NÃO TENHO A PEÇA - PASSAR VEZ
+        </button>
+      )}
+
     </div>
   );
 };
