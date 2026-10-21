@@ -1,201 +1,127 @@
 import React, { useState, useEffect } from "react";
 import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 
-const DominoPiece: React.FC<{ left: number, right: number, isHand?: boolean }> = ({ left, right, isHand }) => {
-  const renderDots = (num: number) => {
-    const dots = Array(9).fill(false);
-    if (num === 1) dots[4] = true;
-    else if (num === 2) { dots[0] = true; dots[8] = true; }
-    else if (num === 3) { dots[0] = true; dots[4] = true; dots[8] = true; }
-    else if (num === 4) { dots[0] = true; dots[2] = true; dots[6] = true; dots[8] = true; }
-    else if (num === 5) { dots[0] = true; dots[2] = true; dots[4] = true; dots[6] = true; dots[8] = true; }
-    else if (num === 6) { dots[0] = true; dots[2] = true; dots[3] = true; dots[5] = true; dots[6] = true; dots[8] = true; }
-
-    return (
-      <div className="grid grid-cols-3 grid-rows-3 gap-0.5 sm:gap-1 w-full h-full p-1">
-        {dots.map((active, i) => (
-          <div key={i} className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${active ? 'bg-black' : 'bg-transparent'}`} />
-        ))}
-      </div>
-    );
-  };
-
-  return (
-    <div className={`flex bg-white rounded-lg sm:rounded-xl border-[3px] border-black/80 shadow-md ${isHand ? 'w-16 h-8 sm:w-20 sm:h-10' : 'w-14 h-7 sm:w-16 sm:h-8 shrink-0'}`}>
-      <div className="flex-1 border-r-2 border-black/80 flex items-center justify-center">
-        {renderDots(left)}
-      </div>
-      <div className="flex-1 flex items-center justify-center">
-        {renderDots(right)}
-      </div>
-    </div>
-  );
-};
-
 const generateDominoesChallenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
-  const a = Math.floor(Math.random() * 6) + 1;
-  const b = Math.floor(Math.random() * 6) + 1;
-  const c = Math.floor(Math.random() * 6) + 1;
-  const d = Math.floor(Math.random() * 6) + 1;
-  const e = Math.floor(Math.random() * 6) + 1;
-  const f = Math.floor(Math.random() * 6) + 1;
-
-  const fullChain = [
-    { id: 1, left: a, right: b },
-    { id: 2, left: b, right: c },
-    { id: 3, left: c, right: d },
-    { id: 4, left: d, right: e },
-    { id: 5, left: e, right: f }
-  ];
-
-  const boardStart = [fullChain[2]]; 
+  const images = context.gameImages.length >= 2 ? context.gameImages : ["🍎", "⭐", "🎈", "🚗"];
   
-  const handPieces = [fullChain[0], fullChain[1], fullChain[3], fullChain[4]];
-  handPieces.forEach(p => {
-    if (Math.random() > 0.5) {
-      const temp = p.left;
-      p.left = p.right;
-      p.right = temp;
-    }
-  });
-  handPieces.sort(() => Math.random() - 0.5);
+  // Gera 5 peças aleatórias usando as imagens do tema
+  const pieces = Array.from({ length: 5 }).map((_, i) => ({
+    id: `piece-${i}`,
+    left: images[Math.floor(Math.random() * images.length)],
+    right: images[Math.floor(Math.random() * images.length)],
+  }));
 
   return {
-    id: `dominoes-interactive-${Date.now()}`,
-    instruction: "Monte o Caminho!",
-    spokenText: "Toque nas suas peças para encaixá-las nas pontas certas do dominó. Pense bem para não bloquear o jogo!",
-    data: { boardStart, handPieces }
+    id: `dominoes-${Date.now()}`,
+    instruction: "Arraste e conecte as peças no tabuleiro!",
+    spokenText: "Arraste as peças para o tabuleiro e conecte as imagens iguais!",
+    data: { pieces }
   };
 };
 
-const Dominoes10Component: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: boolean, scoreDelta: number) => void }> = ({ challenge, onAnswer }) => {
-  const { boardStart, handPieces } = challenge.data;
-  
-  const [board, setBoard] = useState<any[]>(boardStart);
-  const [hand, setHand] = useState<any[]>(handPieces);
-  const [errorShake, setErrorShake] = useState<number | null>(null);
-  const [isBlocked, setIsBlocked] = useState(false);
+const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: boolean, scoreDelta: number) => void }> = ({ challenge, onAnswer }) => {
+  const [hand, setHand] = useState<any[]>([]);
+  const [boardPieces, setBoardPieces] = useState<any[]>([]);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
   useEffect(() => {
-    setBoard(boardStart);
-    setHand(handPieces);
-    setIsBlocked(false);
+    setHand(challenge.data.pieces);
+    setBoardPieces([]);
+    setDraggingId(null);
   }, [challenge.id]);
 
-  const handlePieceClick = (piece: any) => {
-    if (isBlocked) return;
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    e.dataTransfer.setData("pieceId", id);
+    setDraggingId(id);
+  };
 
-    const leftEnd = board[0].left;
-    const rightEnd = board[board.length - 1].right;
-    
-    let newBoard = [...board];
-    let matched = false;
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData("pieceId");
+    if (!id) return;
 
-    if (piece.right === leftEnd) {
-      newBoard.unshift(piece);
-      matched = true;
-    } else if (piece.left === leftEnd) {
-      newBoard.unshift({ ...piece, left: piece.right, right: piece.left });
-      matched = true;
-    } else if (piece.left === rightEnd) {
-      newBoard.push(piece);
-      matched = true;
-    } else if (piece.right === rightEnd) {
-      newBoard.push({ ...piece, left: piece.right, right: piece.left });
-      matched = true;
-    }
+    const boardRect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - boardRect.left - 40; // centraliza o mouse na peça
+    const y = e.clientY - boardRect.top - 20;
 
-    if (matched) {
-      const newHand = hand.filter(p => p.id !== piece.id);
-      setBoard(newBoard);
-      setHand(newHand);
-      
-      if (newHand.length === 0) {
-        setTimeout(() => onAnswer(true, 50), 600);
-      } else {
-        // CORREÇÃO: Verifica se as peças que sobraram conseguem jogar
-        const newLeftEnd = newBoard[0].left;
-        const newRightEnd = newBoard[newBoard.length - 1].right;
-        
-        const canPlay = newHand.some(p => 
-          p.left === newLeftEnd || p.right === newLeftEnd || 
-          p.left === newRightEnd || p.right === newRightEnd
-        );
+    const pieceIndex = hand.findIndex(p => p.id === id);
+    if (pieceIndex !== -1) {
+      const piece = hand[pieceIndex];
+      setHand(hand.filter(p => p.id !== id));
+      const newBoard = [...boardPieces, { ...piece, x, y }];
+      setBoardPieces(newBoard);
 
-        if (!canPlay) {
-          setIsBlocked(true);
-          setTimeout(() => {
-            onAnswer(false, 0); // Ecrã vermelho de erro
-            // Devolve as peças e reinicia o tabuleiro
-            setTimeout(() => {
-              setBoard(boardStart);
-              setHand(handPieces);
-              setIsBlocked(false);
-            }, 1200);
-          }, 800);
-        }
+      // Se colocou todas as peças no tabuleiro, ganha!
+      if (hand.length === 1) {
+        setTimeout(() => onAnswer(true, 40), 500);
       }
     } else {
-      setErrorShake(piece.id);
-      setTimeout(() => setErrorShake(null), 400);
+      // Movimentar peça que já está no tabuleiro
+      const existingPiece = boardPieces.find(p => p.id === id);
+      if (existingPiece) {
+        setBoardPieces(boardPieces.map(p => p.id === id ? { ...p, x, y } : p));
+      }
     }
+    setDraggingId(null);
+  };
+
+  const renderHalf = (content: string) => {
+    if (content.startsWith('http')) {
+      return <img src={content} alt="domino" className="w-8 h-8 object-contain drop-shadow-md pointer-events-none" />;
+    }
+    return <span className="text-3xl pointer-events-none">{content}</span>;
   };
 
   return (
-    <div className="flex flex-col items-center gap-6 w-full max-w-2xl mx-auto relative">
-      
-      <div className="w-full bg-black/40 p-4 sm:p-6 rounded-3xl border border-white/20 shadow-inner flex flex-col items-center min-h-[8rem] justify-center overflow-hidden relative">
-        <span className="text-[#bef264] text-xs font-bold uppercase tracking-widest mb-4">Tabuleiro</span>
-        <div className="flex items-center gap-1 sm:gap-2 max-w-full overflow-x-auto pb-2 px-2 snap-x transition-all">
-          {board.map((domino: any) => (
-            <div key={domino.id} className="snap-center animate-fade-in">
-              <DominoPiece left={domino.left} right={domino.right} />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className={`w-full p-4 rounded-3xl border shadow-md transition-all ${isBlocked ? 'bg-red-500/20 border-red-500/50' : 'bg-[#bef264]/10 border-[#bef264]/30'}`}>
-        <span className={`block text-center text-sm font-bold uppercase tracking-widest mb-4 ${isBlocked ? 'text-red-400 animate-pulse' : 'text-white/80'}`}>
-          {isBlocked ? 'JOGO BLOQUEADO! REINICIANDO...' : 'A Sua Mão'}
+    <div className="flex flex-col items-center gap-4 w-full">
+      {/* Tabuleiro Livre */}
+      <div 
+        className="w-full h-64 sm:h-80 bg-black/30 border-2 border-dashed border-white/40 rounded-2xl relative overflow-hidden"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={handleDrop}
+      >
+        <span className="absolute top-2 left-0 w-full text-center text-white/30 text-sm font-bold uppercase tracking-widest pointer-events-none">
+          Tabuleiro
         </span>
-        <div className="flex flex-wrap justify-center gap-3 sm:gap-4 min-h-[4rem]">
-          {hand.map((piece: any) => (
-            <button
-              key={piece.id}
-              onClick={() => handlePieceClick(piece)}
-              disabled={isBlocked}
-              className={`transition-all hover:scale-105 active:scale-95 ${errorShake === piece.id ? 'animate-[shake_0.4s_ease-in-out]' : ''} ${isBlocked ? 'opacity-50 grayscale' : ''}`}
-            >
-              <DominoPiece left={piece.left} right={piece.right} isHand={true} />
-            </button>
-          ))}
-          {hand.length === 0 && !isBlocked && (
-             <span className="text-[#bef264] font-black text-xl animate-pulse">Perfeito!</span>
-          )}
-        </div>
+        
+        {boardPieces.map(p => (
+          <div 
+            key={p.id}
+            draggable
+            onDragStart={(e) => handleDragStart(e, p.id)}
+            style={{ left: p.x, top: p.y, position: 'absolute' }}
+            className={`flex bg-white/10 backdrop-blur-md rounded-xl border border-white/30 shadow-lg cursor-grab active:cursor-grabbing hover:scale-105 transition-transform ${draggingId === p.id ? 'opacity-50' : 'opacity-100'}`}
+          >
+            <div className="w-12 h-12 flex items-center justify-center border-r border-white/20">{renderHalf(p.left)}</div>
+            <div className="w-12 h-12 flex items-center justify-center">{renderHalf(p.right)}</div>
+          </div>
+        ))}
       </div>
 
-      <style>{`
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-5px) rotate(-5deg); }
-          50% { transform: translateX(5px) rotate(5deg); }
-          75% { transform: translateX(-5px) rotate(-5deg); }
-        }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
-      `}</style>
-
+      {/* Mão do Jogador */}
+      <div className="w-full min-h-[4rem] p-4 bg-black/40 border border-white/20 rounded-2xl flex flex-wrap gap-3 justify-center items-center">
+        {hand.map(p => (
+          <div 
+            key={p.id}
+            draggable
+            onDragStart={(e) => handleDragStart(e, p.id)}
+            className={`flex bg-white/10 backdrop-blur-md rounded-xl border border-white/30 shadow-lg cursor-grab active:cursor-grabbing hover:-translate-y-1 transition-transform ${draggingId === p.id ? 'opacity-50' : 'opacity-100'}`}
+          >
+            <div className="w-12 h-12 flex items-center justify-center border-r border-white/20">{renderHalf(p.left)}</div>
+            <div className="w-12 h-12 flex items-center justify-center">{renderHalf(p.right)}</div>
+          </div>
+        ))}
+        {hand.length === 0 && <span className="text-white/50 text-sm font-bold">Todas as peças colocadas!</span>}
+      </div>
     </div>
   );
 };
 
-export const Dominoes10GameModule: GameModule = {
-  id: "dominoes-logic-10",
-  title: "Dominó Lógico",
-  categoryId: "domino-10",
+export const DominoesGameModule: GameModule = {
+  id: "dominoes-10",
+  title: "Dominó Temático",
+  categoryId: "raciocinio-10",
   supportedAges: ["10-11"],
   generateChallenge: generateDominoesChallenge,
-  component: Dominoes10Component
+  component: DominoesComponent
 };
