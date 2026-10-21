@@ -4,17 +4,19 @@ import { AdminDashboard } from "./components/AdminDashboard";
 import { PartyGames } from "./components/PartyGames";
 import { Sparkles } from "lucide-react";
 import { supabase } from "./lib/supabase";
-import { MagicalMission } from "./components/MagicalMission"; // Importamos a nova missão!
+import { MagicalMission } from "./components/MagicalMission";
 
 export function App() {
   const [partyData, setPartyData] = useState<any>(null);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   
-  // Controle de Bloqueio dos Jogos
+  // Controle de Bloqueio dos Jogos e Rotação
   const [hasUnlockedMagic, setHasUnlockedMagic] = useState(false);
   const [isReplayingMagic, setIsReplayingMagic] = useState(false);
-  const [backgrounds, setBackgrounds] = useState<string[]>([]);
+  
+  const [missionBackgrounds, setMissionBackgrounds] = useState<string[]>([]);
+  const [missionIndex, setMissionIndex] = useState(0);
 
   useEffect(() => {
     const savedSession = localStorage.getItem('@party_guest_session');
@@ -24,10 +26,17 @@ export function App() {
         if (parsed && parsed.guestName) {
           setPartyData(parsed);
           
-          // Verifica se ESTE convidado já despertou a magia nesta festa
+          // Verifica se a magia já foi desbloqueada
           const unlockKey = `@magic_unlocked_${parsed.guestName}_${parsed.partyId}`;
           if (localStorage.getItem(unlockKey) === 'true') {
             setHasUnlockedMagic(true);
+          }
+
+          // Recupera o índice da missão para rotacionar o fundo da missão inicial
+          const progressKey = `@mission_progress_${parsed.guestName}_${parsed.partyId}`;
+          const savedIndex = localStorage.getItem(progressKey);
+          if (savedIndex !== null) {
+            setMissionIndex(parseInt(savedIndex, 10));
           }
         }
       } catch (e) {
@@ -41,31 +50,34 @@ export function App() {
     setIsInitializing(false);
   }, []);
 
+  // Busca os fundos rotativos da Missão
   useEffect(() => {
     async function fetchBackgrounds() {
       if (!partyData?.theme) return;
-      const { data } = await supabase.from("themes").select("background_url, background_urls").eq('theme_name', partyData.theme);
+      const { data } = await supabase.from("themes").select("background_urls").eq('theme_name', partyData.theme);
       if (data && data.length > 0) {
         const themeData = data[0];
         if (themeData.background_urls && themeData.background_urls.length > 0) {
-          setBackgrounds(themeData.background_urls);
-        } else if (themeData.background_url) {
-          setBackgrounds([themeData.background_url]);
+          setMissionBackgrounds(themeData.background_urls);
         }
       }
     }
     fetchBackgrounds();
   }, [partyData]);
 
-  // Função disparada quando a criança acerta a espiral
   const handleMagicUnlocked = () => {
     if (isReplayingMagic) {
-      setIsReplayingMagic(false); // Apenas fecha o replay
+      setIsReplayingMagic(false);
     } else {
-      // Primeira vez: Salva no telemóvel e libera acesso oficial
       const unlockKey = `@magic_unlocked_${partyData.guestName}_${partyData.partyId}`;
       localStorage.setItem(unlockKey, 'true');
       setHasUnlockedMagic(true);
+      
+      // Avança o índice da missão rotativa para a próxima sessão
+      const nextIndex = (missionIndex + 1) % (missionBackgrounds.length || 1);
+      const progressKey = `@mission_progress_${partyData.guestName}_${partyData.partyId}`;
+      localStorage.setItem(progressKey, nextIndex.toString());
+      setMissionIndex(nextIndex);
     }
     window.speechSynthesis.cancel();
   };
@@ -86,14 +98,22 @@ export function App() {
     return <AdminDashboard onBackToApp={() => { window.history.replaceState({}, document.title, window.location.pathname); setIsAdminOpen(false); }} />;
   }
 
-  const activeBg = backgrounds.length > 0 ? backgrounds[0] : partyData?.photoUrl || "https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1920&auto=format&fit=crop";
+  // --- SEGREDO DA CORREÇÃO ---
+  // Verifica se estamos na tela da missão
+  const isMissionScreen = !hasUnlockedMagic || isReplayingMagic;
+
+  // Se estiver na Missão: Mostra o fundo rotativo da Missão (background_urls)
+  // Se estiver nos Jogos: Mostra o fundo principal da Festa (partyData.photoUrl que vem de background_url)
+  const activeBg = isMissionScreen && missionBackgrounds.length > 0
+    ? missionBackgrounds[missionIndex % missionBackgrounds.length]
+    : partyData?.photoUrl || "https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1920&auto=format&fit=crop";
 
   return (
     <main className="relative min-h-[100dvh] w-full flex flex-col items-center justify-center text-white bg-black overflow-hidden">
       
-      {/* Background Global */}
-      <div className="absolute inset-0 bg-cover bg-center bg-no-repeat filter brightness-100 saturate-110" style={{ backgroundImage: `url('${activeBg}')` }} />
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+      {/* Background Global - Agora muda automaticamente quando troca de tela! */}
+      <div className="absolute inset-0 bg-cover bg-center bg-no-repeat filter brightness-100 saturate-110 transition-all duration-1000" style={{ backgroundImage: `url('${activeBg}')` }} />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-all duration-1000" />
 
       <div className="relative z-10 w-full h-full flex flex-col items-center justify-center">
         
@@ -101,21 +121,18 @@ export function App() {
           <div className="p-4 w-full max-w-md mx-auto"><AccessLogin onLoginSuccess={(data) => { setPartyData(data); setHasUnlockedMagic(false); }} /></div>
         ) : 
         
-        // Se a magia NÃO foi desbloqueada OU se a criança clicou em "Rever Magia"
-        (!hasUnlockedMagic || isReplayingMagic) ? (
+        isMissionScreen ? (
           <div className="p-4 w-full h-full flex flex-col justify-center">
             <MagicalMission partyData={partyData} onUnlock={handleMagicUnlocked} isReplay={isReplayingMagic} />
             
             {!isReplayingMagic && (
-               <button onClick={handleLogout} className="mt-8 text-xs text-white/50 underline mx-auto block">Sair da Sessão</button>
+               <button onClick={handleLogout} className="mt-8 text-xs text-white/50 underline mx-auto block z-50">Sair da Sessão</button>
             )}
           </div>
         ) : 
         
-        // MENU DE JOGOS (Completamente protegido)
         (
           <div className="w-full h-full flex flex-col">
-            {/* Faixa superior com o botão de Rever a Missão */}
             <div className="w-full p-3 sm:p-4 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent">
                <button onClick={handleLogout} className="text-xs text-white/70 underline hover:text-white">
                  Sair
@@ -128,7 +145,6 @@ export function App() {
                </button>
             </div>
             
-            {/* Injeta os Jogos Originais Intactos */}
             <div className="flex-1 overflow-y-auto p-2 sm:p-4">
               <PartyGames partyData={partyData} onBackToMain={() => {}} />
             </div>
