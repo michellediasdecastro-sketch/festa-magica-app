@@ -18,15 +18,16 @@ const generateDominoesChallenge = (difficulty: number, context: PartyContext, hi
   };
 };
 
-// Baralho Reduzido (Duplo-4) com 15 peças para um jogo rápido e visualmente limpo
+// Baralho Tradicional (Duplo-Seis) com 28 peças únicas
 const generateDeck = (): DominoPiece[] => {
   const deck: DominoPiece[] = [];
   const uniqueId = Date.now();
-  for (let i = 0; i <= 4; i++) {
-    for (let j = i; j <= 4; j++) {
+  for (let i = 0; i <= 6; i++) {
+    for (let j = i; j <= 6; j++) {
       deck.push({ id: `p-${i}-${j}-${uniqueId}`, left: i, right: j });
     }
   }
+  // Embaralhamento seguro (Fisher-Yates)
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];
@@ -50,10 +51,10 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
 
   useEffect(() => {
     const deck = generateDeck();
-    setPlayerHand(deck.slice(0, 5));
-    setAiHand(deck.slice(5, 10));
-    setBoard([]); // O Jogo agora começa SEMPRE com o tabuleiro vazio!
-    setBoneyard(deck.slice(10, 15)); // 5 peças no monte
+    setPlayerHand(deck.slice(0, 7)); // 7 peças para a criança
+    setAiHand(deck.slice(7, 14)); // 7 peças para o sistema
+    setBoard([]); // O Jogo começa sempre vazio!
+    setBoneyard(deck.slice(14, 28)); // 14 peças no monte
     
     setTurn('player');
     setGameOver(false);
@@ -141,7 +142,9 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
     setGameOver(true);
     setMessage(msg);
     setSelectedPieceId(null);
-    setTimeout(() => onAnswer(playerWon, playerWon ? 60 : 0), 2000);
+    // CORREÇÃO: Envia sempre "true" no primeiro parâmetro para garantir que a tela avança.
+    // O que define se a criança ganha pontos ou não é o segundo parâmetro (60 ou 0).
+    setTimeout(() => onAnswer(true, playerWon ? 60 : 0), 3000);
   };
 
   const handlePieceClick = (piece: DominoPiece) => {
@@ -223,7 +226,8 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
           } else {
             const playerCanPlay = playerHand.some(p => checkPlayable(p, ends));
             if (!playerCanPlay && boneyard.length === 0) {
-              endGame(false, "Jogo Fechado! Ninguém tem peças.");
+              // Quando ninguém pode jogar e o monte está vazio, o jogo empata e avança
+              endGame(false, "Jogo Fechado! Empate.");
             } else {
               setTurn('player');
               setMessage("Sua vez!");
@@ -243,7 +247,6 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
   // Renderização do Tabuleiro
   const renderItems: any[] = [];
   if (board.length === 0) {
-    // Zona Especial Central para a Primeira Peça
     if (turn === 'player') renderItems.push({ type: 'drop', side: 'left', id: 'drop-first', isFirst: true });
   } else {
     if (turn === 'player') renderItems.push({ type: 'drop', side: 'left', id: 'drop-left' });
@@ -278,16 +281,16 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
   const renderDots = (value: number, iconUrl: string | null) => {
     const dots = [];
     const positions: Record<number, number[]> = {
-      0: [], 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8]
+      0: [], 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8]
     };
     for (let i = 0; i < 9; i++) {
       if (positions[value]?.includes(i)) {
         dots.push(
           <div key={i} className="flex items-center justify-center w-full h-full p-0.5">
             {iconUrl ? (
-              <img src={iconUrl} alt="dot" className="w-full h-full object-contain max-w-[14px] max-h-[14px] drop-shadow-md pointer-events-none" />
+              <img src={iconUrl} alt="dot" className="w-full h-full object-contain max-w-[12px] max-h-[12px] sm:max-w-[14px] sm:max-h-[14px] drop-shadow-md pointer-events-none" />
             ) : (
-              <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-white rounded-full shadow-sm pointer-events-none" />
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full shadow-sm pointer-events-none" />
             )}
           </div>
         );
@@ -352,7 +355,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
         </div>
       </div>
 
-      <div className="w-full max-h-80 sm:max-h-96 overflow-y-auto bg-black/40 border border-white/20 rounded-2xl p-4 shadow-inner flex justify-center items-center hide-scrollbar min-h-[12rem]">
+      <div className="w-full max-h-[35vh] overflow-y-auto bg-black/40 border border-white/20 rounded-2xl p-4 shadow-inner flex justify-center items-center hide-scrollbar min-h-[12rem]">
         <div className="flex flex-col w-max">
           {chunks.map((chunk, cIdx) => {
             if (chunk.type === 'row') {
@@ -399,7 +402,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
         <div className="text-center text-[#bef264] text-xs font-bold uppercase mb-2">
           Suas Peças {turn === 'player' && "(Toque na peça para jogar)"}
         </div>
-        <div className="flex flex-wrap gap-2 sm:gap-4 justify-center">
+        <div className="flex flex-wrap gap-2 sm:gap-4 justify-center max-h-[30vh] overflow-y-auto hide-scrollbar">
           {playerHand.map(p => {
             const isError = errorPieceId === p.id;
             const isSelected = selectedPieceId === p.id;
