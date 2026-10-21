@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 
 interface DominoPiece {
@@ -12,8 +12,8 @@ const generateDominoesChallenge = (difficulty: number, context: PartyContext, hi
   const themeImage = context.gameImages.length > 0 ? context.gameImages[0] : null;
   return {
     id: `dominoes-${Date.now()}-${Math.random()}`,
-    instruction: "Arraste as peças para as pontas ou compre no monte!",
-    spokenText: "Arraste suas peças para as áreas marcadas nas pontas do tabuleiro. Se precisar, compre no monte.",
+    instruction: "Toque numa peça e escolha o lado, ou arraste-a!",
+    spokenText: "Toque numa peça da sua mão e depois toque no lado do tabuleiro onde a quer jogar.",
     data: { themeImage }
   };
 };
@@ -44,7 +44,10 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
   const [gameOver, setGameOver] = useState(false);
   
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [selectedPieceId, setSelectedPieceId] = useState<string | null>(null);
   const [errorPieceId, setErrorPieceId] = useState<string | null>(null);
+  
+  const boardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const deck = generateDeck();
@@ -55,9 +58,22 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
     
     setTurn('player');
     setGameOver(false);
-    setMessage("Sua vez! Arraste para o tabuleiro.");
+    setMessage("Sua vez! Selecione uma peça.");
     setErrorPieceId(null);
+    setSelectedPieceId(null);
   }, [challenge.id]);
+
+  // Função para rolar o tabuleiro automaticamente para o lado onde a peça foi jogada
+  const scrollToEdge = (side: 'left' | 'right') => {
+    if (boardRef.current) {
+      setTimeout(() => {
+        boardRef.current!.scrollTo({
+          left: side === 'left' ? 0 : boardRef.current!.scrollWidth,
+          behavior: 'smooth'
+        });
+      }, 100);
+    }
+  };
 
   const getBoardEnds = () => {
     if (board.length === 0) return { leftEnd: -1, rightEnd: -1 };
@@ -90,6 +106,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
     if (!played) return false;
 
     setBoard(newBoard);
+    scrollToEdge(side);
     
     if (isPlayer) {
       const newHand = playerHand.filter(p => p.id !== piece.id);
@@ -99,7 +116,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
         return true;
       }
       setTurn('ai');
-      setMessage("O Sistema está pensando...");
+      setMessage("O Sistema está a pensar...");
     } else {
       const newHand = aiHand.filter(p => p.id !== piece.id);
       setAiHand(newHand);
@@ -127,19 +144,47 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
   const endGame = (playerWon: boolean, msg: string) => {
     setGameOver(true);
     setMessage(msg);
+    setSelectedPieceId(null);
     setTimeout(() => onAnswer(playerWon, playerWon ? 60 : 0), 2000);
   };
 
+  // --- MECÂNICA DE CLIQUE (TELEMÓVEL E RATO) ---
+  const handlePieceClick = (piece: DominoPiece) => {
+    if (turn !== 'player' || gameOver) return;
+    if (selectedPieceId === piece.id) {
+      setSelectedPieceId(null); // Desmarca se clicar na mesma
+    } else {
+      setSelectedPieceId(piece.id); // Seleciona a peça
+    }
+  };
+
+  const handleZoneClick = (side: 'left' | 'right') => {
+    if (turn !== 'player' || gameOver || !selectedPieceId) return;
+    const piece = playerHand.find(p => p.id === selectedPieceId);
+    if (!piece) return;
+
+    const success = playPieceOnSide(piece, side, true);
+    if (success) {
+      setSelectedPieceId(null);
+    } else {
+      setErrorPieceId(piece.id);
+      setTimeout(() => setErrorPieceId(null), 500);
+    }
+  };
+
+  // --- MECÂNICA DE ARRASTAR E LARGAR (COMPUTADOR) ---
   const handleDragStart = (e: React.DragEvent, id: string) => {
     if (turn !== 'player' || gameOver) {
-      e.preventDefault();
-      return;
+      e.preventDefault(); return;
     }
+    setSelectedPieceId(id); // Seleciona automaticamente ao arrastar
     e.dataTransfer.setData("pieceId", id);
     setDraggingId(id);
   };
 
-  const handleDragEnd = () => setDraggingId(null);
+  const handleDragEnd = () => {
+    setDraggingId(null);
+  };
 
   const handleDropOnZone = (e: React.DragEvent, side: 'left' | 'right') => {
     e.preventDefault();
@@ -151,7 +196,9 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
     if (!piece) return;
 
     const success = playPieceOnSide(piece, side, true);
-    if (!success) {
+    if (success) {
+      setSelectedPieceId(null);
+    } else {
       setErrorPieceId(piece.id);
       setTimeout(() => setErrorPieceId(null), 500);
     }
@@ -163,12 +210,14 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
     const drawn = newBoneyard.pop()!;
     setBoneyard(newBoneyard);
     setPlayerHand([...playerHand, drawn]);
+    scrollToEdge('right');
   };
 
   const handlePassTurn = () => {
     if (turn !== 'player' || gameOver || boneyard.length > 0) return;
     setTurn('ai');
-    setMessage("Você passou a vez. Sistema jogando...");
+    setMessage("Você passou a vez. Sistema a jogar...");
+    setSelectedPieceId(null);
   };
 
   useEffect(() => {
@@ -181,7 +230,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
           autoPlayPiece(playablePiece, false);
         } else {
           if (boneyard.length > 0) {
-            setMessage("Sistema comprando peça...");
+            setMessage("Sistema a comprar peça...");
             const newBoneyard = [...boneyard];
             const drawn = newBoneyard.pop()!;
             setBoneyard(newBoneyard);
@@ -196,7 +245,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
             }
           }
         }
-      }, 1200);
+      }, 1500);
       return () => clearTimeout(timer);
     }
   }, [turn, aiHand, playerHand, board, gameOver, boneyard]);
@@ -216,7 +265,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
         dots.push(
           <div key={i} className="flex items-center justify-center w-full h-full p-0.5">
             {iconUrl ? (
-              <img src={iconUrl} alt="dot" className="w-full h-full object-contain max-w-[12px] max-h-[12px] drop-shadow-md pointer-events-none" />
+              <img src={iconUrl} alt="dot" className="w-full h-full object-contain max-w-[14px] max-h-[14px] drop-shadow-md pointer-events-none" />
             ) : (
               <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full shadow-sm pointer-events-none" />
             )}
@@ -229,7 +278,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
     return <div className="grid grid-cols-3 grid-rows-3 w-full h-full p-0.5 pointer-events-none">{dots}</div>;
   };
 
-  const PieceRender = ({ p, isHorizontal = false, isBoard = false, isError = false }: { p: DominoPiece, isHorizontal?: boolean, isBoard?: boolean, isError?: boolean }) => {
+  const PieceRender = ({ p, isHorizontal = false, isBoard = false, isError = false, isSelected = false }: { p: DominoPiece, isHorizontal?: boolean, isBoard?: boolean, isError?: boolean, isSelected?: boolean }) => {
     const leftVal = p.flipped ? p.right : p.left;
     const rightVal = p.flipped ? p.left : p.right;
     const isDouble = leftVal === rightVal;
@@ -238,8 +287,10 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
 
     return (
       <div className={`flex backdrop-blur-md rounded-md shadow-md shrink-0 transition-all duration-200
-        ${layoutVertical ? 'flex-col w-10 h-20 md:w-12 md:h-24' : 'flex-row w-20 h-10 md:w-24 md:h-12'}
-        ${isError ? 'bg-red-500/40 border-2 border-red-400' : 'bg-white/10 border border-white/30'}
+        ${layoutVertical ? 'flex-col w-12 h-24 md:w-14 md:h-28' : 'flex-row w-24 h-12 md:w-28 md:h-14'}
+        ${isError ? 'bg-red-500/40 border-2 border-red-400' : 
+          isSelected ? 'bg-[#bef264]/30 border-2 border-[#bef264] shadow-[0_0_15px_#bef264] scale-110 -translate-y-2' : 
+          'bg-white/10 border border-white/30'}
       `}>
         <div className={`w-full h-full flex items-center justify-center ${layoutVertical ? 'border-b' : 'border-r'} ${isError ? 'border-red-400/50' : 'border-white/20'}`}>
           {renderDots(leftVal, challenge.data.themeImage)}
@@ -268,38 +319,43 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
         </div>
       </div>
 
-      {/* Tabuleiro com Flex-Wrap para Quebra de Linha Automática */}
-      <div className="w-full h-64 sm:h-72 bg-black/40 border border-white/20 rounded-2xl p-2 sm:p-4 overflow-y-auto shadow-inner flex flex-col justify-center">
-        <div className="flex flex-wrap justify-center items-center gap-1 sm:gap-2 min-h-full">
+      {/* Tabuleiro Linear com Scroll (Impede quebras e peças soltas) */}
+      <div 
+        ref={boardRef}
+        className="w-full h-44 sm:h-56 bg-black/40 border border-white/20 rounded-2xl p-4 overflow-x-auto overflow-y-hidden shadow-inner flex items-center smooth-scroll hide-scrollbar"
+      >
+        <div className="flex flex-nowrap items-center gap-1 mx-auto min-w-max px-8">
           
           {/* Zona Esquerda */}
-          {turn === 'player' && (
-            <div 
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => handleDropOnZone(e, 'left')}
-              className={`shrink-0 w-16 h-20 sm:w-20 sm:h-24 rounded-xl border-2 border-dashed flex items-center justify-center text-[10px] sm:text-xs font-black text-center transition-all duration-300
-                ${draggingId ? 'border-[#bef264] bg-[#bef264]/10 text-[#bef264] shadow-[0_0_20px_#bef264]' : 'border-white/30 bg-black/40 text-white/50'}`}
-            >
-              SOLTAR<br/>AQUI
-            </div>
-          )}
+          <div 
+            onClick={() => handleZoneClick('left')}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => handleDropOnZone(e, 'left')}
+            className={`shrink-0 w-20 h-24 sm:w-24 sm:h-28 rounded-xl border-2 border-dashed flex items-center justify-center text-xs font-black text-center transition-all duration-300
+              ${turn === 'player' ? 
+                (selectedPieceId || draggingId ? 'border-[#bef264] bg-[#bef264]/20 text-[#bef264] shadow-[0_0_20px_#bef264] cursor-pointer hover:bg-[#bef264]/30' : 'border-white/30 bg-black/40 text-white/50') 
+                : 'opacity-0 w-0 border-0 overflow-hidden'}`}
+          >
+            {turn === 'player' && (selectedPieceId ? 'TOQUE AQUI' : 'SOLTAR AQUI')}
+          </div>
 
-          {/* Peças (Quebram de linha naturalmente quando faltar espaço) */}
+          {/* Peças Centrais */}
           {board.map(p => (
              <PieceRender key={p.id} p={p} isHorizontal={true} isBoard={true} />
           ))}
 
           {/* Zona Direita */}
-          {turn === 'player' && (
-            <div 
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => handleDropOnZone(e, 'right')}
-              className={`shrink-0 w-16 h-20 sm:w-20 sm:h-24 rounded-xl border-2 border-dashed flex items-center justify-center text-[10px] sm:text-xs font-black text-center transition-all duration-300
-                ${draggingId ? 'border-[#bef264] bg-[#bef264]/10 text-[#bef264] shadow-[0_0_20px_#bef264]' : 'border-white/30 bg-black/40 text-white/50'}`}
-            >
-              SOLTAR<br/>AQUI
-            </div>
-          )}
+          <div 
+            onClick={() => handleZoneClick('right')}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => handleDropOnZone(e, 'right')}
+            className={`shrink-0 w-20 h-24 sm:w-24 sm:h-28 rounded-xl border-2 border-dashed flex items-center justify-center text-xs font-black text-center transition-all duration-300
+              ${turn === 'player' ? 
+                (selectedPieceId || draggingId ? 'border-[#bef264] bg-[#bef264]/20 text-[#bef264] shadow-[0_0_20px_#bef264] cursor-pointer hover:bg-[#bef264]/30' : 'border-white/30 bg-black/40 text-white/50') 
+                : 'opacity-0 w-0 border-0 overflow-hidden'}`}
+          >
+            {turn === 'player' && (selectedPieceId ? 'TOQUE AQUI' : 'SOLTAR AQUI')}
+          </div>
           
         </div>
       </div>
@@ -320,20 +376,23 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
         )}
       </div>
 
+      {/* Mão do Jogador (Com Mecânica de Clique) */}
       <div className="w-full bg-black/40 border border-white/20 rounded-2xl p-4 flex flex-col gap-2 min-h-[8rem]">
-        <div className="text-center text-white/50 text-[10px] sm:text-xs font-bold uppercase mb-2">Suas Peças</div>
+        <div className="text-center text-white/50 text-[10px] sm:text-xs font-bold uppercase mb-2">Suas Peças (Toque para selecionar)</div>
         <div className="flex flex-wrap gap-2 justify-center">
           {playerHand.map(p => {
             const isError = errorPieceId === p.id;
+            const isSelected = selectedPieceId === p.id;
             return (
               <div 
                 key={p.id} 
+                onClick={() => handlePieceClick(p)}
                 draggable={turn === 'player' && !gameOver}
                 onDragStart={(e) => handleDragStart(e, p.id)}
                 onDragEnd={handleDragEnd}
-                className={`transition-all duration-300 ${turn === 'player' ? 'cursor-grab active:cursor-grabbing hover:-translate-y-2 hover:shadow-[0_0_15px_#bef264]' : 'opacity-80 cursor-not-allowed'} ${draggingId === p.id ? 'opacity-30 scale-90' : ''}`}
+                className={`transition-all duration-300 ${turn === 'player' ? 'cursor-pointer' : 'opacity-80 cursor-not-allowed'} ${draggingId === p.id ? 'opacity-30 scale-90' : ''}`}
               >
-                <PieceRender p={p} isHorizontal={false} isError={isError} />
+                <PieceRender p={p} isHorizontal={false} isError={isError} isSelected={isSelected} />
               </div>
             );
           })}
