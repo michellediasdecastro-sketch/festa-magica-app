@@ -139,7 +139,7 @@ const TicTacToeComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect:
   );
 };
 
-export const TicTacToe10GameModule: GameModule = {
+export const TicTacToeNovo: GameModule = {
   id: "tictactoe-10",
   title: "Jogo da Velha",
   categoryId: "raciocinio-10",
