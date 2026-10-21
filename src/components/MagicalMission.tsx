@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Sparkles } from 'lucide-react';
 
 interface MagicalMissionProps {
@@ -22,19 +22,17 @@ export const MagicalMission: React.FC<MagicalMissionProps> = ({ partyData, onUnl
   const childName = partyData?.childName || "Aniversariante";
   const theme = partyData?.theme || "Mundo Mágico";
 
-  // CORREÇÃO: O Supabase devolve com underline, precisamos garantir a leitura correta!
   const avatarUrl = partyData?.childAvatarUrl || partyData?.child_avatar_url;
   const successAudio = partyData?.successAudioUrl || partyData?.success_audio_url;
 
-  // TEXTOS
   const storyText = isReplay 
     ? `Vamos brincar de novo, ${guestName}? Ajude a despertar o poder do portal novamente!`
     : `O ${childName} descobriu um portal secreto no ${theme}! Mas a magia que o mantém aberto desapareceu. Ajude a despertar o poder do portal!`;
   
   const instructionText = "Toque nas luzes mágicas para enviar energia ao portal!";
   
-  // CORREÇÃO: Frase mais curta e direta conforme o seu pedido
-  const successTextFallback = `Parabéns ${guestName} você desbloqueou os jogos. Divirta-se!`;
+  // VÍRGULA ADICIONADA AQUI PARA A PAUSA DO ÁUDIO
+  const successTextFallback = `Parabéns ${guestName}, você desbloqueou os jogos. Divirta-se!`;
 
   const playAudio = (type: 'story' | 'instruction' | 'success', text: string, onEnd?: () => void) => {
     window.speechSynthesis.cancel();
@@ -62,7 +60,6 @@ export const MagicalMission: React.FC<MagicalMissionProps> = ({ partyData, onUnl
       };
       window.speechSynthesis.speak(utterance);
       
-      // CORREÇÃO: Tempo de segurança aumentado para 10 segundos, para não cortar o áudio da vitória
       setTimeout(() => {
          if (!ended) { ended = true; if (onEnd) onEnd(); }
       }, type === 'story' ? 12000 : 10000);
@@ -151,7 +148,6 @@ export const MagicalMission: React.FC<MagicalMissionProps> = ({ partyData, onUnl
           <Sparkles className="absolute top-1/4 text-[#bef264] size-40 drop-shadow-[0_0_50px_#bef264] opacity-30 animate-[spin_10s_linear_infinite]" />
           
           <div className="relative z-10 w-56 h-56 md:w-72 md:h-72 rounded-full border-[10px] border-[#bef264] bg-black/80 overflow-hidden flex items-center justify-center shadow-[0_0_100px_rgba(190,242,100,0.6)] mb-8 animate-[bounce_2s_ease-in-out_infinite]">
-            {/* CORREÇÃO: Usando a variável corrigida avatarUrl */}
             {avatarUrl ? (
               <img src={avatarUrl} alt="Aniversariante" className="w-full h-full object-cover" />
             ) : (
@@ -161,7 +157,7 @@ export const MagicalMission: React.FC<MagicalMissionProps> = ({ partyData, onUnl
 
           {!successAudio && (
              <p className="text-[#bef264] text-center font-black text-2xl md:text-4xl drop-shadow-[0_5px_15px_rgba(0,0,0,1)] z-10 leading-tight">
-               Parabéns {guestName}<br/>você desbloqueou os jogos.<br/>Divirta-se!
+               Parabéns {guestName},<br/>você desbloqueou os jogos.<br/>Divirta-se!
              </p>
           )}
 
