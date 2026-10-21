@@ -12,29 +12,24 @@ const generateDominoesChallenge = (difficulty: number, context: PartyContext, hi
   const themeImage = context.gameImages.length > 0 ? context.gameImages[0] : null;
   return {
     id: `dominoes-${Date.now()}-${Math.random()}`,
-    instruction: "Jogue contra o Sistema! Seja o primeiro a ficar sem peças.",
-    spokenText: "O jogo começou! Jogue suas peças combinando os desenhos nas pontas.",
+    instruction: "Arraste suas peças para as pontas corretas do tabuleiro!",
+    spokenText: "Arraste as peças da sua mão e solte nas áreas marcadas nas pontas do tabuleiro.",
     data: { themeImage }
   };
 };
 
-// Gera as 28 peças oficiais de um dominó e embaralha-as de forma verdadeiramente aleatória
 const generateDeck = (): DominoPiece[] => {
   const deck: DominoPiece[] = [];
   const uniqueId = Date.now();
-  
   for (let i = 0; i <= 6; i++) {
     for (let j = i; j <= 6; j++) {
       deck.push({ id: `p-${i}-${j}-${uniqueId}`, left: i, right: j });
     }
   }
-  
-  // Algoritmo de Fisher-Yates para embaralhamento forte
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];
   }
-  
   return deck;
 };
 
@@ -45,18 +40,17 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
   const [turn, setTurn] = useState<'player' | 'ai'>('player');
   const [message, setMessage] = useState("Sua vez!");
   const [gameOver, setGameOver] = useState(false);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
   const [errorPieceId, setErrorPieceId] = useState<string | null>(null);
 
-  // Inicia o jogo a cada novo desafio
   useEffect(() => {
     const deck = generateDeck();
     setPlayerHand(deck.slice(0, 7));
     setAiHand(deck.slice(7, 14));
-    // Coloca uma peça inicial garantida no tabuleiro
     setBoard([{ ...deck[14], flipped: false }]);
     setTurn('player');
     setGameOver(false);
-    setMessage("Sua vez!");
+    setMessage("Sua vez! Arraste uma peça para o tabuleiro.");
     setErrorPieceId(null);
   }, [challenge.id]);
 
@@ -75,20 +69,17 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
            piece.left === ends.rightEnd || piece.right === ends.rightEnd;
   };
 
-  const playPiece = (piece: DominoPiece, isPlayer: boolean) => {
+  const playPieceOnSide = (piece: DominoPiece, side: 'left' | 'right', isPlayer: boolean) => {
     const { leftEnd, rightEnd } = getBoardEnds();
     let newBoard = [...board];
     let played = false;
 
-    if (piece.left === rightEnd) {
-      newBoard.push({ ...piece, flipped: false }); played = true;
-    } else if (piece.right === rightEnd) {
-      newBoard.push({ ...piece, flipped: true }); played = true;
-    } 
-    else if (piece.right === leftEnd) {
-      newBoard.unshift({ ...piece, flipped: false }); played = true;
-    } else if (piece.left === leftEnd) {
-      newBoard.unshift({ ...piece, flipped: true }); played = true;
+    if (side === 'left') {
+      if (piece.right === leftEnd) { newBoard.unshift({ ...piece, flipped: false }); played = true; }
+      else if (piece.left === leftEnd) { newBoard.unshift({ ...piece, flipped: true }); played = true; }
+    } else {
+      if (piece.left === rightEnd) { newBoard.push({ ...piece, flipped: false }); played = true; }
+      else if (piece.right === rightEnd) { newBoard.push({ ...piece, flipped: true }); played = true; }
     }
 
     if (!played) return false;
@@ -117,25 +108,49 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
     return true;
   };
 
+  const autoPlayPiece = (piece: DominoPiece, isPlayer: boolean) => {
+    const { leftEnd, rightEnd } = getBoardEnds();
+    if (piece.left === rightEnd || piece.right === rightEnd) {
+      return playPieceOnSide(piece, 'right', isPlayer);
+    }
+    if (piece.left === leftEnd || piece.right === leftEnd) {
+      return playPieceOnSide(piece, 'left', isPlayer);
+    }
+    return false;
+  };
+
   const endGame = (playerWon: boolean, msg: string) => {
     setGameOver(true);
     setMessage(msg);
     setTimeout(() => onAnswer(playerWon, playerWon ? 60 : 0), 2000);
   };
 
-  const handlePlayerMove = (piece: DominoPiece) => {
-    if (turn !== 'player' || gameOver) return;
-    
-    const { leftEnd, rightEnd } = getBoardEnds();
-    
-    if (!checkPlayable(piece, { leftEnd, rightEnd })) {
-      // Feedback de erro visual em vez de bloquear a peça antecipadamente
-      setErrorPieceId(piece.id);
-      setTimeout(() => setErrorPieceId(null), 500);
+  // Drag and Drop Handlers
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    if (turn !== 'player' || gameOver) {
+      e.preventDefault();
       return;
     }
-    
-    playPiece(piece, true);
+    e.dataTransfer.setData("pieceId", id);
+    setDraggingId(id);
+  };
+
+  const handleDragEnd = () => setDraggingId(null);
+
+  const handleDropOnZone = (e: React.DragEvent, side: 'left' | 'right') => {
+    e.preventDefault();
+    setDraggingId(null);
+    if (turn !== 'player' || gameOver) return;
+
+    const id = e.dataTransfer.getData("pieceId");
+    const piece = playerHand.find(p => p.id === id);
+    if (!piece) return;
+
+    const success = playPieceOnSide(piece, side, true);
+    if (!success) {
+      setErrorPieceId(piece.id);
+      setTimeout(() => setErrorPieceId(null), 500);
+    }
   };
 
   const handlePassTurn = () => {
@@ -151,7 +166,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
         const playablePiece = aiHand.find(p => checkPlayable(p, ends));
         
         if (playablePiece) {
-          playPiece(playablePiece, false);
+          autoPlayPiece(playablePiece, false);
         } else {
           const playerCanPlay = playerHand.some(p => checkPlayable(p, ends));
           if (!playerCanPlay) {
@@ -181,9 +196,9 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
         dots.push(
           <div key={i} className="flex items-center justify-center">
             {iconUrl ? (
-              <img src={iconUrl} alt="dot" className="w-3.5 h-3.5 object-contain drop-shadow-md pointer-events-none" />
+              <img src={iconUrl} alt="dot" className="w-3 h-3 md:w-3.5 md:h-3.5 object-contain drop-shadow-md pointer-events-none" />
             ) : (
-              <div className="w-3 h-3 bg-white rounded-full shadow-sm pointer-events-none" />
+              <div className="w-2.5 h-2.5 bg-white rounded-full shadow-sm pointer-events-none" />
             )}
           </div>
         );
@@ -191,7 +206,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
         dots.push(<div key={i} className="pointer-events-none" />);
       }
     }
-    return <div className="grid grid-cols-3 grid-rows-3 w-full h-full p-1 gap-0.5 pointer-events-none">{dots}</div>;
+    return <div className="grid grid-cols-3 grid-rows-3 w-full h-full p-0.5 md:p-1 gap-0.5 pointer-events-none">{dots}</div>;
   };
 
   const PieceRender = ({ p, isHorizontal = false, isBoard = false, isError = false }: { p: DominoPiece, isHorizontal?: boolean, isBoard?: boolean, isError?: boolean }) => {
@@ -199,11 +214,12 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
     const rightVal = p.flipped ? p.left : p.right;
     const isDouble = leftVal === rightVal;
     
+    // Buchas ficam em pé, resto deitado (no tabuleiro)
     const layoutVertical = isBoard ? isDouble : !isHorizontal;
 
     return (
-      <div className={`flex backdrop-blur-md rounded-lg shadow-lg shrink-0 transition-colors duration-200
-        ${layoutVertical ? 'flex-col w-12 h-24' : 'flex-row w-24 h-12'}
+      <div className={`flex backdrop-blur-md rounded-md shadow-lg shrink-0 transition-colors duration-200
+        ${layoutVertical ? 'flex-col w-10 h-20 md:w-12 md:h-24' : 'flex-row w-20 h-10 md:w-24 md:h-12'}
         ${isError ? 'bg-red-500/40 border-2 border-red-400' : 'bg-white/10 border border-white/30'}
       `}>
         <div className={`w-full h-full flex items-center justify-center ${layoutVertical ? 'border-b' : 'border-r'} ${isError ? 'border-red-400/50' : 'border-white/20'}`}>
@@ -223,15 +239,42 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
         <div className="text-white/60 text-xs font-bold uppercase tracking-wider">
           Peças do Sistema: <span className="text-[#bef264] text-sm">{aiHand.length}</span>
         </div>
-        <div className={`font-black text-sm px-4 py-1.5 rounded-full ${turn === 'player' ? 'bg-[#bef264] text-black' : 'bg-white/20 text-white animate-pulse'}`}>
+        <div className={`font-black text-sm px-4 py-1.5 rounded-full ${turn === 'player' ? 'bg-[#bef264] text-black shadow-[0_0_15px_#bef264]' : 'bg-white/20 text-white animate-pulse'}`}>
           {message}
         </div>
       </div>
 
-      <div className="w-full h-40 bg-black/40 border border-white/20 rounded-2xl flex items-center px-4 overflow-x-auto overflow-y-hidden gap-1 hide-scrollbar shadow-inner">
+      {/* Tabuleiro Dinâmico com Wrap e Dropzones */}
+      <div className="w-full min-h-[14rem] bg-black/40 border border-white/20 rounded-2xl p-4 flex flex-wrap justify-center items-center content-center gap-2 shadow-inner">
+        
+        {/* Dropzone Esquerda */}
+        {turn === 'player' && (
+          <div 
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => handleDropOnZone(e, 'left')}
+            className={`w-16 h-12 md:w-20 md:h-16 rounded-lg border-2 border-dashed flex items-center justify-center text-[10px] font-bold text-center transition-all
+              ${draggingId ? 'border-[#bef264] bg-[#bef264]/10 text-[#bef264] animate-pulse' : 'border-white/30 text-white/40'}`}
+          >
+            ENCAIXAR<br/>AQUI
+          </div>
+        )}
+
         {board.map(p => (
            <PieceRender key={p.id} p={p} isHorizontal={true} isBoard={true} />
         ))}
+
+        {/* Dropzone Direita */}
+        {turn === 'player' && (
+          <div 
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => handleDropOnZone(e, 'right')}
+            className={`w-16 h-12 md:w-20 md:h-16 rounded-lg border-2 border-dashed flex items-center justify-center text-[10px] font-bold text-center transition-all
+              ${draggingId ? 'border-[#bef264] bg-[#bef264]/10 text-[#bef264] animate-pulse' : 'border-white/30 text-white/40'}`}
+          >
+            ENCAIXAR<br/>AQUI
+          </div>
+        )}
+
       </div>
 
       <div className="w-full bg-black/40 border border-white/20 rounded-2xl p-4 flex flex-col gap-2">
@@ -242,8 +285,10 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
             return (
               <div 
                 key={p.id} 
-                onClick={() => handlePlayerMove(p)}
-                className={`transition-all duration-300 cursor-pointer hover:-translate-y-2 hover:shadow-[0_0_15px_#bef264] scale-105 ${turn !== 'player' ? 'opacity-80' : ''}`}
+                draggable={turn === 'player' && !gameOver}
+                onDragStart={(e) => handleDragStart(e, p.id)}
+                onDragEnd={handleDragEnd}
+                className={`transition-all duration-300 ${turn === 'player' ? 'cursor-grab active:cursor-grabbing hover:-translate-y-2 hover:shadow-[0_0_15px_#bef264]' : 'opacity-80 cursor-not-allowed'} ${draggingId === p.id ? 'opacity-50' : ''}`}
               >
                 <PieceRender p={p} isHorizontal={false} isError={isError} />
               </div>
