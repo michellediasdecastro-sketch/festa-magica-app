@@ -12,13 +12,13 @@ const generateDominoesChallenge = (difficulty: number, context: PartyContext, hi
   const themeImage = context.gameImages.length > 0 ? context.gameImages[0] : null;
   return {
     id: `dominoes-${Date.now()}-${Math.random()}`,
-    instruction: "Toque numa peça e escolha o lado, ou arraste-a!",
+    instruction: "Toque na peça e escolha a ponta, ou arraste-a!",
     spokenText: "O jogo começou! Toque numa peça e depois no lado onde a quer jogar.",
     data: { themeImage }
   };
 };
 
-// Gera um deck reduzido (Duplo-4) com 15 peças para caber perfeitamente na tela
+// Baralho Reduzido (Duplo-4) com 15 peças para um jogo rápido e visualmente limpo
 const generateDeck = (): DominoPiece[] => {
   const deck: DominoPiece[] = [];
   const uniqueId = Date.now();
@@ -57,12 +57,11 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
     
     setTurn('player');
     setGameOver(false);
-    setMessage("Sua vez! Toque numa peça.");
+    setMessage("Sua vez! Selecione uma peça.");
     setErrorPieceId(null);
     setSelectedPieceId(null);
   }, [challenge.id]);
 
-  // CORREÇÃO DO BUG: Cálculo exato das pontas, resolvendo a falha ao usar peças viradas
   const getBoardEnds = () => {
     if (board.length === 0) return { leftEnd: -1, rightEnd: -1 };
     const leftPiece = board[0];
@@ -103,7 +102,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
         return true;
       }
       setTurn('ai');
-      setMessage("O Sistema está jogando...");
+      setMessage("O Sistema está a jogar...");
     } else {
       const newHand = aiHand.filter(p => p.id !== piece.id);
       setAiHand(newHand);
@@ -192,7 +191,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
   const handlePassTurn = () => {
     if (turn !== 'player' || gameOver || boneyard.length > 0) return;
     setTurn('ai');
-    setMessage("Você passou. Sistema jogando...");
+    setMessage("Você passou a vez. Sistema a jogar...");
     setSelectedPieceId(null);
   };
 
@@ -206,7 +205,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
           autoPlayPiece(playablePiece, false);
         } else {
           if (boneyard.length > 0) {
-            setMessage("Sistema comprando peça...");
+            setMessage("Sistema a comprar peça...");
             const newBoneyard = [...boneyard];
             const drawn = newBoneyard.pop()!;
             setBoneyard(newBoneyard);
@@ -231,10 +230,40 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
     return playerHand.some(p => checkPlayable(p, ends));
   };
 
+  // Renderização e Lógica da "Cobrinha" (Ziguezague)
+  const renderItems: any[] = [];
+  if (turn === 'player') renderItems.push({ type: 'drop', side: 'left', id: 'drop-left' });
+  board.forEach(p => renderItems.push({ type: 'piece', ...p }));
+  if (turn === 'player') renderItems.push({ type: 'drop', side: 'right', id: 'drop-right' });
+
+  const chunks: any[] = [];
+  let i = 0;
+  let rowIndex = 0;
+  const ITEMS_PER_ROW = 4; // Número de peças que cabem lado a lado antes de dobrar a curva
+
+  while (i < renderItems.length) {
+    if (rowIndex % 2 === 0) {
+      chunks.push({ type: 'row', dir: 'ltr', items: renderItems.slice(i, i + ITEMS_PER_ROW) });
+      i += ITEMS_PER_ROW;
+      if (i < renderItems.length) {
+        chunks.push({ type: 'bridge', align: 'end', item: renderItems[i] });
+        i += 1;
+      }
+    } else {
+      chunks.push({ type: 'row', dir: 'rtl', items: renderItems.slice(i, i + ITEMS_PER_ROW) });
+      i += ITEMS_PER_ROW;
+      if (i < renderItems.length) {
+        chunks.push({ type: 'bridge', align: 'start', item: renderItems[i] });
+        i += 1;
+      }
+    }
+    rowIndex++;
+  }
+
   const renderDots = (value: number, iconUrl: string | null) => {
     const dots = [];
     const positions: Record<number, number[]> = {
-      0: [], 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8]
+      0: [], 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8]
     };
     for (let i = 0; i < 9; i++) {
       if (positions[value]?.includes(i)) {
@@ -243,7 +272,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
             {iconUrl ? (
               <img src={iconUrl} alt="dot" className="w-full h-full object-contain max-w-[14px] max-h-[14px] drop-shadow-md pointer-events-none" />
             ) : (
-              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full shadow-sm pointer-events-none" />
+              <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-white rounded-full shadow-sm pointer-events-none" />
             )}
           </div>
         );
@@ -254,25 +283,39 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
     return <div className="grid grid-cols-3 grid-rows-3 w-full h-full p-0.5 pointer-events-none">{dots}</div>;
   };
 
-  const PieceRender = ({ p, isHorizontal = false, isBoard = false, isError = false, isSelected = false }: { p: DominoPiece, isHorizontal?: boolean, isBoard?: boolean, isError?: boolean, isSelected?: boolean }) => {
-    const leftVal = p.flipped ? p.right : p.left;
-    const rightVal = p.flipped ? p.left : p.right;
-    const isDouble = leftVal === rightVal;
+  const DropZone = ({ side, isVertical = false }: { side: 'left' | 'right', isVertical?: boolean }) => (
+    <div
+      onClick={() => handleZoneClick(side)}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => handleDropOnZone(e, side)}
+      className={`shrink-0 flex items-center justify-center text-[9px] sm:text-[10px] font-black text-center transition-all duration-300
+        ${isVertical ? 'w-10 h-20 sm:w-14 sm:h-28' : 'w-20 h-10 sm:w-28 sm:h-14'}
+        ${selectedPieceId || draggingId ? 'border-2 border-dashed border-[#bef264] bg-[#bef264]/20 text-[#bef264] shadow-[0_0_20px_#bef264] cursor-pointer hover:bg-[#bef264]/40 scale-105 z-10' : 'border border-dashed border-white/30 bg-black/40 text-white/50'}`}
+    >
+      {selectedPieceId ? 'TOCAR' : 'SOLTAR'}
+    </div>
+  );
+
+  const PieceRender = ({ p, isVertical = false, isBoard = false, isError = false, isSelected = false, reverseRender = false }: any) => {
+    const val1 = p.flipped ? p.right : p.left;
+    const val2 = p.flipped ? p.left : p.right;
     
-    const layoutVertical = isBoard ? isDouble : !isHorizontal;
+    // Inverte visualmente se a peça estiver a voltar para trás (Cobrinha)
+    const renderVal1 = reverseRender ? val2 : val1;
+    const renderVal2 = reverseRender ? val1 : val2;
 
     return (
-      <div className={`flex backdrop-blur-md rounded-md shadow-md shrink-0 transition-all duration-200
-        ${layoutVertical ? 'flex-col w-12 h-24 md:w-14 md:h-28' : 'flex-row w-24 h-12 md:w-28 md:h-14'}
-        ${isError ? 'bg-red-500/40 border-2 border-red-400' : 
-          isSelected ? 'bg-[#bef264]/30 border-2 border-[#bef264] shadow-[0_0_15px_#bef264] scale-110 -translate-y-2' : 
-          'bg-white/10 border border-white/30'}
+      <div className={`flex backdrop-blur-md shrink-0 transition-all duration-200
+        ${isVertical ? 'flex-col w-10 h-20 sm:w-14 sm:h-28' : 'flex-row w-20 h-10 sm:w-28 sm:h-14'}
+        ${isBoard ? 'border border-white/30 bg-white/10' : 'rounded-lg shadow-[0_4px_10px_rgba(0,0,0,0.5)] border border-white/20 bg-black/70'}
+        ${isError ? 'bg-red-500/40 border-2 border-red-400 z-10' : 
+          isSelected ? 'bg-[#bef264]/30 border-2 border-[#bef264] shadow-[0_0_15px_#bef264] scale-110 -translate-y-2 z-10' : ''}
       `}>
-        <div className={`w-full h-full flex items-center justify-center ${layoutVertical ? 'border-b' : 'border-r'} ${isError ? 'border-red-400/50' : 'border-white/20'}`}>
-          {renderDots(leftVal, challenge.data.themeImage)}
+        <div className={`w-full h-full flex items-center justify-center ${isVertical ? 'border-b' : 'border-r'} ${isError ? 'border-red-400/50' : 'border-white/20'}`}>
+          {renderDots(renderVal1, challenge.data.themeImage)}
         </div>
         <div className="w-full h-full flex items-center justify-center">
-          {renderDots(rightVal, challenge.data.themeImage)}
+          {renderDots(renderVal2, challenge.data.themeImage)}
         </div>
       </div>
     );
@@ -281,6 +324,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
   return (
     <div className="flex flex-col items-center gap-4 w-full select-none max-w-5xl mx-auto">
       
+      {/* HUD Info */}
       <div className="flex justify-between w-full items-center px-4">
         <div className="flex gap-4">
           <div className="text-white/60 text-[10px] sm:text-xs font-bold uppercase tracking-wider">
@@ -295,54 +339,45 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
         </div>
       </div>
 
-      {/* Tabuleiro Dinâmico (Flex-Wrap) */}
-      <div className="w-full min-h-[14rem] sm:min-h-[18rem] bg-black/40 border border-white/20 rounded-2xl p-4 shadow-inner flex flex-col justify-center">
-        <div className="flex flex-wrap justify-center items-center gap-2">
-          
-          {/* Zona Esquerda */}
-          <div 
-            onClick={() => handleZoneClick('left')}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => handleDropOnZone(e, 'left')}
-            className={`shrink-0 w-20 h-24 md:w-24 md:h-28 rounded-xl border-2 border-dashed flex items-center justify-center text-[10px] sm:text-xs font-black text-center transition-all duration-300
-              ${turn === 'player' ? 
-                (selectedPieceId || draggingId ? 'border-[#bef264] bg-[#bef264]/20 text-[#bef264] shadow-[0_0_20px_#bef264] cursor-pointer hover:bg-[#bef264]/30' : 'border-white/30 bg-black/40 text-white/50') 
-                : 'opacity-0 w-0 border-0 overflow-hidden hidden md:block'}`}
-          >
-            {turn === 'player' && (selectedPieceId ? 'TOQUE\nAQUI' : 'SOLTAR\nAQUI')}
-          </div>
-
-          {/* Peças (Quebram de linha naturalmente se faltar espaço) */}
-          {board.map(p => (
-             <PieceRender key={p.id} p={p} isHorizontal={true} isBoard={true} />
-          ))}
-
-          {/* Zona Direita */}
-          <div 
-            onClick={() => handleZoneClick('right')}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => handleDropOnZone(e, 'right')}
-            className={`shrink-0 w-20 h-24 md:w-24 md:h-28 rounded-xl border-2 border-dashed flex items-center justify-center text-[10px] sm:text-xs font-black text-center transition-all duration-300
-              ${turn === 'player' ? 
-                (selectedPieceId || draggingId ? 'border-[#bef264] bg-[#bef264]/20 text-[#bef264] shadow-[0_0_20px_#bef264] cursor-pointer hover:bg-[#bef264]/30' : 'border-white/30 bg-black/40 text-white/50') 
-                : 'opacity-0 w-0 border-0 overflow-hidden hidden md:block'}`}
-          >
-            {turn === 'player' && (selectedPieceId ? 'TOQUE\nAQUI' : 'SOLTAR\nAQUI')}
-          </div>
-          
+      {/* Tabuleiro com Ziguezague Perfeito */}
+      <div className="w-full max-h-80 sm:max-h-96 overflow-y-auto bg-black/40 border border-white/20 rounded-2xl p-4 shadow-inner flex justify-center hide-scrollbar">
+        <div className="flex flex-col w-max">
+          {chunks.map((chunk, cIdx) => {
+            if (chunk.type === 'row') {
+              return (
+                <div key={`row-${cIdx}`} className={`flex ${chunk.dir === 'rtl' ? 'flex-row-reverse' : 'flex-row'}`}>
+                  {chunk.items.map((item: any) => {
+                    if (item.type === 'drop') return <DropZone key={item.id} side={item.side} />;
+                    return <PieceRender key={item.id} p={item} isVertical={false} isBoard={true} reverseRender={chunk.dir === 'rtl'} isError={errorPieceId === item.id} />;
+                  })}
+                </div>
+              );
+            } else {
+              return (
+                <div key={`bridge-${cIdx}`} className={`flex w-full ${chunk.align === 'end' ? 'justify-end' : 'justify-start'}`}>
+                  {chunk.item.type === 'drop' ? (
+                    <DropZone key={chunk.item.id} side={chunk.item.side} isVertical={true} />
+                  ) : (
+                    <PieceRender key={chunk.item.id} p={chunk.item} isVertical={true} isBoard={true} isError={errorPieceId === chunk.item.id} />
+                  )}
+                </div>
+              );
+            }
+          })}
         </div>
       </div>
 
+      {/* Controlos Extra */}
       <div className="h-10 flex items-center justify-center w-full">
         {turn === 'player' && !gameOver && (
           boneyard.length > 0 ? (
              <button onClick={handleDrawPiece} className="px-6 py-2 bg-blue-500 hover:bg-blue-400 text-white font-black rounded-xl border border-white/20 shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all">
-               COMPRAR PEÇA NO MONTE
+               COMPRAR PEÇA
              </button>
           ) : (
              !playerHasMoves() && (
                <button onClick={handlePassTurn} className="px-6 py-2 bg-red-500/80 hover:bg-red-500 text-white font-black rounded-xl border border-white/20 shadow-lg animate-bounce">
-                 PASSAR A VEZ (MONTE VAZIO)
+                 PASSAR A VEZ
                </button>
              )
           )
@@ -351,8 +386,10 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
 
       {/* Mão do Jogador */}
       <div className="w-full bg-black/40 border border-white/20 rounded-2xl p-4 flex flex-col gap-2 min-h-[8rem]">
-        <div className="text-center text-white/50 text-[10px] sm:text-xs font-bold uppercase mb-2">Suas Peças (Toque para selecionar)</div>
-        <div className="flex flex-wrap gap-2 justify-center">
+        <div className="text-center text-[#bef264] text-xs font-bold uppercase mb-2">
+          Suas Peças {turn === 'player' && "(Toque na peça para jogar)"}
+        </div>
+        <div className="flex flex-wrap gap-2 sm:gap-4 justify-center">
           {playerHand.map(p => {
             const isError = errorPieceId === p.id;
             const isSelected = selectedPieceId === p.id;
@@ -363,7 +400,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
                 draggable={turn === 'player' && !gameOver}
                 onDragStart={(e) => handleDragStart(e, p.id)}
                 onDragEnd={handleDragEnd}
-                className={`transition-all duration-300 ${turn === 'player' ? 'cursor-pointer' : 'opacity-80 cursor-not-allowed'} ${draggingId === p.id ? 'opacity-30 scale-90' : ''}`}
+                className={`transition-all duration-300 ${turn === 'player' ? 'cursor-pointer' : 'opacity-60 cursor-not-allowed'} ${draggingId === p.id ? 'opacity-30 scale-90' : ''}`}
               >
                 <PieceRender p={p} isHorizontal={false} isError={isError} isSelected={isSelected} />
               </div>
