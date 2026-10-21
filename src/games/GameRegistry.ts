@@ -36,7 +36,7 @@ import { Crypto10GameModule } from "./modules/Crypto10Game";
 import { Logic10GameModule } from "./modules/Logic10Game";
 import { TicTacToe10GameModule } from "./modules/TicTacToe10Game";
 import { Resources10GameModule } from "./modules/Resources10Game";
-import { Cases10GameModule } from "./modules/Cases10Game";
+import { Match3GameModule } from "./modules/Match3Game"; // NOVO: Substituiu o Cases10GameModule
 import { WordSearch10GameModule } from "./modules/WordSearch10Game";
 import { Riddles10GameModule } from "./modules/Riddles10Game";
 
@@ -72,7 +72,7 @@ export const Categories: Record<string, any[]> = {
     { id: "pistas-8", title: "Missões com Pistas", icon: Compass },
   ],
   "10-11": [
-    { id: "casos-10", title: "Casos de Investigação", icon: Fingerprint },
+    { id: "match3-10", title: "Puzzle da Festa", icon: Puzzle }, // NOVO: Alterado para refletir o Match 3
     { id: "recursos-10", title: "Estratégia e Recursos", icon: Brain },
     { id: "deducao-10", title: "Lógica e Dedução", icon: Puzzle },
     { id: "criptogramas-10", title: "Códigos e Criptogramas", icon: Lock },
@@ -120,7 +120,7 @@ export const GameRegistry = [
   { ...Logic10GameModule, categoryId: "deducao-10", supportedAges: ["10-11"] },
   { ...TicTacToe10GameModule, categoryId: "velha-10", supportedAges: ["10-11"] },
   { ...Resources10GameModule, categoryId: "recursos-10", supportedAges: ["10-11"] },
-  { ...Cases10GameModule, categoryId: "casos-10", supportedAges: ["10-11"] },
+  { ...Match3GameModule, categoryId: "match3-10", supportedAges: ["10-11"] }, // NOVO: Módulo do Match 3 ativado!
   { ...WordSearch10GameModule, categoryId: "interpretacao-10", supportedAges: ["10-11"] },
   { ...Riddles10GameModule, categoryId: "decisoes-10", supportedAges: ["10-11"] }
 ];
