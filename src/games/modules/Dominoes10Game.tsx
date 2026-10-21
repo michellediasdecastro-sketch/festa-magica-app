@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 
 interface DominoPiece {
@@ -12,7 +12,7 @@ const generateDominoesChallenge = (difficulty: number, context: PartyContext, hi
   const themeImage = context.gameImages.length > 0 ? context.gameImages[0] : null;
   return {
     id: `dominoes-${Date.now()}-${Math.random()}`,
-    instruction: "Arraste as peças para as pontas corretas!",
+    instruction: "Arraste as peças para as pontas ou compre no monte!",
     spokenText: "Arraste suas peças para as áreas marcadas nas pontas do tabuleiro. Se precisar, compre no monte.",
     data: { themeImage }
   };
@@ -45,10 +45,6 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
   
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [errorPieceId, setErrorPieceId] = useState<string | null>(null);
-  const [boardScale, setBoardScale] = useState(1);
-  
-  const boardContainerRef = useRef<HTMLDivElement>(null);
-  const boardContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const deck = generateDeck();
@@ -62,18 +58,6 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
     setMessage("Sua vez! Arraste para o tabuleiro.");
     setErrorPieceId(null);
   }, [challenge.id]);
-
-  useEffect(() => {
-    if (boardContainerRef.current && boardContentRef.current) {
-      const containerWidth = boardContainerRef.current.clientWidth - 20; 
-      const contentWidth = boardContentRef.current.scrollWidth;
-      if (contentWidth > containerWidth && contentWidth > 0) {
-        setBoardScale(containerWidth / contentWidth);
-      } else {
-        setBoardScale(1);
-      }
-    }
-  }, [board, turn, draggingId]);
 
   const getBoardEnds = () => {
     if (board.length === 0) return { leftEnd: -1, rightEnd: -1 };
@@ -284,37 +268,39 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
         </div>
       </div>
 
-      {/* Tabuleiro com os Dropzones integrados no fluxo */}
-      <div ref={boardContainerRef} className="w-full h-40 sm:h-48 bg-black/40 border border-white/20 rounded-2xl flex justify-center items-center overflow-hidden shadow-inner relative">
-        <div 
-          ref={boardContentRef}
-          className="flex items-center gap-1 px-4 transition-transform duration-300 ease-in-out" 
-          style={{ transform: `scale(${boardScale})`, transformOrigin: 'center center' }}
-        >
+      {/* Tabuleiro com Flex-Wrap para Quebra de Linha Automática */}
+      <div className="w-full h-64 sm:h-72 bg-black/40 border border-white/20 rounded-2xl p-2 sm:p-4 overflow-y-auto shadow-inner flex flex-col justify-center">
+        <div className="flex flex-wrap justify-center items-center gap-1 sm:gap-2 min-h-full">
+          
           {/* Zona Esquerda */}
-          <div 
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => handleDropOnZone(e, 'left')}
-            className={`shrink-0 w-20 h-24 rounded-xl border-2 border-dashed flex items-center justify-center text-xs font-black text-center transition-all duration-300
-              ${turn === 'player' ? (draggingId ? 'border-[#bef264] bg-[#bef264]/10 text-[#bef264] shadow-[0_0_20px_#bef264]' : 'border-white/30 bg-black/40 text-white/50') : 'opacity-0 w-0 border-0'}`}
-          >
-            {turn === 'player' && 'SOLTAR AQUI'}
-          </div>
+          {turn === 'player' && (
+            <div 
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => handleDropOnZone(e, 'left')}
+              className={`shrink-0 w-16 h-20 sm:w-20 sm:h-24 rounded-xl border-2 border-dashed flex items-center justify-center text-[10px] sm:text-xs font-black text-center transition-all duration-300
+                ${draggingId ? 'border-[#bef264] bg-[#bef264]/10 text-[#bef264] shadow-[0_0_20px_#bef264]' : 'border-white/30 bg-black/40 text-white/50'}`}
+            >
+              SOLTAR<br/>AQUI
+            </div>
+          )}
 
-          {/* Peças */}
+          {/* Peças (Quebram de linha naturalmente quando faltar espaço) */}
           {board.map(p => (
              <PieceRender key={p.id} p={p} isHorizontal={true} isBoard={true} />
           ))}
 
           {/* Zona Direita */}
-          <div 
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => handleDropOnZone(e, 'right')}
-            className={`shrink-0 w-20 h-24 rounded-xl border-2 border-dashed flex items-center justify-center text-xs font-black text-center transition-all duration-300
-              ${turn === 'player' ? (draggingId ? 'border-[#bef264] bg-[#bef264]/10 text-[#bef264] shadow-[0_0_20px_#bef264]' : 'border-white/30 bg-black/40 text-white/50') : 'opacity-0 w-0 border-0'}`}
-          >
-            {turn === 'player' && 'SOLTAR AQUI'}
-          </div>
+          {turn === 'player' && (
+            <div 
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => handleDropOnZone(e, 'right')}
+              className={`shrink-0 w-16 h-20 sm:w-20 sm:h-24 rounded-xl border-2 border-dashed flex items-center justify-center text-[10px] sm:text-xs font-black text-center transition-all duration-300
+                ${draggingId ? 'border-[#bef264] bg-[#bef264]/10 text-[#bef264] shadow-[0_0_20px_#bef264]' : 'border-white/30 bg-black/40 text-white/50'}`}
+            >
+              SOLTAR<br/>AQUI
+            </div>
+          )}
+          
         </div>
       </div>
 
