@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 
 interface DominoPiece {
@@ -18,7 +18,7 @@ const generateDominoesChallenge = (difficulty: number, context: PartyContext, hi
   };
 };
 
-// Baralho Tradicional (Duplo-Seis) com 28 peças únicas
+// Baralho Tradicional (Duplo-Seis) com 28 peças
 const generateDeck = (): DominoPiece[] => {
   const deck: DominoPiece[] = [];
   const uniqueId = Date.now();
@@ -27,7 +27,6 @@ const generateDeck = (): DominoPiece[] => {
       deck.push({ id: `p-${i}-${j}-${uniqueId}`, left: i, right: j });
     }
   }
-  // Embaralhamento seguro (Fisher-Yates)
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];
@@ -49,12 +48,15 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
   const [selectedPieceId, setSelectedPieceId] = useState<string | null>(null);
   const [errorPieceId, setErrorPieceId] = useState<string | null>(null);
 
+  // Ref para controlar a rolagem automática do tabuleiro
+  const boardContainerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const deck = generateDeck();
-    setPlayerHand(deck.slice(0, 7)); // 7 peças para a criança
-    setAiHand(deck.slice(7, 14)); // 7 peças para o sistema
-    setBoard([]); // O Jogo começa sempre vazio!
-    setBoneyard(deck.slice(14, 28)); // 14 peças no monte
+    setPlayerHand(deck.slice(0, 7)); 
+    setAiHand(deck.slice(7, 14)); 
+    setBoard([]); 
+    setBoneyard(deck.slice(14, 28)); 
     
     setTurn('player');
     setGameOver(false);
@@ -74,7 +76,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
   };
 
   const checkPlayable = (piece: DominoPiece, ends: { leftEnd: number, rightEnd: number }) => {
-    if (board.length === 0) return true; // Se o tabuleiro estiver vazio, qualquer peça serve!
+    if (board.length === 0) return true; 
     return piece.left === ends.leftEnd || piece.right === ends.leftEnd || 
            piece.left === ends.rightEnd || piece.right === ends.rightEnd;
   };
@@ -83,7 +85,6 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
     let newBoard = [...board];
     let played = false;
 
-    // Lógica para a primeira peça do jogo
     if (board.length === 0) {
       newBoard = [{ ...piece, flipped: false }];
       played = true;
@@ -101,6 +102,16 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
     if (!played) return false;
 
     setBoard(newBoard);
+
+    // Câmera Inteligente: Rola o tabuleiro para a ponta onde a peça foi jogada
+    setTimeout(() => {
+      if (boardContainerRef.current) {
+        boardContainerRef.current.scrollTo({
+          top: side === 'left' ? 0 : boardContainerRef.current.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    }, 100);
     
     if (isPlayer) {
       const newHand = playerHand.filter(p => p.id !== piece.id);
@@ -142,8 +153,6 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
     setGameOver(true);
     setMessage(msg);
     setSelectedPieceId(null);
-    // CORREÇÃO: Envia sempre "true" no primeiro parâmetro para garantir que a tela avança.
-    // O que define se a criança ganha pontos ou não é o segundo parâmetro (60 ou 0).
     setTimeout(() => onAnswer(true, playerWon ? 60 : 0), 3000);
   };
 
@@ -226,7 +235,6 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
           } else {
             const playerCanPlay = playerHand.some(p => checkPlayable(p, ends));
             if (!playerCanPlay && boneyard.length === 0) {
-              // Quando ninguém pode jogar e o monte está vazio, o jogo empata e avança
               endGame(false, "Jogo Fechado! Empate.");
             } else {
               setTurn('player');
@@ -355,8 +363,12 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
         </div>
       </div>
 
-      <div className="w-full max-h-[35vh] overflow-y-auto bg-black/40 border border-white/20 rounded-2xl p-4 shadow-inner flex justify-center items-center hide-scrollbar min-h-[12rem]">
-        <div className="flex flex-col w-max">
+      {/* Câmera Inteligente: Removido o center forçado e deixado apenas margem, evitando cortes no topo */}
+      <div 
+        ref={boardContainerRef}
+        className="w-full max-h-[35vh] overflow-y-auto bg-black/40 border border-white/20 rounded-2xl p-4 shadow-inner hide-scrollbar min-h-[14rem]"
+      >
+        <div className="flex flex-col w-max mx-auto py-2">
           {chunks.map((chunk, cIdx) => {
             if (chunk.type === 'row') {
               return (
