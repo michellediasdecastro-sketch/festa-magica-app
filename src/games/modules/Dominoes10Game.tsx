@@ -112,7 +112,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
   );
 };
 
-export const Dominoes10GameModule: GameModule = {
+export const DominoesNovo: GameModule = {
   id: "dominoes-10",
   title: "Dominó Temático",
   categoryId: "raciocinio-10",
