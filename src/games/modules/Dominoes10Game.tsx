@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 
 interface DominoPiece {
@@ -13,16 +13,17 @@ const generateDominoesChallenge = (difficulty: number, context: PartyContext, hi
   return {
     id: `dominoes-${Date.now()}-${Math.random()}`,
     instruction: "Toque numa peça e escolha o lado, ou arraste-a!",
-    spokenText: "Toque numa peça da sua mão e depois toque no lado do tabuleiro onde a quer jogar.",
+    spokenText: "O jogo começou! Toque numa peça e depois no lado onde a quer jogar.",
     data: { themeImage }
   };
 };
 
+// Gera um deck reduzido (Duplo-4) com 15 peças para caber perfeitamente na tela
 const generateDeck = (): DominoPiece[] => {
   const deck: DominoPiece[] = [];
   const uniqueId = Date.now();
-  for (let i = 0; i <= 6; i++) {
-    for (let j = i; j <= 6; j++) {
+  for (let i = 0; i <= 4; i++) {
+    for (let j = i; j <= 4; j++) {
       deck.push({ id: `p-${i}-${j}-${uniqueId}`, left: i, right: j });
     }
   }
@@ -46,42 +47,29 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [selectedPieceId, setSelectedPieceId] = useState<string | null>(null);
   const [errorPieceId, setErrorPieceId] = useState<string | null>(null);
-  
-  const boardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const deck = generateDeck();
-    setPlayerHand(deck.slice(0, 7));
-    setAiHand(deck.slice(7, 14));
-    setBoard([{ ...deck[14], flipped: false }]); 
-    setBoneyard(deck.slice(15, 28)); 
+    setPlayerHand(deck.slice(0, 5));
+    setAiHand(deck.slice(5, 10));
+    setBoard([{ ...deck[10], flipped: false }]); 
+    setBoneyard(deck.slice(11, 15)); 
     
     setTurn('player');
     setGameOver(false);
-    setMessage("Sua vez! Selecione uma peça.");
+    setMessage("Sua vez! Toque numa peça.");
     setErrorPieceId(null);
     setSelectedPieceId(null);
   }, [challenge.id]);
 
-  // Função para rolar o tabuleiro automaticamente para o lado onde a peça foi jogada
-  const scrollToEdge = (side: 'left' | 'right') => {
-    if (boardRef.current) {
-      setTimeout(() => {
-        boardRef.current!.scrollTo({
-          left: side === 'left' ? 0 : boardRef.current!.scrollWidth,
-          behavior: 'smooth'
-        });
-      }, 100);
-    }
-  };
-
+  // CORREÇÃO DO BUG: Cálculo exato das pontas, resolvendo a falha ao usar peças viradas
   const getBoardEnds = () => {
     if (board.length === 0) return { leftEnd: -1, rightEnd: -1 };
     const leftPiece = board[0];
     const rightPiece = board[board.length - 1];
     return {
       leftEnd: leftPiece.flipped ? leftPiece.right : leftPiece.left,
-      rightEnd: rightPiece.flipped ? leftPiece.left : rightPiece.right
+      rightEnd: rightPiece.flipped ? rightPiece.left : rightPiece.right
     };
   };
 
@@ -106,7 +94,6 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
     if (!played) return false;
 
     setBoard(newBoard);
-    scrollToEdge(side);
     
     if (isPlayer) {
       const newHand = playerHand.filter(p => p.id !== piece.id);
@@ -116,7 +103,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
         return true;
       }
       setTurn('ai');
-      setMessage("O Sistema está a pensar...");
+      setMessage("O Sistema está jogando...");
     } else {
       const newHand = aiHand.filter(p => p.id !== piece.id);
       setAiHand(newHand);
@@ -148,14 +135,9 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
     setTimeout(() => onAnswer(playerWon, playerWon ? 60 : 0), 2000);
   };
 
-  // --- MECÂNICA DE CLIQUE (TELEMÓVEL E RATO) ---
   const handlePieceClick = (piece: DominoPiece) => {
     if (turn !== 'player' || gameOver) return;
-    if (selectedPieceId === piece.id) {
-      setSelectedPieceId(null); // Desmarca se clicar na mesma
-    } else {
-      setSelectedPieceId(piece.id); // Seleciona a peça
-    }
+    setSelectedPieceId(selectedPieceId === piece.id ? null : piece.id);
   };
 
   const handleZoneClick = (side: 'left' | 'right') => {
@@ -172,19 +154,14 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
     }
   };
 
-  // --- MECÂNICA DE ARRASTAR E LARGAR (COMPUTADOR) ---
   const handleDragStart = (e: React.DragEvent, id: string) => {
-    if (turn !== 'player' || gameOver) {
-      e.preventDefault(); return;
-    }
-    setSelectedPieceId(id); // Seleciona automaticamente ao arrastar
+    if (turn !== 'player' || gameOver) { e.preventDefault(); return; }
+    setSelectedPieceId(id);
     e.dataTransfer.setData("pieceId", id);
     setDraggingId(id);
   };
 
-  const handleDragEnd = () => {
-    setDraggingId(null);
-  };
+  const handleDragEnd = () => setDraggingId(null);
 
   const handleDropOnZone = (e: React.DragEvent, side: 'left' | 'right') => {
     e.preventDefault();
@@ -210,13 +187,12 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
     const drawn = newBoneyard.pop()!;
     setBoneyard(newBoneyard);
     setPlayerHand([...playerHand, drawn]);
-    scrollToEdge('right');
   };
 
   const handlePassTurn = () => {
     if (turn !== 'player' || gameOver || boneyard.length > 0) return;
     setTurn('ai');
-    setMessage("Você passou a vez. Sistema a jogar...");
+    setMessage("Você passou. Sistema jogando...");
     setSelectedPieceId(null);
   };
 
@@ -230,7 +206,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
           autoPlayPiece(playablePiece, false);
         } else {
           if (boneyard.length > 0) {
-            setMessage("Sistema a comprar peça...");
+            setMessage("Sistema comprando peça...");
             const newBoneyard = [...boneyard];
             const drawn = newBoneyard.pop()!;
             setBoneyard(newBoneyard);
@@ -241,7 +217,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
               endGame(false, "Jogo Fechado! Ninguém tem peças.");
             } else {
               setTurn('player');
-              setMessage("O sistema passou a vez. É a sua vez!");
+              setMessage("Sua vez!");
             }
           }
         }
@@ -258,7 +234,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
   const renderDots = (value: number, iconUrl: string | null) => {
     const dots = [];
     const positions: Record<number, number[]> = {
-      0: [], 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8]
+      0: [], 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8]
     };
     for (let i = 0; i < 9; i++) {
       if (positions[value]?.includes(i)) {
@@ -319,27 +295,24 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
         </div>
       </div>
 
-      {/* Tabuleiro Linear com Scroll (Impede quebras e peças soltas) */}
-      <div 
-        ref={boardRef}
-        className="w-full h-44 sm:h-56 bg-black/40 border border-white/20 rounded-2xl p-4 overflow-x-auto overflow-y-hidden shadow-inner flex items-center smooth-scroll hide-scrollbar"
-      >
-        <div className="flex flex-nowrap items-center gap-1 mx-auto min-w-max px-8">
+      {/* Tabuleiro Dinâmico (Flex-Wrap) */}
+      <div className="w-full min-h-[14rem] sm:min-h-[18rem] bg-black/40 border border-white/20 rounded-2xl p-4 shadow-inner flex flex-col justify-center">
+        <div className="flex flex-wrap justify-center items-center gap-2">
           
           {/* Zona Esquerda */}
           <div 
             onClick={() => handleZoneClick('left')}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => handleDropOnZone(e, 'left')}
-            className={`shrink-0 w-20 h-24 sm:w-24 sm:h-28 rounded-xl border-2 border-dashed flex items-center justify-center text-xs font-black text-center transition-all duration-300
+            className={`shrink-0 w-20 h-24 md:w-24 md:h-28 rounded-xl border-2 border-dashed flex items-center justify-center text-[10px] sm:text-xs font-black text-center transition-all duration-300
               ${turn === 'player' ? 
                 (selectedPieceId || draggingId ? 'border-[#bef264] bg-[#bef264]/20 text-[#bef264] shadow-[0_0_20px_#bef264] cursor-pointer hover:bg-[#bef264]/30' : 'border-white/30 bg-black/40 text-white/50') 
-                : 'opacity-0 w-0 border-0 overflow-hidden'}`}
+                : 'opacity-0 w-0 border-0 overflow-hidden hidden md:block'}`}
           >
-            {turn === 'player' && (selectedPieceId ? 'TOQUE AQUI' : 'SOLTAR AQUI')}
+            {turn === 'player' && (selectedPieceId ? 'TOQUE\nAQUI' : 'SOLTAR\nAQUI')}
           </div>
 
-          {/* Peças Centrais */}
+          {/* Peças (Quebram de linha naturalmente se faltar espaço) */}
           {board.map(p => (
              <PieceRender key={p.id} p={p} isHorizontal={true} isBoard={true} />
           ))}
@@ -349,12 +322,12 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
             onClick={() => handleZoneClick('right')}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => handleDropOnZone(e, 'right')}
-            className={`shrink-0 w-20 h-24 sm:w-24 sm:h-28 rounded-xl border-2 border-dashed flex items-center justify-center text-xs font-black text-center transition-all duration-300
+            className={`shrink-0 w-20 h-24 md:w-24 md:h-28 rounded-xl border-2 border-dashed flex items-center justify-center text-[10px] sm:text-xs font-black text-center transition-all duration-300
               ${turn === 'player' ? 
                 (selectedPieceId || draggingId ? 'border-[#bef264] bg-[#bef264]/20 text-[#bef264] shadow-[0_0_20px_#bef264] cursor-pointer hover:bg-[#bef264]/30' : 'border-white/30 bg-black/40 text-white/50') 
-                : 'opacity-0 w-0 border-0 overflow-hidden'}`}
+                : 'opacity-0 w-0 border-0 overflow-hidden hidden md:block'}`}
           >
-            {turn === 'player' && (selectedPieceId ? 'TOQUE AQUI' : 'SOLTAR AQUI')}
+            {turn === 'player' && (selectedPieceId ? 'TOQUE\nAQUI' : 'SOLTAR\nAQUI')}
           </div>
           
         </div>
@@ -376,7 +349,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
         )}
       </div>
 
-      {/* Mão do Jogador (Com Mecânica de Clique) */}
+      {/* Mão do Jogador */}
       <div className="w-full bg-black/40 border border-white/20 rounded-2xl p-4 flex flex-col gap-2 min-h-[8rem]">
         <div className="text-center text-white/50 text-[10px] sm:text-xs font-bold uppercase mb-2">Suas Peças (Toque para selecionar)</div>
         <div className="flex flex-wrap gap-2 justify-center">
