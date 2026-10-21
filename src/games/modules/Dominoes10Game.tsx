@@ -4,7 +4,6 @@ import type { GameModule, Challenge, PartyContext } from "../../lib/gameTypes";
 const generateDominoesChallenge = (difficulty: number, context: PartyContext, history: string[]): Challenge => {
   const images = context.gameImages.length >= 2 ? context.gameImages : ["🍎", "⭐", "🎈", "🚗"];
   
-  // Gera 5 peças aleatórias usando as imagens do tema
   const pieces = Array.from({ length: 5 }).map((_, i) => ({
     id: `piece-${i}`,
     left: images[Math.floor(Math.random() * images.length)],
@@ -41,7 +40,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
     if (!id) return;
 
     const boardRect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - boardRect.left - 40; // centraliza o mouse na peça
+    const x = e.clientX - boardRect.left - 40; 
     const y = e.clientY - boardRect.top - 20;
 
     const pieceIndex = hand.findIndex(p => p.id === id);
@@ -51,12 +50,10 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
       const newBoard = [...boardPieces, { ...piece, x, y }];
       setBoardPieces(newBoard);
 
-      // Se colocou todas as peças no tabuleiro, ganha!
       if (hand.length === 1) {
         setTimeout(() => onAnswer(true, 40), 500);
       }
     } else {
-      // Movimentar peça que já está no tabuleiro
       const existingPiece = boardPieces.find(p => p.id === id);
       if (existingPiece) {
         setBoardPieces(boardPieces.map(p => p.id === id ? { ...p, x, y } : p));
@@ -74,7 +71,6 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
 
   return (
     <div className="flex flex-col items-center gap-4 w-full">
-      {/* Tabuleiro Livre */}
       <div 
         className="w-full h-64 sm:h-80 bg-black/30 border-2 border-dashed border-white/40 rounded-2xl relative overflow-hidden"
         onDragOver={(e) => e.preventDefault()}
@@ -98,7 +94,6 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
         ))}
       </div>
 
-      {/* Mão do Jogador */}
       <div className="w-full min-h-[4rem] p-4 bg-black/40 border border-white/20 rounded-2xl flex flex-wrap gap-3 justify-center items-center">
         {hand.map(p => (
           <div 
@@ -117,7 +112,7 @@ const DominoesComponent: React.FC<{ challenge: Challenge, onAnswer: (isCorrect: 
   );
 };
 
-export const DominoesGameModule: GameModule = {
+export const Dominoes10GameModule: GameModule = {
   id: "dominoes-10",
   title: "Dominó Temático",
   categoryId: "raciocinio-10",
