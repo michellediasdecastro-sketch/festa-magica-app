@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Volume2, VolumeX, X, Trophy, ArrowLeft } from "lucide-react";
+import { Volume2, VolumeX, X, Trophy } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import type { PartyContext, AgeGroup } from "../lib/gameTypes";
 import { GameRegistry, Categories } from "../games/GameRegistry";
@@ -152,10 +152,7 @@ export function PartyGames({ partyData, onBackToMain }: PartyGamesProps) {
 
   return (
     <div className="w-full max-w-4xl mx-auto text-white animate-fade-in relative px-4">
-      <div className="flex justify-between items-center pb-4 mb-4">
-        <button onClick={onBackToMain} className="px-4 py-2 rounded-2xl bg-black/50 border border-white/30 hover:bg-black/70 text-xs font-bold backdrop-blur-md">
-          <ArrowLeft className="size-4 inline mr-1" /> Voltar
-        </button>
+      <div className="flex justify-end items-center pb-4 mb-4">
         <div className="flex gap-2">
           <div className="px-4 py-2 rounded-2xl bg-black/50 border border-[#bef264]/30 text-xs font-bold flex items-center gap-1.5 text-[#bef264]">
             <Trophy className="size-4" /> {score}
