@@ -44,12 +44,12 @@ export function ClientDashboard({ partyId, onLogout }: { partyId: string; onLogo
     
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     
+    // CORREÇÃO: Omitindo o campo 'status' para que o banco de dados assuma o valor DEFAULT ('ativo') automaticamente
     const { data, error } = await supabase.from('guests').insert([{ 
       party_id: partyId, 
       name: newGuestName.trim(), 
       age_group: newGuestAge, 
-      code: code, 
-      status: 'ativo' 
+      code: code
     }]).select().single();
     
     if (error) {
@@ -144,7 +144,7 @@ export function ClientDashboard({ partyId, onLogout }: { partyId: string; onLogo
                     <span className="text-xs text-white/50">Faixa: {guest.age_group} anos</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 rounded text-xs ${guest.status === 'revogado' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>{guest.status}</span>
+                    <span className={`px-2 py-1 rounded text-xs ${guest.status === 'revogado' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>{guest.status || 'ativo'}</span>
                     <div className="bg-black/50 px-3 py-1.5 rounded-lg border border-white/10 hidden sm:block">
                       <span className="font-mono text-sm tracking-widest text-[#bef264]">{guest.code}</span>
                     </div>
