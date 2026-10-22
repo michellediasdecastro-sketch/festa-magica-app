@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Copy, UserPlus, Crown, Users, Check, Sparkles, Trash2, Loader2, Share2, BookOpen, AlertTriangle } from "lucide-react";
+import { Copy, UserPlus, Crown, Users, Check, Sparkles, Trash2, Loader2, Share2, BookOpen, AlertTriangle, Edit, X, ExternalLink } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 const educationalBenefits: Record<string, { title: string, desc: string }> = {
@@ -16,6 +16,11 @@ export function ClientDashboard({ partyId, onLogout }: { partyId: string; onLogo
   const [newGuestAge, setNewGuestAge] = useState("4-5");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Estados de edição inline
+  const [editingGuestId, setEditingGuestId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editAge, setEditAge] = useState("4-5");
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
@@ -43,20 +48,38 @@ export function ClientDashboard({ partyId, onLogout }: { partyId: string; onLogo
     if (!newGuestName.trim() || !partyData || guests.length >= partyData.packageLimit) return;
     
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    
-    // CORREÇÃO: Omitindo o campo 'status' para que o banco de dados assuma o valor DEFAULT ('ativo') automaticamente
     const { data, error } = await supabase.from('guests').insert([{ 
-      party_id: partyId, 
-      name: newGuestName.trim(), 
-      age_group: newGuestAge, 
-      code: code
+      party_id: partyId, name: newGuestName.trim(), age_group: newGuestAge, code: code 
     }]).select().single();
     
-    if (error) {
-      alert("ERRO AO ADICIONAR: " + error.message);
-    } else if (data) {
+    if (error) alert("ERRO AO ADICIONAR: " + error.message);
+    else if (data) {
       setGuests([data, ...guests]);
       setNewGuestName("");
+    }
+  };
+
+  const handleRemoveGuest = async (id: string) => {
+    if(window.confirm("Deseja mesmo excluir este convidado?")) {
+      const { error } = await supabase.from('guests').delete().eq('id', id);
+      if (!error) setGuests(guests.filter(g => g.id !== id));
+    }
+  };
+
+  const startEdit = (guest: any) => {
+    setEditingGuestId(guest.id);
+    setEditName(guest.name);
+    setEditAge(guest.age_group);
+  };
+
+  const handleSaveEdit = async (id: string) => {
+    if (!editName.trim()) return;
+    const { error } = await supabase.from('guests').update({ name: editName.trim(), age_group: editAge }).eq('id', id);
+    if (!error) {
+      setGuests(guests.map(g => g.id === id ? { ...g, name: editName.trim(), age_group: editAge } : g));
+      setEditingGuestId(null);
+    } else {
+      alert("Erro ao editar: " + error.message);
     }
   };
 
@@ -77,12 +100,17 @@ export function ClientDashboard({ partyId, onLogout }: { partyId: string; onLogo
     <div className="w-full min-h-screen bg-black text-white p-4 sm:p-8 font-sans overflow-y-auto">
       <div className="max-w-5xl mx-auto space-y-6">
         
-        <div className="flex justify-between items-center bg-black/40 border border-white/20 p-6 rounded-3xl backdrop-blur-md">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-black/40 border border-white/20 p-6 rounded-3xl backdrop-blur-md">
           <div>
             <h1 className="text-2xl font-black text-[#bef264] flex items-center gap-2"><Sparkles className="size-6" /> {partyData.name}</h1>
             <p className="text-white/60 text-sm mt-1">Tema: <strong className="text-white">{partyData.theme}</strong></p>
           </div>
-          {onLogout && <button onClick={onLogout} className="text-sm underline text-white/50 hover:text-white">Sair do Painel</button>}
+          <div className="flex items-center gap-4">
+            <button onClick={() => window.open(window.location.origin, '_blank')} className="text-sm font-bold text-[#bef264] hover:text-[#a3e635] flex items-center gap-1 transition-colors">
+              Ir para o Jogo <ExternalLink className="size-4" />
+            </button>
+            {onLogout && <button onClick={onLogout} className="text-sm underline text-white/50 hover:text-white">Sair</button>}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -113,7 +141,7 @@ export function ClientDashboard({ partyId, onLogout }: { partyId: string; onLogo
             <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl flex items-start gap-3">
               <AlertTriangle className="size-6 text-orange-400 shrink-0" />
               <p className="text-orange-200 text-sm">
-                <strong className="text-orange-300">Atenção:</strong> Não utilize os códigos dos convidados para testar o aplicativo, pois eles não poderão ser recuperados. Para testes, utilize exclusivamente o código do aniversariante.
+                <strong className="text-orange-300">Atenção:</strong> Não utilize os códigos dos convidados para testar o aplicativo. Para testes, utilize exclusivamente o código do aniversariante.
               </p>
             </div>
 
@@ -138,22 +166,41 @@ export function ClientDashboard({ partyId, onLogout }: { partyId: string; onLogo
 
             <div className="flex flex-col gap-2 overflow-y-auto max-h-[50vh] pr-2 custom-scrollbar">
               {guests.map(guest => (
-                <div key={guest.id} className="flex items-center justify-between bg-white/5 border border-white/10 p-4 rounded-xl">
-                  <div>
-                    <span className="font-bold text-sm block">{guest.name}</span>
-                    <span className="text-xs text-white/50">Faixa: {guest.age_group} anos</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 rounded text-xs ${guest.status === 'revogado' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>{guest.status || 'ativo'}</span>
-                    <div className="bg-black/50 px-3 py-1.5 rounded-lg border border-white/10 hidden sm:block">
-                      <span className="font-mono text-sm tracking-widest text-[#bef264]">{guest.code}</span>
+                <div key={guest.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white/5 border border-white/10 p-4 rounded-xl gap-4 sm:gap-0">
+                  
+                  {editingGuestId === guest.id ? (
+                    <div className="flex-1 flex flex-col sm:flex-row gap-2 w-full pr-4">
+                      <input type="text" value={editName} onChange={e => setEditName(e.target.value)} className="bg-black/50 border border-[#bef264] rounded px-3 py-1.5 text-sm text-white flex-1 outline-none" />
+                      <select value={editAge} onChange={e => setEditAge(e.target.value)} className="bg-black/50 border border-[#bef264] rounded px-3 py-1.5 text-sm text-white outline-none [&>option]:bg-zinc-900">
+                        <option value="4-5">4 a 5 anos</option><option value="6-7">6 a 7 anos</option><option value="8-9">8 a 9 anos</option><option value="10-11">10 a 11 anos</option>
+                      </select>
+                      <div className="flex gap-2 mt-2 sm:mt-0">
+                        <button onClick={() => handleSaveEdit(guest.id)} className="p-2 bg-green-500/20 text-green-400 rounded hover:bg-green-500/40" title="Salvar"><Check className="size-4" /></button>
+                        <button onClick={() => setEditingGuestId(null)} className="p-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/40" title="Cancelar"><X className="size-4" /></button>
+                      </div>
                     </div>
-                    {guest.status !== 'revogado' && (
-                      <button onClick={() => copyInvite(guest)} className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 text-blue-300 hover:bg-blue-500/40 rounded-lg text-xs font-bold transition-all">
-                        {copiedCode === guest.code ? <Check className="size-4" /> : <Share2 className="size-4" />}
-                      </button>
-                    )}
-                  </div>
+                  ) : (
+                    <div>
+                      <span className="font-bold text-sm block">{guest.name}</span>
+                      <span className="text-xs text-white/50">Faixa: {guest.age_group} anos</span>
+                    </div>
+                  )}
+
+                  {editingGuestId !== guest.id && (
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                      <span className={`px-2 py-1 rounded text-xs hidden sm:block ${guest.status === 'revogado' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>{guest.status || 'ativo'}</span>
+                      <div className="bg-black/50 px-3 py-1.5 rounded-lg border border-white/10">
+                        <span className="font-mono text-sm tracking-widest text-[#bef264]">{guest.code}</span>
+                      </div>
+                      <button onClick={() => startEdit(guest)} className="p-2 bg-blue-500/20 text-blue-300 hover:bg-blue-500/40 rounded-lg transition-all" title="Editar Convidado"><Edit className="size-4" /></button>
+                      {guest.status !== 'revogado' && (
+                        <button onClick={() => copyInvite(guest)} className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 text-white hover:bg-zinc-700 rounded-lg text-xs font-bold transition-all">
+                          {copiedCode === guest.code ? <Check className="size-4 text-green-400" /> : <Share2 className="size-4" />}
+                        </button>
+                      )}
+                      <button onClick={() => handleRemoveGuest(guest.id)} className="p-2 text-red-400/50 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all" title="Excluir Convidado"><Trash2 className="size-4" /></button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
