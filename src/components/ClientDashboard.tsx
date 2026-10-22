@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Copy, UserPlus, Crown, Users, Check, Sparkles, Trash2, Loader2, Share2, BookOpen } from "lucide-react";
+import { Copy, UserPlus, Crown, Users, Check, Sparkles, Trash2, Loader2, Share2, BookOpen, AlertTriangle } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 const educationalBenefits: Record<string, { title: string, desc: string }> = {
   "4-5": { title: "4 a 5 anos", desc: "Foco em coordenação motora fina, reconhecimento visual e associação básica de formas e cores." },
   "6-7": { title: "6 a 7 anos", desc: "Estimula a leitura inicial, raciocínio lógico e resolução de problemas através de quebra-cabeças." },
   "8-9": { title: "8 a 9 anos", desc: "Aprimora o foco, cálculo rápido e retenção de informações através de desafios de memória avançada." },
-  "10-11": { title: "10 a 11 anos", desc: "Exige planejamento estratégico, antecipação de jogadas e adaptação a regras dinâmicas (ex: Dominó)." }
+  "10-11": { title: "10 a 11 anos", desc: "Exige planejamento estratégico, antecipação de jogadas e adaptação a regras dinâmicas." }
 };
 
 export function ClientDashboard({ partyId, onLogout }: { partyId: string; onLogout?: () => void }) {
@@ -22,13 +22,13 @@ export function ClientDashboard({ partyId, onLogout }: { partyId: string; onLogo
     const { data: party } = await supabase.from('parties').select('*, packages(max_limit)').eq('id', partyId).single();
     if (party) {
       setPartyData({
-        name: party.name || "Nossa Festa",
+        name: party.party_name || party.theme || "Nossa Festa",
         theme: party.theme,
-        childName: party.host_name || party.childName || "Aniversariante",
+        childName: party.host_name || "Aniversariante",
         childAvatar: party.host_avatar,
         childAgeGroup: party.host_age || "4-5",
         packageLimit: party.packages?.max_limit || 30,
-        hostCode: `${(party.host_name || 'MASTER').toUpperCase()}-VIP`
+        hostCode: party.host_code || `${(party.host_name || 'MASTER').toUpperCase().replace(/\s+/g, '')}-VIP`
       });
     }
     const { data: guestsData } = await supabase.from('guests').select('*').eq('party_id', partyId).order('created_at', { ascending: false });
@@ -42,11 +42,19 @@ export function ClientDashboard({ partyId, onLogout }: { partyId: string; onLogo
     e.preventDefault();
     if (!newGuestName.trim() || !partyData || guests.length >= partyData.packageLimit) return;
     
-    // Gera código único verificando colisão
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const { data, error } = await supabase.from('guests').insert([{ party_id: partyId, name: newGuestName.trim(), age_group: newGuestAge, code, status: 'ativo' }]).select().single();
     
-    if (!error && data) {
+    const { data, error } = await supabase.from('guests').insert([{ 
+      party_id: partyId, 
+      name: newGuestName.trim(), 
+      age_group: newGuestAge, 
+      code: code, 
+      status: 'ativo' 
+    }]).select().single();
+    
+    if (error) {
+      alert("ERRO AO ADICIONAR: " + error.message);
+    } else if (data) {
       setGuests([data, ...guests]);
       setNewGuestName("");
     }
@@ -101,6 +109,14 @@ export function ClientDashboard({ partyId, onLogout }: { partyId: string; onLogo
           </div>
 
           <div className="md:col-span-2 bg-black/40 border border-white/20 p-6 rounded-3xl backdrop-blur-md flex flex-col">
+            
+            <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl flex items-start gap-3">
+              <AlertTriangle className="size-6 text-orange-400 shrink-0" />
+              <p className="text-orange-200 text-sm">
+                <strong className="text-orange-300">Atenção:</strong> Não utilize os códigos dos convidados para testar o aplicativo, pois eles não poderão ser recuperados. Para testes, utilize exclusivamente o código do aniversariante.
+              </p>
+            </div>
+
             <div className="flex justify-between items-end mb-6 border-b border-white/10 pb-4">
               <div>
                 <h2 className="text-xl font-bold flex items-center gap-2"><Users className="size-5 text-[#bef264]" /> Convidados</h2>
@@ -113,8 +129,8 @@ export function ClientDashboard({ partyId, onLogout }: { partyId: string; onLogo
             </div>
 
             <form onSubmit={handleAddGuest} className="flex flex-col sm:flex-row gap-3 mb-6">
-              <input type="text" placeholder="Nome do Convidado" value={newGuestName} onChange={(e) => setNewGuestName(e.target.value)} disabled={isPackageFull} className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#bef264]" />
-              <select value={newGuestAge} onChange={(e) => setNewGuestAge(e.target.value)} disabled={isPackageFull} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#bef264] [&>option]:bg-zinc-900">
+              <input type="text" placeholder="Nome do Convidado" value={newGuestName} onChange={(e) => setNewGuestName(e.target.value)} disabled={isPackageFull} className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#bef264] outline-none" />
+              <select value={newGuestAge} onChange={(e) => setNewGuestAge(e.target.value)} disabled={isPackageFull} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#bef264] outline-none [&>option]:bg-zinc-900">
                 <option value="4-5">4 a 5 anos</option><option value="6-7">6 a 7 anos</option><option value="8-9">8 a 9 anos</option><option value="10-11">10 a 11 anos</option>
               </select>
               <button type="submit" disabled={isPackageFull || !newGuestName.trim()} className="bg-[#bef264] text-black font-bold px-6 py-3 rounded-xl hover:bg-[#a3e635] disabled:opacity-50">Adicionar</button>
