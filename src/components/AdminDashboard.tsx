@@ -75,7 +75,6 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
     e.preventDefault();
     const selectedTheme = data.themes.find((t: any) => t.id === partyForm.themeId);
     
-    // Gera o código do aniversariante e grava no banco
     const hostCodeStr = partyForm.hostName ? `${partyForm.hostName.toUpperCase().replace(/\s+/g, '')}-VIP` : 'MASTER-VIP';
 
     const payload = {
@@ -92,7 +91,7 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
       host_age: partyForm.hostAge,
       host_avatar: partyForm.hostAvatar,
       host_audio: partyForm.hostAudio,
-      host_code: hostCodeStr, // GRAVANDO O CÓDIGO AQUI
+      host_code: hostCodeStr,
       party_date: partyForm.date || null
     };
 
@@ -190,20 +189,52 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
                 <button type="submit" className="md:col-span-3 bg-[#bef264] text-black font-bold py-3 rounded-lg hover:bg-[#a3e635]">{clientForm.id ? "Atualizar Cliente" : "Adicionar Cliente"}</button>
               </form>
 
-              <div className="grid gap-3">
-                {filteredData(data.clients, ['name', 'email', 'phone']).map((c: any) => (
-                  <div key={c.id} className="bg-white/5 p-4 rounded-xl border border-white/10 flex justify-between items-center">
-                    <div>
-                      <p className="font-bold">{c.name} <span className="text-xs font-normal text-white/50 ml-2">Cód: {c.code} | {new Date(c.created_at).toLocaleDateString()}</span></p>
-                      <p className="text-xs text-white/60">{c.email} | {c.phone} {c.observations && `- Obs: ${c.observations}`}</p>
+              <div className="grid gap-4">
+                {filteredData(data.clients, ['name', 'email', 'phone']).map((c: any) => {
+                  const clientParties = data.parties.filter((p: any) => p.client_id === c.id);
+                  
+                  return (
+                    <div key={c.id} className="bg-white/5 p-5 rounded-xl border border-white/10 flex flex-col gap-4 transition-all">
+                      <div className="flex justify-between items-start md:items-center">
+                        <div>
+                          <p className="font-bold text-lg">{c.name} <span className="text-xs font-normal text-white/50 ml-2">Cód: {c.code} | Criado em: {new Date(c.created_at).toLocaleDateString()}</span></p>
+                          <p className="text-sm text-white/60">{c.email} | {c.phone} {c.observations && `- Obs: ${c.observations}`}</p>
+                        </div>
+                        <div className="flex gap-2 items-center">
+                          <span className={`text-xs px-2 py-1 rounded ${c.status === 'ativo' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>{c.status}</span>
+                          <button onClick={() => setClientForm({ id: c.id, name: c.name, email: c.email || "", phone: c.phone || "", observations: c.observations || "", status: c.status || "ativo" })} className="p-2 bg-blue-500/20 text-blue-300 rounded hover:bg-blue-500/40" title="Editar Cliente"><Edit className="size-4" /></button>
+                          <button onClick={() => handleDelete('clients', c.id)} className="p-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/40" title="Excluir Cliente"><Trash2 className="size-4" /></button>
+                        </div>
+                      </div>
+
+                      <div className="bg-black/40 rounded-lg border border-white/5 p-4 mt-2">
+                        <h4 className="text-xs font-bold text-white/50 mb-3 uppercase tracking-wider">Festas Contratadas ({clientParties.length})</h4>
+                        {clientParties.length > 0 ? (
+                          <div className="grid gap-2">
+                            {clientParties.map((cp: any) => (
+                              <div key={cp.id} className="flex flex-col md:flex-row justify-between md:items-center bg-white/5 p-3 rounded-lg border border-white/5">
+                                <div>
+                                  <p className="font-bold text-[#bef264] text-sm">{cp.party_name || cp.theme}</p>
+                                  <p className="text-xs text-white/60 mt-0.5">Tema: {cp.theme} | Aniversariante: {cp.host_name}</p>
+                                </div>
+                                <div className="text-xs text-white/70 flex flex-wrap items-center gap-3 mt-2 md:mt-0">
+                                  <span className="bg-black/50 px-2 py-1 rounded">Pacote: {cp.packages?.name || 'Não definido'}</span>
+                                  <span className="bg-black/50 px-2 py-1 rounded">Validade: {cp.valid_until ? new Date(cp.valid_until).toLocaleDateString() : 'N/A'}</span>
+                                  <span className={`px-2 py-1 rounded font-bold ${cp.status === 'ativa' || !cp.status ? 'text-green-400' : 'text-red-400'}`}>{cp.status || 'ativa'}</span>
+                                  <a href={`/?painel=${cp.id}`} target="_blank" rel="noopener noreferrer" className="ml-2 flex items-center gap-1 text-blue-300 hover:text-blue-200 transition-colors">
+                                    Acessar Painel <ExternalLink className="size-3" />
+                                  </a>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-white/30 italic">Nenhuma festa vinculada a este cliente.</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex gap-2 items-center">
-                      <span className={`text-xs px-2 py-1 rounded ${c.status === 'ativo' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>{c.status}</span>
-                      <button onClick={() => setClientForm({ id: c.id, name: c.name, email: c.email || "", phone: c.phone || "", observations: c.observations || "", status: c.status || "ativo" })} className="p-2 bg-blue-500/20 text-blue-300 rounded hover:bg-blue-500/40"><Edit className="size-4" /></button>
-                      <button onClick={() => handleDelete('clients', c.id)} className="p-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/40"><Trash2 className="size-4" /></button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </>
           )}
