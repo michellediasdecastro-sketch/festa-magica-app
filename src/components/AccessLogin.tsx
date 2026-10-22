@@ -29,16 +29,19 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
         .maybeSingle();
 
       if (guestData && guestData.parties) {
+        const guestAgeNumber = parseInt(guestData.age_group, 10) || 5;
         const finalData = {
           ...guestData.parties,
           partyId: guestData.parties.id,
           partyName: guestData.parties.party_name || guestData.parties.theme,
           childName: guestData.parties.host_name,
-          childAge: guestData.parties.host_age,
+          childAge: parseInt(guestData.parties.host_age, 10) || 5,
           photoUrl: guestData.parties.host_avatar,
+          hostAvatar: guestData.parties.host_avatar,
+          avatarUrl: guestData.parties.host_avatar,
           theme: guestData.parties.theme,
           guestName: guestData.name, 
-          guestAge: guestData.age_group 
+          guestAge: guestAgeNumber 
         };
         localStorage.setItem('@party_guest_session', JSON.stringify(finalData));
         onLoginSuccess(finalData);
@@ -53,16 +56,19 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
         .maybeSingle();
 
       if (hostData) {
+        const hostAgeNumber = parseInt(hostData.host_age, 10) || 5;
         const finalData = {
           ...hostData,
           partyId: hostData.id,
           partyName: hostData.party_name || hostData.theme,
           childName: hostData.host_name,
-          childAge: hostData.host_age,
+          childAge: hostAgeNumber,
           photoUrl: hostData.host_avatar,
+          hostAvatar: hostData.host_avatar,
+          avatarUrl: hostData.host_avatar,
           theme: hostData.theme,
           guestName: hostData.host_name,
-          guestAge: hostData.host_age
+          guestAge: hostAgeNumber
         };
         localStorage.setItem('@party_guest_session', JSON.stringify(finalData));
         onLoginSuccess(finalData);
