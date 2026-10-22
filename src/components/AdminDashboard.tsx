@@ -27,29 +27,50 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
 
   const handleDelete = async (table: string, id: string) => {
     if (window.confirm("ATENÇÃO: Tem certeza que deseja excluir este registro permanentemente?")) {
-      await supabase.from(table).delete().eq('id', id);
-      fetchData();
+      const { error } = await supabase.from(table).delete().eq('id', id);
+      if (error) alert("Erro ao excluir: " + error.message);
+      else fetchData();
     }
   };
 
   const handleSaveClient = async (e: React.FormEvent) => {
     e.preventDefault();
+    let error;
     if (clientForm.id) {
-      await supabase.from('clients').update({ name: clientForm.name, email: clientForm.email, phone: clientForm.phone, observations: clientForm.observations, status: clientForm.status }).eq('id', clientForm.id);
+      const res = await supabase.from('clients').update({ name: clientForm.name, email: clientForm.email, phone: clientForm.phone, observations: clientForm.observations, status: clientForm.status }).eq('id', clientForm.id);
+      error = res.error;
     } else {
-      await supabase.from('clients').insert([{ name: clientForm.name, email: clientForm.email, phone: clientForm.phone, observations: clientForm.observations }]);
+      const res = await supabase.from('clients').insert([{ name: clientForm.name, email: clientForm.email, phone: clientForm.phone, observations: clientForm.observations }]);
+      error = res.error;
     }
-    setClientForm({ id: "", name: "", email: "", phone: "", observations: "", status: "ativo" });
-    fetchData();
+    
+    if (error) {
+      alert("Erro ao salvar cliente: " + error.message);
+    } else {
+      setClientForm({ id: "", name: "", email: "", phone: "", observations: "", status: "ativo" });
+      fetchData();
+    }
   };
 
   const handleSaveTheme = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload = { theme_name: themeForm.name, background_url: themeForm.bgUrl, background_urls: themeForm.missionBgs.split(',').map(s => s.trim()), game_images: themeForm.gameImages.split(',').map(s => s.trim()) };
-    if (themeForm.id) await supabase.from('themes').update(payload).eq('id', themeForm.id);
-    else await supabase.from('themes').insert([payload]);
-    setThemeForm({ id: "", name: "", bgUrl: "", missionBgs: "", gameImages: "" });
-    fetchData();
+    let error;
+    
+    if (themeForm.id) {
+      const res = await supabase.from('themes').update(payload).eq('id', themeForm.id);
+      error = res.error;
+    } else {
+      const res = await supabase.from('themes').insert([payload]);
+      error = res.error;
+    }
+
+    if (error) {
+      alert("Erro ao salvar tema: " + error.message);
+    } else {
+      setThemeForm({ id: "", name: "", bgUrl: "", missionBgs: "", gameImages: "" });
+      fetchData();
+    }
   };
 
   const handleSaveParty = async (e: React.FormEvent) => {
@@ -57,9 +78,9 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
     const selectedTheme = data.themes.find((t: any) => t.id === partyForm.themeId);
     const payload = {
       name: partyForm.name,
-      client_id: partyForm.clientId,
-      theme_id: partyForm.themeId,
-      package_id: partyForm.packageId,
+      client_id: partyForm.clientId || null,
+      theme_id: partyForm.themeId || null,
+      package_id: partyForm.packageId || null,
       theme: selectedTheme?.theme_name || "Aventura",
       host_name: partyForm.hostName,
       host_age: partyForm.hostAge,
@@ -68,27 +89,39 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
       party_date: partyForm.date || null
     };
 
+    let error;
     if (partyForm.id) {
-      await supabase.from('parties').update(payload).eq('id', partyForm.id);
+      const res = await supabase.from('parties').update(payload).eq('id', partyForm.id);
+      error = res.error;
     } else {
-      await supabase.from('parties').insert([payload]);
+      const res = await supabase.from('parties').insert([payload]);
+      error = res.error;
     }
-    setPartyForm({ id: "", name: "", clientId: "", themeId: "", packageId: "", date: "", hostName: "", hostAge: "", hostAvatar: "", hostAudio: "" });
-    fetchData();
+    
+    if (error) {
+      alert("Erro ao salvar a festa! Verifique se você rodou o script SQL no Supabase. Detalhe: " + error.message);
+    } else {
+      setPartyForm({ id: "", name: "", clientId: "", themeId: "", packageId: "", date: "", hostName: "", hostAge: "", hostAvatar: "", hostAudio: "" });
+      fetchData();
+    }
   };
 
   const handleUpdatePackagePrice = async (e: React.FormEvent, id: string, price: string) => {
     e.preventDefault();
-    await supabase.from('packages').update({ price: parseFloat(price) || 0 }).eq('id', id);
-    setPackageForm({ id: "", price: "" });
-    fetchData();
+    const { error } = await supabase.from('packages').update({ price: parseFloat(price) || 0 }).eq('id', id);
+    if (error) alert("Erro ao atualizar preço: " + error.message);
+    else {
+      setPackageForm({ id: "", price: "" });
+      fetchData();
+    }
   };
 
   const handleRevokeAccess = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === 'revogado' ? 'ativo' : 'revogado';
     if (window.confirm(`Deseja alterar o status para ${newStatus}? Acessos revogados são bloqueados imediatamente.`)) {
-      await supabase.from('guests').update({ status: newStatus }).eq('id', id);
-      fetchData();
+      const { error } = await supabase.from('guests').update({ status: newStatus }).eq('id', id);
+      if (error) alert("Erro ao alterar status: " + error.message);
+      else fetchData();
     }
   };
 
@@ -159,7 +192,7 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
                     </div>
                     <div className="flex gap-2 items-center">
                       <span className={`text-xs px-2 py-1 rounded ${c.status === 'ativo' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>{c.status}</span>
-                      <button onClick={() => setClientForm(c)} className="p-2 bg-blue-500/20 text-blue-300 rounded hover:bg-blue-500/40"><Edit className="size-4" /></button>
+                      <button onClick={() => setClientForm({ id: c.id, name: c.name, email: c.email || "", phone: c.phone || "", observations: c.observations || "", status: c.status || "ativo" })} className="p-2 bg-blue-500/20 text-blue-300 rounded hover:bg-blue-500/40"><Edit className="size-4" /></button>
                       <button onClick={() => handleDelete('clients', c.id)} className="p-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/40"><Trash2 className="size-4" /></button>
                     </div>
                   </div>
@@ -229,20 +262,20 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div>
                     <label className="block text-sm text-white/60 mb-1">Dados Gerais</label>
-                    <input type="text" placeholder="Nome da Festa" value={partyForm.name} onChange={e => setPartyForm({...partyForm, name: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none" required />
-                    <select value={partyForm.clientId} onChange={e => setPartyForm({...partyForm, clientId: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none" required><option value="">Selecione o Cliente</option>{data.clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-                    <select value={partyForm.themeId} onChange={e => setPartyForm({...partyForm, themeId: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none" required><option value="">Selecione o Tema</option>{data.themes.map((t: any) => <option key={t.id} value={t.id}>{t.theme_name}</option>)}</select>
-                    <select value={partyForm.packageId} onChange={e => setPartyForm({...partyForm, packageId: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none" required><option value="">Selecione o Pacote</option>{data.packages.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-                    <input type="date" value={partyForm.date} onChange={e => setPartyForm({...partyForm, date: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 outline-none" />
+                    <input type="text" placeholder="Nome da Festa" value={partyForm.name} onChange={e => setPartyForm({...partyForm, name: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none focus:border-[#bef264]" required />
+                    <select value={partyForm.clientId} onChange={e => setPartyForm({...partyForm, clientId: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none focus:border-[#bef264]" required><option value="">Selecione o Cliente</option>{data.clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+                    <select value={partyForm.themeId} onChange={e => setPartyForm({...partyForm, themeId: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none focus:border-[#bef264]" required><option value="">Selecione o Tema</option>{data.themes.map((t: any) => <option key={t.id} value={t.id}>{t.theme_name}</option>)}</select>
+                    <select value={partyForm.packageId} onChange={e => setPartyForm({...partyForm, packageId: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none focus:border-[#bef264]" required><option value="">Selecione o Pacote</option>{data.packages.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+                    <input type="date" value={partyForm.date} onChange={e => setPartyForm({...partyForm, date: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 outline-none focus:border-[#bef264]" />
                   </div>
                   <div>
                     <label className="block text-sm text-white/60 mb-1">Dados do Aniversariante</label>
-                    <input type="text" placeholder="Nome do Aniversariante" value={partyForm.hostName} onChange={e => setPartyForm({...partyForm, hostName: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none" required />
-                    <select value={partyForm.hostAge} onChange={e => setPartyForm({...partyForm, hostAge: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none" required>
+                    <input type="text" placeholder="Nome do Aniversariante" value={partyForm.hostName} onChange={e => setPartyForm({...partyForm, hostName: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none focus:border-[#bef264]" required />
+                    <select value={partyForm.hostAge} onChange={e => setPartyForm({...partyForm, hostAge: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none focus:border-[#bef264]" required>
                       <option value="">Selecione a Faixa Etária</option><option value="4-5">4 a 5 anos</option><option value="6-7">6 a 7 anos</option><option value="8-9">8 a 9 anos</option><option value="10-11">10 a 11 anos</option>
                     </select>
-                    <input type="url" placeholder="URL do Avatar (opcional)" value={partyForm.hostAvatar} onChange={e => setPartyForm({...partyForm, hostAvatar: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none" />
-                    <input type="url" placeholder="URL do Áudio (opcional)" value={partyForm.hostAudio} onChange={e => setPartyForm({...partyForm, hostAudio: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 outline-none" />
+                    <input type="url" placeholder="URL do Avatar (opcional)" value={partyForm.hostAvatar} onChange={e => setPartyForm({...partyForm, hostAvatar: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none focus:border-[#bef264]" />
+                    <input type="url" placeholder="URL do Áudio (opcional)" value={partyForm.hostAudio} onChange={e => setPartyForm({...partyForm, hostAudio: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 outline-none focus:border-[#bef264]" />
                   </div>
                 </div>
                 <button type="submit" className="w-full bg-[#bef264] text-black font-bold py-3 rounded-lg hover:bg-[#a3e635]">{partyForm.id ? "Atualizar Festa" : "Criar Festa e Vincular Cliente"}</button>
