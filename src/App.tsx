@@ -98,12 +98,9 @@ export function App() {
     return <AdminDashboard onBackToApp={() => { window.history.replaceState({}, document.title, window.location.pathname); setIsAdminOpen(false); }} />;
   }
 
-  // --- SEGREDO DA CORREÇÃO ---
-  // Verifica se estamos na tela da missão
+  // Verifica se estamos na tela da missão (1ª vez ou quando o botão "Rever" é clicado)
   const isMissionScreen = !hasUnlockedMagic || isReplayingMagic;
 
-  // Se estiver na Missão: Mostra o fundo rotativo da Missão (background_urls)
-  // Se estiver nos Jogos: Mostra o fundo principal da Festa (partyData.photoUrl que vem de background_url)
   const activeBg = isMissionScreen && missionBackgrounds.length > 0
     ? missionBackgrounds[missionIndex % missionBackgrounds.length]
     : partyData?.photoUrl || "https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1920&auto=format&fit=crop";
@@ -111,14 +108,20 @@ export function App() {
   return (
     <main className="relative min-h-[100dvh] w-full flex flex-col items-center justify-center text-white bg-black overflow-hidden">
       
-      {/* Background Global - Agora muda automaticamente quando troca de tela! */}
       <div className="absolute inset-0 bg-cover bg-center bg-no-repeat filter brightness-100 saturate-110 transition-all duration-1000" style={{ backgroundImage: `url('${activeBg}')` }} />
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-all duration-1000" />
 
       <div className="relative z-10 w-full h-full flex flex-col items-center justify-center">
         
         {!partyData ? (
-          <div className="p-4 w-full max-w-md mx-auto"><AccessLogin onLoginSuccess={(data) => { setPartyData(data); setHasUnlockedMagic(false); }} /></div>
+          <div className="p-4 w-full max-w-md mx-auto">
+            <AccessLogin onLoginSuccess={(data) => { 
+              setPartyData(data); 
+              // CORREÇÃO: Verifica se já desbloqueou a magia no momento do login para não forçar a missão de novo
+              const unlockKey = `@magic_unlocked_${data.guestName}_${data.partyId}`;
+              setHasUnlockedMagic(localStorage.getItem(unlockKey) === 'true');
+            }} />
+          </div>
         ) : 
         
         isMissionScreen ? (
