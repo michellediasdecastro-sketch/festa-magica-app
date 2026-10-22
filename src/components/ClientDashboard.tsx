@@ -13,7 +13,6 @@ export function ClientDashboard({ partyId, onLogout }: { partyId: string; onLogo
   const [partyData, setPartyData] = useState<any>(null);
   const [guests, setGuests] = useState<any[]>([]);
   
-  // Estado para Adição e Edição
   const [newGuestName, setNewGuestName] = useState("");
   const [newGuestAge, setNewGuestAge] = useState("4-5");
   const [editingGuestId, setEditingGuestId] = useState<string | null>(null);
@@ -21,36 +20,32 @@ export function ClientDashboard({ partyId, onLogout }: { partyId: string; onLogo
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Estados para Prévia Única
   const [usedPreviews, setUsedPreviews] = useState<string[]>([]);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewAge, setPreviewAge] = useState("");
 
   useEffect(() => {
-    // Carrega o histórico de prévias usadas para esta festa específica
     const storedPreviews = localStorage.getItem(`@preview_used_${partyId}`);
-    if (storedPreviews) {
-      setUsedPreviews(JSON.parse(storedPreviews));
-    }
+    if (storedPreviews) setUsedPreviews(JSON.parse(storedPreviews));
   }, [partyId]);
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
-    // Busca dados da festa junto com o limite do pacote e o nome do cliente vinculado
     const { data: party } = await supabase.from('parties').select('*, packages(max_limit), clients(name)').eq('id', partyId).single();
     
     if (party) {
       setPartyData({
+        ...party, // Guarda todos os dados brutos para o jogo
         id: party.id,
         name: party.party_name || party.theme || "Nossa Festa",
         theme: party.theme,
-        childName: party.host_name || "Aniversariante",
-        childAvatar: party.host_avatar,
-        childAgeGroup: party.host_age || "4-5",
+        childName: party.birthday_child_name || party.host_name || "Aniversariante",
+        childAvatar: party.photo_url || party.host_avatar,
+        childAgeGroup: String(party.child_age || party.host_age || "4-5"),
         packageLimit: party.packages?.max_limit || 30,
         hostCode: party.host_code || `${(party.host_name || 'MASTER').toUpperCase().replace(/\s+/g, '')}-VIP`,
         validUntil: party.valid_until,
-        clientName: party.clients?.name || "Cliente Responsável" // Nome do cliente para a missão da prévia
+        clientName: party.clients?.name || "Cliente Responsável"
       });
     }
     const { data: guestsData } = await supabase.from('guests').select('*').eq('party_id', partyId).order('created_at', { ascending: false });
@@ -121,31 +116,30 @@ export function ClientDashboard({ partyId, onLogout }: { partyId: string; onLogo
     window.location.href = "/";
   };
 
-  // --- FUNÇÕES DA PRÉVIA ÚNICA ---
   const triggerPreview = (age: string) => {
     setPreviewAge(age);
     setShowPreviewModal(true);
   };
 
   const confirmPreview = () => {
-    // 1. Marca como usado e salva no navegador
     const updatedUsed = [...usedPreviews, previewAge];
     setUsedPreviews(updatedUsed);
     localStorage.setItem(`@preview_used_${partyId}`, JSON.stringify(updatedUsed));
 
-    // 2. Extrai os números corretos para o jogo funcionar
     const parsedGuestAge = parseInt(previewAge.split('-')[0], 10) || 5;
     const parsedHostAge = parseInt(partyData.childAgeGroup.split('-')[0], 10) || 5;
 
-    // 3. Monta a sessão mágica usando o NOME DO CLIENTE e redireciona
+    // Geração dinâmica do nome garante que a Missão e Avatar aparecem em cada prévia
     const previewSession = {
+      ...partyData,
       partyId: partyData.id,
       partyName: partyData.name,
       childName: partyData.childName,
       childAge: parsedHostAge,
+      characterName: partyData.character_name || 'Mascote',
       photoUrl: partyData.childAvatar,
       theme: partyData.theme,
-      guestName: partyData.clientName, // O nome do pai/cliente no jogo
+      guestName: `${partyData.clientName} (Prévia ${previewAge})`, // NOME ÚNICO PARA NÃO PULAR A MISSÃO
       guestAge: parsedGuestAge,
       guestAgeGroup: previewAge,
       isPreview: true
@@ -164,7 +158,6 @@ export function ClientDashboard({ partyId, onLogout }: { partyId: string; onLogo
   return (
     <div className="w-full min-h-screen bg-black text-white p-4 sm:p-8 font-sans overflow-y-auto">
       
-      {/* MODAL DA PRÉVIA ÚNICA */}
       {showPreviewModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-zinc-900 border border-white/20 p-6 rounded-3xl max-w-md w-full text-center shadow-2xl animate-fade-in">
