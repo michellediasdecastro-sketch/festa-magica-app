@@ -20,43 +20,43 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
     setError("");
 
     try {
-      // 1. Tenta validar como código de CONVIDADO
+      // 1. Validar como código de CONVIDADO
       const { data: guestData } = await supabase
         .from("guests")
         .select("*, parties(*)")
         .eq("code", trimmedCode)
-        .neq("status", "revogado") // TRAVA DE SEGURANÇA: Bloqueia acesso revogado
+        .neq("status", "revogado")
         .maybeSingle();
 
       if (guestData && guestData.parties) {
         const finalData = {
           ...guestData.parties,
           partyId: guestData.parties.id,
-          partyName: guestData.parties.name || guestData.parties.theme,
+          partyName: guestData.parties.party_name || guestData.parties.theme,
           childName: guestData.parties.host_name,
           childAge: guestData.parties.host_age,
           photoUrl: guestData.parties.host_avatar,
           theme: guestData.parties.theme,
-          guestName: guestData.name, // Nome que o cliente cadastrou
-          guestAge: guestData.age_group // Faixa etária definida no painel
+          guestName: guestData.name, 
+          guestAge: guestData.age_group 
         };
         localStorage.setItem('@party_guest_session', JSON.stringify(finalData));
         onLoginSuccess(finalData);
         return;
       }
 
-      // 2. Tenta validar como código MASTER DO ANIVERSARIANTE
+      // 2. Validar como código MASTER DO ANIVERSARIANTE ou Nome da Festa
       const { data: hostData } = await supabase
         .from("parties")
         .select("*")
-        .eq("host_code", trimmedCode)
+        .or(`host_code.eq.${trimmedCode},party_name.ilike.${trimmedCode}`)
         .maybeSingle();
 
       if (hostData) {
         const finalData = {
           ...hostData,
           partyId: hostData.id,
-          partyName: hostData.name || hostData.theme,
+          partyName: hostData.party_name || hostData.theme,
           childName: hostData.host_name,
           childAge: hostData.host_age,
           photoUrl: hostData.host_avatar,
