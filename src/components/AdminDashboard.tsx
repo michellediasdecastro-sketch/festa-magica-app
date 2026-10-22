@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Users, PartyPopper, ExternalLink, Image as ImageIcon, Package, BarChart3, ShieldCheck, Plus, Trash2, Edit, Search } from "lucide-react";
+import { Users, PartyPopper, ExternalLink, Image as ImageIcon, Package, BarChart3, ShieldCheck, Plus, Trash2, Edit, Search, ArrowLeft } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [data, setData] = useState({ clients: [], themes: [], packages: [], parties: [], guests: [] });
   const [search, setSearch] = useState("");
+  
+  // Novo estado para controlar qual festa está aberta na aba de Acessos
+  const [selectedAccessPartyId, setSelectedAccessPartyId] = useState<string | null>(null);
   
   const [clientForm, setClientForm] = useState({ id: "", name: "", email: "", phone: "", observations: "", status: "ativo" });
   const [themeForm, setThemeForm] = useState({ id: "", name: "", bgUrl: "", missionBgs: "", gameImages: "" });
@@ -150,7 +153,7 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
         <button onClick={() => {setActiveTab("themes"); setSearch("");}} className={`flex items-center gap-2 p-3 rounded-lg ${activeTab === "themes" ? "bg-[#bef264] text-black font-bold" : "hover:bg-white/5"}`}><ImageIcon className="size-5" /> Temas</button>
         <button onClick={() => setActiveTab("packages")} className={`flex items-center gap-2 p-3 rounded-lg ${activeTab === "packages" ? "bg-[#bef264] text-black font-bold" : "hover:bg-white/5"}`}><Package className="size-5" /> Pacotes</button>
         <button onClick={() => {setActiveTab("parties"); setSearch("");}} className={`flex items-center gap-2 p-3 rounded-lg ${activeTab === "parties" ? "bg-[#bef264] text-black font-bold" : "hover:bg-white/5"}`}><PartyPopper className="size-5" /> Festas</button>
-        <button onClick={() => {setActiveTab("accesses"); setSearch("");}} className={`flex items-center gap-2 p-3 rounded-lg ${activeTab === "accesses" ? "bg-[#bef264] text-black font-bold" : "hover:bg-white/5"}`}><ShieldCheck className="size-5" /> Acessos</button>
+        <button onClick={() => {setActiveTab("accesses"); setSearch(""); setSelectedAccessPartyId(null);}} className={`flex items-center gap-2 p-3 rounded-lg ${activeTab === "accesses" ? "bg-[#bef264] text-black font-bold" : "hover:bg-white/5"}`}><ShieldCheck className="size-5" /> Acessos</button>
       </div>
 
       <div className="flex-1 p-6 md:p-8 overflow-y-auto">
@@ -341,28 +344,62 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
           {activeTab === "accesses" && (
             <>
               <h2 className="text-2xl font-bold mb-6">Controle e Revogação de Acessos</h2>
-              <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-black/50">
-                    <tr><th className="p-4">Convidado</th><th className="p-4">Código</th><th className="p-4">Festa</th><th className="p-4">Status</th><th className="p-4">Ação</th></tr>
-                  </thead>
-                  <tbody>
-                    {filteredData(data.guests, ['name', 'code']).map((g: any) => (
-                      <tr key={g.id} className="border-t border-white/10 hover:bg-white/5">
-                        <td className="p-4 font-bold">{g.name} <span className="block text-xs text-white/50">{g.age_group}</span></td>
-                        <td className="p-4 font-mono text-[#bef264]">{g.code}</td>
-                        <td className="p-4">{g.parties?.party_name || 'Festa Genérica'}</td>
-                        <td className="p-4"><span className={`px-2 py-1 rounded text-xs ${g.status === 'revogado' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>{g.status}</span></td>
-                        <td className="p-4">
-                          <button onClick={() => handleRevokeAccess(g.id, g.status)} className={`px-3 py-1 rounded text-xs font-bold ${g.status === 'revogado' ? 'bg-green-500 text-black' : 'bg-red-500 text-white'}`}>
-                            {g.status === 'revogado' ? 'Restaurar' : 'Revogar'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              
+              {!selectedAccessPartyId ? (
+                // TELA 1: LISTAGEM DE FESTAS
+                <div className="grid gap-4">
+                  {filteredData(data.parties, ['party_name', 'theme', 'host_name']).map((party: any) => {
+                    const guestsCount = data.guests.filter((g: any) => g.party_id === party.id).length;
+                    return (
+                      <div key={party.id} className="bg-white/5 p-5 rounded-xl border border-white/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                          <h3 className="font-bold text-lg text-[#bef264]">{party.party_name || party.theme}</h3>
+                          <p className="text-sm">Cliente: {party.clients?.name || 'Sem cliente vinculado'}</p>
+                          <p className="text-xs text-white/50 mt-1">Status: <span className={`font-bold ${party.status === 'ativa' || !party.status ? 'text-green-400' : 'text-red-400'}`}>{party.status || 'ativa'}</span></p>
+                        </div>
+                        <div className="flex gap-2">
+                           <button onClick={() => setSelectedAccessPartyId(party.id)} className="px-5 py-2.5 bg-blue-500/20 text-blue-300 font-bold rounded-lg hover:bg-blue-500/40 transition-colors">
+                             Gerenciar {guestsCount} Acessos
+                           </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {data.parties.length === 0 && <p className="text-white/50">Nenhuma festa encontrada.</p>}
+                </div>
+              ) : (
+                // TELA 2: LISTAGEM DE CONVIDADOS DA FESTA SELECIONADA
+                <div>
+                  <button onClick={() => setSelectedAccessPartyId(null)} className="mb-6 flex items-center gap-2 text-sm text-[#bef264] hover:text-[#a3e635] bg-[#bef264]/10 px-4 py-2 rounded-lg w-fit transition-colors">
+                    <ArrowLeft className="size-4" /> Voltar para lista de festas
+                  </button>
+                  
+                  <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-black/50">
+                        <tr><th className="p-4">Convidado</th><th className="p-4">Código</th><th className="p-4">Status</th><th className="p-4">Ação</th></tr>
+                      </thead>
+                      <tbody>
+                        {filteredData(data.guests.filter((g: any) => g.party_id === selectedAccessPartyId), ['name', 'code']).map((g: any) => (
+                          <tr key={g.id} className="border-t border-white/10 hover:bg-white/5">
+                            <td className="p-4 font-bold">{g.name} <span className="block text-xs text-white/50">{g.age_group}</span></td>
+                            <td className="p-4 font-mono text-[#bef264]">{g.code}</td>
+                            <td className="p-4"><span className={`px-2 py-1 rounded text-xs ${g.status === 'revogado' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>{g.status || 'ativo'}</span></td>
+                            <td className="p-4">
+                              <button onClick={() => handleRevokeAccess(g.id, g.status)} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${g.status === 'revogado' ? 'bg-green-500 text-black hover:bg-green-400' : 'bg-red-500 text-white hover:bg-red-400'}`}>
+                                {g.status === 'revogado' ? 'Restaurar' : 'Revogar'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {data.guests.filter((g: any) => g.party_id === selectedAccessPartyId).length === 0 && (
+                          <tr><td colSpan={4} className="p-8 text-center text-white/50">Nenhum acesso gerado para esta festa ainda.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
