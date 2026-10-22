@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Users, PartyPopper, ExternalLink, Image as ImageIcon, Package, BarChart3, ShieldCheck, Plus, Trash2, Edit, Search, AlertTriangle } from "lucide-react";
+import { Users, PartyPopper, ExternalLink, Image as ImageIcon, Package, BarChart3, ShieldCheck, Plus, Trash2, Edit, Search } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
@@ -10,6 +10,7 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
   const [clientForm, setClientForm] = useState({ id: "", name: "", email: "", phone: "", observations: "", status: "ativo" });
   const [themeForm, setThemeForm] = useState({ id: "", name: "", bgUrl: "", missionBgs: "", gameImages: "" });
   const [packageForm, setPackageForm] = useState({ id: "", price: "" });
+  const [partyForm, setPartyForm] = useState({ id: "", name: "", clientId: "", themeId: "", packageId: "", date: "", hostName: "", hostAge: "", hostAvatar: "", hostAudio: "" });
 
   const fetchData = async () => {
     const [clientsRes, themesRes, packagesRes, partiesRes, guestsRes] = await Promise.all([
@@ -51,6 +52,31 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
     fetchData();
   };
 
+  const handleSaveParty = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const selectedTheme = data.themes.find((t: any) => t.id === partyForm.themeId);
+    const payload = {
+      name: partyForm.name,
+      client_id: partyForm.clientId,
+      theme_id: partyForm.themeId,
+      package_id: partyForm.packageId,
+      theme: selectedTheme?.theme_name || "Aventura",
+      host_name: partyForm.hostName,
+      host_age: partyForm.hostAge,
+      host_avatar: partyForm.hostAvatar,
+      host_audio: partyForm.hostAudio,
+      party_date: partyForm.date || null
+    };
+
+    if (partyForm.id) {
+      await supabase.from('parties').update(payload).eq('id', partyForm.id);
+    } else {
+      await supabase.from('parties').insert([payload]);
+    }
+    setPartyForm({ id: "", name: "", clientId: "", themeId: "", packageId: "", date: "", hostName: "", hostAge: "", hostAvatar: "", hostAudio: "" });
+    fetchData();
+  };
+
   const handleUpdatePackagePrice = async (e: React.FormEvent, id: string, price: string) => {
     e.preventDefault();
     await supabase.from('packages').update({ price: parseFloat(price) || 0 }).eq('id', id);
@@ -67,6 +93,14 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
   };
 
   const filteredData = (list: any[], fields: string[]) => list.filter(item => fields.some(field => String(item[field] || '').toLowerCase().includes(search.toLowerCase())));
+
+  const overviewStats = {
+    totalClients: data.clients.length,
+    totalParties: data.parties.length,
+    activeParties: data.parties.filter((p: any) => p.status === 'ativa').length,
+    totalGuests: data.guests.length,
+    totalCapacity: data.parties.reduce((acc, p: any) => acc + (p.packages?.max_limit || 0), 0)
+  };
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col md:flex-row font-sans">
@@ -90,15 +124,27 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
             </div>
           )}
 
+          {activeTab === "overview" && (
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Visão Geral</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white/5 p-6 rounded-2xl border border-white/10"><p className="text-white/50 text-sm">Total de Clientes</p><p className="text-3xl font-black text-[#bef264]">{overviewStats.totalClients}</p></div>
+                <div className="bg-white/5 p-6 rounded-2xl border border-white/10"><p className="text-white/50 text-sm">Festas Ativas</p><p className="text-3xl font-black text-[#bef264]">{overviewStats.activeParties}</p></div>
+                <div className="bg-white/5 p-6 rounded-2xl border border-white/10"><p className="text-white/50 text-sm">Convidados</p><p className="text-3xl font-black text-[#bef264]">{overviewStats.totalGuests}</p></div>
+                <div className="bg-white/5 p-6 rounded-2xl border border-white/10"><p className="text-white/50 text-sm">Vagas Disponíveis</p><p className="text-3xl font-black text-[#bef264]">{overviewStats.totalCapacity > 90000 ? 'Ilimitado' : overviewStats.totalCapacity - overviewStats.totalGuests}</p></div>
+              </div>
+            </div>
+          )}
+
           {activeTab === "clients" && (
             <>
               <h2 className="text-2xl font-bold mb-6">Cadastro de Clientes</h2>
               <form onSubmit={handleSaveClient} className="bg-white/5 border border-white/10 p-6 rounded-2xl mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <input type="text" placeholder="Nome" value={clientForm.name} onChange={e => setClientForm({...clientForm, name: e.target.value})} className="bg-black/50 border border-white/20 rounded-lg p-3 text-white" required />
-                <input type="email" placeholder="E-mail" value={clientForm.email} onChange={e => setClientForm({...clientForm, email: e.target.value})} className="bg-black/50 border border-white/20 rounded-lg p-3 text-white" />
-                <input type="tel" placeholder="Telefone" value={clientForm.phone} onChange={e => setClientForm({...clientForm, phone: e.target.value})} className="bg-black/50 border border-white/20 rounded-lg p-3 text-white" />
-                <input type="text" placeholder="Observações Administrativas" value={clientForm.observations} onChange={e => setClientForm({...clientForm, observations: e.target.value})} className="md:col-span-2 bg-black/50 border border-white/20 rounded-lg p-3 text-white" />
-                <select value={clientForm.status} onChange={e => setClientForm({...clientForm, status: e.target.value})} className="bg-black/50 border border-white/20 rounded-lg p-3 text-white">
+                <input type="text" placeholder="Nome" value={clientForm.name} onChange={e => setClientForm({...clientForm, name: e.target.value})} className="bg-black/50 border border-white/20 rounded-lg p-3 text-white outline-none focus:border-[#bef264]" required />
+                <input type="email" placeholder="E-mail" value={clientForm.email} onChange={e => setClientForm({...clientForm, email: e.target.value})} className="bg-black/50 border border-white/20 rounded-lg p-3 text-white outline-none focus:border-[#bef264]" />
+                <input type="tel" placeholder="Telefone" value={clientForm.phone} onChange={e => setClientForm({...clientForm, phone: e.target.value})} className="bg-black/50 border border-white/20 rounded-lg p-3 text-white outline-none focus:border-[#bef264]" />
+                <input type="text" placeholder="Observações Administrativas" value={clientForm.observations} onChange={e => setClientForm({...clientForm, observations: e.target.value})} className="md:col-span-2 bg-black/50 border border-white/20 rounded-lg p-3 text-white outline-none focus:border-[#bef264]" />
+                <select value={clientForm.status} onChange={e => setClientForm({...clientForm, status: e.target.value})} className="bg-black/50 border border-white/20 rounded-lg p-3 text-white outline-none focus:border-[#bef264]">
                   <option value="ativo">Ativo</option><option value="inativo">Inativo</option>
                 </select>
                 <button type="submit" className="md:col-span-3 bg-[#bef264] text-black font-bold py-3 rounded-lg hover:bg-[#a3e635]">{clientForm.id ? "Atualizar Cliente" : "Adicionar Cliente"}</button>
@@ -161,12 +207,12 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
                     </div>
                     {packageForm.id === pkg.id ? (
                       <form onSubmit={(e) => handleUpdatePackagePrice(e, pkg.id, packageForm.price)} className="flex gap-2">
-                        <input type="number" step="0.01" value={packageForm.price} onChange={e => setPackageForm({...packageForm, price: e.target.value})} className="bg-black/50 border border-white/20 rounded p-2 flex-1" placeholder="Preço R$" required />
+                        <input type="number" step="0.01" value={packageForm.price} onChange={e => setPackageForm({...packageForm, price: e.target.value})} className="bg-black/50 border border-white/20 rounded p-2 flex-1 outline-none" placeholder="Preço R$" required />
                         <button type="submit" className="bg-[#bef264] text-black px-4 rounded font-bold">Salvar</button>
                       </form>
                     ) : (
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-white/60">Preço: <strong className="text-white">R$ {Number(pkg.price).toFixed(2)}</strong></span>
+                        <span className="text-white/60">Preço: <strong className="text-white">R$ {Number(pkg.price || 0).toFixed(2)}</strong></span>
                         <button onClick={() => setPackageForm({ id: pkg.id, price: pkg.price })} className="text-[#bef264] underline">Editar Preço</button>
                       </div>
                     )}
@@ -179,19 +225,41 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
           {activeTab === "parties" && (
             <>
               <h2 className="text-2xl font-bold mb-6">Gestão de Festas</h2>
+              <form onSubmit={handleSaveParty} className="bg-white/5 border border-white/10 p-6 rounded-2xl mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className="block text-sm text-white/60 mb-1">Dados Gerais</label>
+                    <input type="text" placeholder="Nome da Festa" value={partyForm.name} onChange={e => setPartyForm({...partyForm, name: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none" required />
+                    <select value={partyForm.clientId} onChange={e => setPartyForm({...partyForm, clientId: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none" required><option value="">Selecione o Cliente</option>{data.clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+                    <select value={partyForm.themeId} onChange={e => setPartyForm({...partyForm, themeId: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none" required><option value="">Selecione o Tema</option>{data.themes.map((t: any) => <option key={t.id} value={t.id}>{t.theme_name}</option>)}</select>
+                    <select value={partyForm.packageId} onChange={e => setPartyForm({...partyForm, packageId: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none" required><option value="">Selecione o Pacote</option>{data.packages.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+                    <input type="date" value={partyForm.date} onChange={e => setPartyForm({...partyForm, date: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-white/60 mb-1">Dados do Aniversariante</label>
+                    <input type="text" placeholder="Nome do Aniversariante" value={partyForm.hostName} onChange={e => setPartyForm({...partyForm, hostName: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none" required />
+                    <select value={partyForm.hostAge} onChange={e => setPartyForm({...partyForm, hostAge: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none" required>
+                      <option value="">Selecione a Faixa Etária</option><option value="4-5">4 a 5 anos</option><option value="6-7">6 a 7 anos</option><option value="8-9">8 a 9 anos</option><option value="10-11">10 a 11 anos</option>
+                    </select>
+                    <input type="url" placeholder="URL do Avatar (opcional)" value={partyForm.hostAvatar} onChange={e => setPartyForm({...partyForm, hostAvatar: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none" />
+                    <input type="url" placeholder="URL do Áudio (opcional)" value={partyForm.hostAudio} onChange={e => setPartyForm({...partyForm, hostAudio: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 outline-none" />
+                  </div>
+                </div>
+                <button type="submit" className="w-full bg-[#bef264] text-black font-bold py-3 rounded-lg hover:bg-[#a3e635]">{partyForm.id ? "Atualizar Festa" : "Criar Festa e Vincular Cliente"}</button>
+              </form>
+
               <div className="grid gap-4">
                 {filteredData(data.parties, ['name', 'theme', 'host_name']).map((party: any) => (
-                  <div key={party.id} className="bg-white/5 p-5 rounded-xl border border-white/10">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="font-bold text-lg text-[#bef264]">{party.name || party.theme}</h3>
-                        <p className="text-sm">Aniversariante: {party.host_name} ({party.host_age})</p>
-                        <p className="text-xs text-white/50 mt-1">Cliente: {party.clients?.name} | Validade: {new Date(party.valid_until).toLocaleDateString()}</p>
-                      </div>
-                      <div className="flex gap-2">
-                         <a href={`/?painel=${party.id}`} target="_blank" rel="noopener noreferrer" className="p-2 bg-blue-500/20 text-blue-300 rounded hover:bg-blue-500/40" title="Acessar Painel do Cliente"><ExternalLink className="size-4" /></a>
-                         <button onClick={() => handleDelete('parties', party.id)} className="p-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/40" title="Excluir Festa"><Trash2 className="size-4" /></button>
-                      </div>
+                  <div key={party.id} className="bg-white/5 p-5 rounded-xl border border-white/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                      <h3 className="font-bold text-lg text-[#bef264]">{party.name || party.theme}</h3>
+                      <p className="text-sm">Aniversariante: {party.host_name} ({party.host_age})</p>
+                      <p className="text-xs text-white/50 mt-1">Cliente: {party.clients?.name} | Validade: {new Date(party.valid_until).toLocaleDateString()}</p>
+                    </div>
+                    <div className="flex gap-2">
+                       <button onClick={() => setPartyForm({ id: party.id, name: party.name || "", clientId: party.client_id || "", themeId: party.theme_id || "", packageId: party.package_id || "", date: party.party_date || "", hostName: party.host_name || "", hostAge: party.host_age || "", hostAvatar: party.host_avatar || "", hostAudio: party.host_audio || "" })} className="p-2 bg-blue-500/20 text-blue-300 rounded hover:bg-blue-500/40" title="Editar Festa"><Edit className="size-4" /></button>
+                       <a href={`/?painel=${party.id}`} target="_blank" rel="noopener noreferrer" className="p-2 bg-white/10 border border-white/20 text-white rounded hover:bg-white/20" title="Acessar Painel do Cliente"><ExternalLink className="size-4" /></a>
+                       <button onClick={() => handleDelete('parties', party.id)} className="p-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/40" title="Excluir Festa"><Trash2 className="size-4" /></button>
                     </div>
                   </div>
                 ))}
