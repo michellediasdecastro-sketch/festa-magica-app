@@ -18,7 +18,7 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
       supabase.from("themes").select("*"),
       supabase.from("packages").select("*").order('max_limit', { ascending: true }),
       supabase.from("parties").select("*, clients(name), packages(name, max_limit)").order('created_at', { ascending: false }),
-      supabase.from("guests").select("*, parties(name, host_name)")
+      supabase.from("guests").select("*, parties(party_name, host_name)")
     ]);
     setData({ clients: clientsRes.data || [], themes: themesRes.data || [], packages: packagesRes.data || [], parties: partiesRes.data || [], guests: guestsRes.data || [] });
   };
@@ -44,9 +44,8 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
       error = res.error;
     }
     
-    if (error) {
-      alert("Erro ao salvar cliente: " + error.message);
-    } else {
+    if (error) alert("Erro ao salvar cliente: " + error.message);
+    else {
       setClientForm({ id: "", name: "", email: "", phone: "", observations: "", status: "ativo" });
       fetchData();
     }
@@ -65,9 +64,8 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
       error = res.error;
     }
 
-    if (error) {
-      alert("Erro ao salvar tema: " + error.message);
-    } else {
+    if (error) alert("Erro ao salvar tema: " + error.message);
+    else {
       setThemeForm({ id: "", name: "", bgUrl: "", missionBgs: "", gameImages: "" });
       fetchData();
     }
@@ -76,8 +74,10 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
   const handleSaveParty = async (e: React.FormEvent) => {
     e.preventDefault();
     const selectedTheme = data.themes.find((t: any) => t.id === partyForm.themeId);
+    
+    // CORREÇÃO: Utilizando party_name em vez de name para alinhar com o Supabase original
     const payload = {
-      name: partyForm.name,
+      party_name: partyForm.name,
       client_id: partyForm.clientId || null,
       theme_id: partyForm.themeId || null,
       package_id: partyForm.packageId || null,
@@ -99,7 +99,7 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
     }
     
     if (error) {
-      alert("Erro ao salvar a festa! Verifique se você rodou o script SQL no Supabase. Detalhe: " + error.message);
+      alert("Erro ao salvar a festa! Detalhe: " + error.message);
     } else {
       setPartyForm({ id: "", name: "", clientId: "", themeId: "", packageId: "", date: "", hostName: "", hostAge: "", hostAvatar: "", hostAudio: "" });
       fetchData();
@@ -282,15 +282,15 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
               </form>
 
               <div className="grid gap-4">
-                {filteredData(data.parties, ['name', 'theme', 'host_name']).map((party: any) => (
+                {filteredData(data.parties, ['party_name', 'theme', 'host_name']).map((party: any) => (
                   <div key={party.id} className="bg-white/5 p-5 rounded-xl border border-white/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
-                      <h3 className="font-bold text-lg text-[#bef264]">{party.name || party.theme}</h3>
+                      <h3 className="font-bold text-lg text-[#bef264]">{party.party_name || party.theme}</h3>
                       <p className="text-sm">Aniversariante: {party.host_name} ({party.host_age})</p>
                       <p className="text-xs text-white/50 mt-1">Cliente: {party.clients?.name} | Validade: {new Date(party.valid_until).toLocaleDateString()}</p>
                     </div>
                     <div className="flex gap-2">
-                       <button onClick={() => setPartyForm({ id: party.id, name: party.name || "", clientId: party.client_id || "", themeId: party.theme_id || "", packageId: party.package_id || "", date: party.party_date || "", hostName: party.host_name || "", hostAge: party.host_age || "", hostAvatar: party.host_avatar || "", hostAudio: party.host_audio || "" })} className="p-2 bg-blue-500/20 text-blue-300 rounded hover:bg-blue-500/40" title="Editar Festa"><Edit className="size-4" /></button>
+                       <button onClick={() => setPartyForm({ id: party.id, name: party.party_name || "", clientId: party.client_id || "", themeId: party.theme_id || "", packageId: party.package_id || "", date: party.party_date || "", hostName: party.host_name || "", hostAge: party.host_age || "", hostAvatar: party.host_avatar || "", hostAudio: party.host_audio || "" })} className="p-2 bg-blue-500/20 text-blue-300 rounded hover:bg-blue-500/40" title="Editar Festa"><Edit className="size-4" /></button>
                        <a href={`/?painel=${party.id}`} target="_blank" rel="noopener noreferrer" className="p-2 bg-white/10 border border-white/20 text-white rounded hover:bg-white/20" title="Acessar Painel do Cliente"><ExternalLink className="size-4" /></a>
                        <button onClick={() => handleDelete('parties', party.id)} className="p-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/40" title="Excluir Festa"><Trash2 className="size-4" /></button>
                     </div>
@@ -313,7 +313,7 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
                       <tr key={g.id} className="border-t border-white/10 hover:bg-white/5">
                         <td className="p-4 font-bold">{g.name} <span className="block text-xs text-white/50">{g.age_group}</span></td>
                         <td className="p-4 font-mono text-[#bef264]">{g.code}</td>
-                        <td className="p-4">{g.parties?.name || 'Festa Genérica'}</td>
+                        <td className="p-4">{g.parties?.party_name || 'Festa Genérica'}</td>
                         <td className="p-4"><span className={`px-2 py-1 rounded text-xs ${g.status === 'revogado' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>{g.status}</span></td>
                         <td className="p-4">
                           <button onClick={() => handleRevokeAccess(g.id, g.status)} className={`px-3 py-1 rounded text-xs font-bold ${g.status === 'revogado' ? 'bg-green-500 text-black' : 'bg-red-500 text-white'}`}>
