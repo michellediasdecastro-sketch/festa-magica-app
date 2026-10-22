@@ -6,9 +6,9 @@ interface AccessLoginProps {
   onLoginSuccess: (data: any) => void;
 }
 
-// Função robusta que garante que o jogo recebe o número correto para aplicar a dificuldade exata
-function parseAgeGroup(ageStr: string) {
+function parseAgeGroup(ageStr: string | number) {
   if (!ageStr) return 5;
+  if (typeof ageStr === 'number') return ageStr;
   if (ageStr.includes("4-5")) return 5;
   if (ageStr.includes("6-7")) return 7;
   if (ageStr.includes("8-9")) return 9;
@@ -40,18 +40,19 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
 
       if (guestData && guestData.parties) {
         const ageNum = parseAgeGroup(guestData.age_group);
-        const hostAgeNum = parseAgeGroup(guestData.parties.host_age);
+        const hostAgeNum = parseAgeGroup(guestData.parties.child_age || guestData.parties.host_age);
 
         const finalData = {
-          ...guestData.parties,
+          ...guestData.parties, 
           partyId: guestData.parties.id,
           partyName: guestData.parties.party_name || guestData.parties.theme,
-          childName: guestData.parties.host_name,
+          childName: guestData.parties.birthday_child_name || guestData.parties.host_name,
           childAge: hostAgeNum,
-          photoUrl: guestData.parties.host_avatar,
+          characterName: guestData.parties.character_name || 'Mascote',
+          photoUrl: guestData.parties.photo_url || guestData.parties.host_avatar, // Restaura a foto para o jogo
           theme: guestData.parties.theme,
           guestName: guestData.name, 
-          guestAge: ageNum, // IDADE CORRIGIDA E SEGURA PARA O JOGO
+          guestAge: ageNum, 
           guestAgeGroup: guestData.age_group
         };
         localStorage.setItem('@party_guest_session', JSON.stringify(finalData));
@@ -67,19 +68,20 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
         .maybeSingle();
 
       if (hostData) {
-        const hostAgeNum = parseAgeGroup(hostData.host_age);
+        const hostAgeNum = parseAgeGroup(hostData.child_age || hostData.host_age);
 
         const finalData = {
           ...hostData,
           partyId: hostData.id,
           partyName: hostData.party_name || hostData.theme,
-          childName: hostData.host_name,
-          childAge: hostAgeNum, // IDADE CORRIGIDA E SEGURA PARA O JOGO
-          photoUrl: hostData.host_avatar,
+          childName: hostData.birthday_child_name || hostData.host_name,
+          childAge: hostAgeNum,
+          characterName: hostData.character_name || 'Mascote',
+          photoUrl: hostData.photo_url || hostData.host_avatar, // Restaura a foto para o jogo
           theme: hostData.theme,
-          guestName: hostData.host_name,
-          guestAge: hostAgeNum, // IDADE CORRIGIDA E SEGURA PARA O JOGO
-          guestAgeGroup: hostData.host_age
+          guestName: hostData.birthday_child_name || hostData.host_name,
+          guestAge: hostAgeNum,
+          guestAgeGroup: hostData.host_age || hostData.child_age
         };
         localStorage.setItem('@party_guest_session', JSON.stringify(finalData));
         onLoginSuccess(finalData);
