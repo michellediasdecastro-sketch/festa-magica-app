@@ -6,6 +6,16 @@ interface AccessLoginProps {
   onLoginSuccess: (data: any) => void;
 }
 
+// Função robusta que garante que o jogo recebe o número correto para aplicar a dificuldade exata
+function parseAgeGroup(ageStr: string) {
+  if (!ageStr) return 5;
+  if (ageStr.includes("4-5")) return 5;
+  if (ageStr.includes("6-7")) return 7;
+  if (ageStr.includes("8-9")) return 9;
+  if (ageStr.includes("10-11")) return 11;
+  return parseInt(ageStr.replace(/\D/g, ''), 10) || 5;
+}
+
 export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
@@ -20,7 +30,7 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
     setError("");
 
     try {
-      // 1. Validar como código de CONVIDADO
+      // 1. Tenta validar como código de CONVIDADO
       const { data: guestData } = await supabase
         .from("guests")
         .select("*, parties(*)")
@@ -29,26 +39,27 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
         .maybeSingle();
 
       if (guestData && guestData.parties) {
-        const guestAgeNumber = parseInt(guestData.age_group, 10) || 5;
+        const ageNum = parseAgeGroup(guestData.age_group);
+        const hostAgeNum = parseAgeGroup(guestData.parties.host_age);
+
         const finalData = {
           ...guestData.parties,
           partyId: guestData.parties.id,
           partyName: guestData.parties.party_name || guestData.parties.theme,
           childName: guestData.parties.host_name,
-          childAge: parseInt(guestData.parties.host_age, 10) || 5,
+          childAge: hostAgeNum,
           photoUrl: guestData.parties.host_avatar,
-          hostAvatar: guestData.parties.host_avatar,
-          avatarUrl: guestData.parties.host_avatar,
           theme: guestData.parties.theme,
           guestName: guestData.name, 
-          guestAge: guestAgeNumber 
+          guestAge: ageNum, // IDADE CORRIGIDA E SEGURA PARA O JOGO
+          guestAgeGroup: guestData.age_group
         };
         localStorage.setItem('@party_guest_session', JSON.stringify(finalData));
         onLoginSuccess(finalData);
         return;
       }
 
-      // 2. Validar como código MASTER DO ANIVERSARIANTE ou Nome da Festa
+      // 2. Tenta validar como código MASTER DO ANIVERSARIANTE ou Nome da Festa
       const { data: hostData } = await supabase
         .from("parties")
         .select("*")
@@ -56,19 +67,19 @@ export function AccessLogin({ onLoginSuccess }: AccessLoginProps) {
         .maybeSingle();
 
       if (hostData) {
-        const hostAgeNumber = parseInt(hostData.host_age, 10) || 5;
+        const hostAgeNum = parseAgeGroup(hostData.host_age);
+
         const finalData = {
           ...hostData,
           partyId: hostData.id,
           partyName: hostData.party_name || hostData.theme,
           childName: hostData.host_name,
-          childAge: hostAgeNumber,
+          childAge: hostAgeNum, // IDADE CORRIGIDA E SEGURA PARA O JOGO
           photoUrl: hostData.host_avatar,
-          hostAvatar: hostData.host_avatar,
-          avatarUrl: hostData.host_avatar,
           theme: hostData.theme,
           guestName: hostData.host_name,
-          guestAge: hostAgeNumber
+          guestAge: hostAgeNum, // IDADE CORRIGIDA E SEGURA PARA O JOGO
+          guestAgeGroup: hostData.host_age
         };
         localStorage.setItem('@party_guest_session', JSON.stringify(finalData));
         onLoginSuccess(finalData);
