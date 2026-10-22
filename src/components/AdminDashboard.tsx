@@ -75,11 +75,14 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
     e.preventDefault();
     const selectedTheme = data.themes.find((t: any) => t.id === partyForm.themeId);
     
+    // Gera o código do aniversariante e grava no banco
+    const hostCodeStr = partyForm.hostName ? `${partyForm.hostName.toUpperCase().replace(/\s+/g, '')}-VIP` : 'MASTER-VIP';
+
     const payload = {
       party_name: partyForm.name,
       birthday_child_name: partyForm.hostName, 
       child_age: parseInt(partyForm.hostAge, 10) || 5, 
-      character_name: 'Mascote', // Preenchimento automático e invisível
+      character_name: 'Mascote',
       photo_url: partyForm.hostAvatar || '', 
       client_id: partyForm.clientId || null,
       theme_id: partyForm.themeId || null,
@@ -89,6 +92,7 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
       host_age: partyForm.hostAge,
       host_avatar: partyForm.hostAvatar,
       host_audio: partyForm.hostAudio,
+      host_code: hostCodeStr, // GRAVANDO O CÓDIGO AQUI
       party_date: partyForm.date || null
     };
 
@@ -289,7 +293,7 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
                   <div key={party.id} className="bg-white/5 p-5 rounded-xl border border-white/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                       <h3 className="font-bold text-lg text-[#bef264]">{party.party_name || party.theme}</h3>
-                      <p className="text-sm">Aniversariante: {party.host_name} ({party.host_age})</p>
+                      <p className="text-sm">Aniversariante: {party.host_name} ({party.host_age}) | Cód Master: <span className="font-mono text-[#bef264]">{party.host_code || 'Não gerado'}</span></p>
                       <p className="text-xs text-white/50 mt-1">Cliente: {party.clients?.name} | Validade: {new Date(party.valid_until).toLocaleDateString()}</p>
                     </div>
                     <div className="flex gap-2">
