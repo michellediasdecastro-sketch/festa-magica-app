@@ -10,7 +10,9 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
   const [clientForm, setClientForm] = useState({ id: "", name: "", email: "", phone: "", observations: "", status: "ativo" });
   const [themeForm, setThemeForm] = useState({ id: "", name: "", bgUrl: "", missionBgs: "", gameImages: "" });
   const [packageForm, setPackageForm] = useState({ id: "", price: "" });
-  const [partyForm, setPartyForm] = useState({ id: "", name: "", clientId: "", themeId: "", packageId: "", date: "", hostName: "", hostAge: "", hostAvatar: "", hostAudio: "" });
+  
+  // Adicionado characterName ao estado
+  const [partyForm, setPartyForm] = useState({ id: "", name: "", clientId: "", themeId: "", packageId: "", date: "", hostName: "", hostAge: "", hostAvatar: "", hostAudio: "", characterName: "" });
 
   const fetchData = async () => {
     const [clientsRes, themesRes, packagesRes, partiesRes, guestsRes] = await Promise.all([
@@ -75,10 +77,13 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
     e.preventDefault();
     const selectedTheme = data.themes.find((t: any) => t.id === partyForm.themeId);
     
+    // Mapeamento cego: Envia as colunas novas E as antigas para satisfazer qualquer regra NOT NULL residual
     const payload = {
       party_name: partyForm.name,
       birthday_child_name: partyForm.hostName, 
-      child_age: parseInt(partyForm.hostAge, 10) || 5, // CORREÇÃO: Transforma "4-5" no número inteiro 4
+      child_age: parseInt(partyForm.hostAge, 10) || 5, 
+      character_name: partyForm.characterName || 'Mascote',
+      photo_url: partyForm.hostAvatar || '', // Previne erro na foto antiga
       client_id: partyForm.clientId || null,
       theme_id: partyForm.themeId || null,
       package_id: partyForm.packageId || null,
@@ -102,7 +107,7 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
     if (error) {
       alert("Erro ao salvar a festa! Detalhe: " + error.message);
     } else {
-      setPartyForm({ id: "", name: "", clientId: "", themeId: "", packageId: "", date: "", hostName: "", hostAge: "", hostAvatar: "", hostAudio: "" });
+      setPartyForm({ id: "", name: "", clientId: "", themeId: "", packageId: "", date: "", hostName: "", hostAge: "", hostAvatar: "", hostAudio: "", characterName: "" });
       fetchData();
     }
   };
@@ -272,6 +277,7 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
                   <div>
                     <label className="block text-sm text-white/60 mb-1">Dados do Aniversariante</label>
                     <input type="text" placeholder="Nome do Aniversariante" value={partyForm.hostName} onChange={e => setPartyForm({...partyForm, hostName: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none focus:border-[#bef264]" required />
+                    <input type="text" placeholder="Nome do Personagem (Mascote)" value={partyForm.characterName} onChange={e => setPartyForm({...partyForm, characterName: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none focus:border-[#bef264]" required />
                     <select value={partyForm.hostAge} onChange={e => setPartyForm({...partyForm, hostAge: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-lg p-3 mb-3 outline-none focus:border-[#bef264]" required>
                       <option value="">Selecione a Faixa Etária</option><option value="4-5">4 a 5 anos</option><option value="6-7">6 a 7 anos</option><option value="8-9">8 a 9 anos</option><option value="10-11">10 a 11 anos</option>
                     </select>
@@ -287,11 +293,11 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
                   <div key={party.id} className="bg-white/5 p-5 rounded-xl border border-white/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                       <h3 className="font-bold text-lg text-[#bef264]">{party.party_name || party.theme}</h3>
-                      <p className="text-sm">Aniversariante: {party.host_name} ({party.host_age})</p>
+                      <p className="text-sm">Aniversariante: {party.host_name} ({party.host_age}) | Mascote: {party.character_name}</p>
                       <p className="text-xs text-white/50 mt-1">Cliente: {party.clients?.name} | Validade: {new Date(party.valid_until).toLocaleDateString()}</p>
                     </div>
                     <div className="flex gap-2">
-                       <button onClick={() => setPartyForm({ id: party.id, name: party.party_name || "", clientId: party.client_id || "", themeId: party.theme_id || "", packageId: party.package_id || "", date: party.party_date || "", hostName: party.host_name || "", hostAge: party.host_age || "", hostAvatar: party.host_avatar || "", hostAudio: party.host_audio || "" })} className="p-2 bg-blue-500/20 text-blue-300 rounded hover:bg-blue-500/40" title="Editar Festa"><Edit className="size-4" /></button>
+                       <button onClick={() => setPartyForm({ id: party.id, name: party.party_name || "", clientId: party.client_id || "", themeId: party.theme_id || "", packageId: party.package_id || "", date: party.party_date || "", hostName: party.host_name || "", hostAge: party.host_age || "", hostAvatar: party.host_avatar || "", hostAudio: party.host_audio || "", characterName: party.character_name || "" })} className="p-2 bg-blue-500/20 text-blue-300 rounded hover:bg-blue-500/40" title="Editar Festa"><Edit className="size-4" /></button>
                        <a href={`/?painel=${party.id}`} target="_blank" rel="noopener noreferrer" className="p-2 bg-white/10 border border-white/20 text-white rounded hover:bg-white/20" title="Acessar Painel do Cliente"><ExternalLink className="size-4" /></a>
                        <button onClick={() => handleDelete('parties', party.id)} className="p-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/40" title="Excluir Festa"><Trash2 className="size-4" /></button>
                     </div>
