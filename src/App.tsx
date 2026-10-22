@@ -3,7 +3,7 @@ import { AccessLogin } from "./components/AccessLogin";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { PartyGames } from "./components/PartyGames";
 import { ClientDashboard } from "./components/ClientDashboard";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Check } from "lucide-react";
 import { supabase } from "./lib/supabase";
 import { MagicalMission } from "./components/MagicalMission";
 
@@ -16,9 +16,12 @@ export function App() {
   const [hasUnlockedMagic, setHasUnlockedMagic] = useState(false);
   const [isReplayingMagic, setIsReplayingMagic] = useState(false);
   
-  const [themeBg, setThemeBg] = useState<string>("");
+  const [themeBg, setThemeBg] = useState<string | null>(null);
   const [missionBackgrounds, setMissionBackgrounds] = useState<string[]>([]);
   const [missionIndex, setMissionIndex] = useState(0);
+
+  // NOVO ESTADO: Controla se o cliente clicou em "Sair" do painel
+  const [panelClosed, setPanelClosed] = useState(false);
 
   useEffect(() => {
     const savedSession = localStorage.getItem('@party_guest_session');
@@ -50,15 +53,18 @@ export function App() {
     setIsInitializing(false);
   }, []);
 
-  // Busca os fundos rotativos e o fundo principal de forma independente do Avatar
   useEffect(() => {
     async function fetchBackgrounds() {
       if (!partyData?.theme) return;
-      const { data } = await supabase.from("themes").select("background_urls, background_url").eq('theme_name', partyData.theme);
+      const { data } = await supabase.from("themes").select("background_url, background_urls").eq('theme_name', partyData.theme);
       if (data && data.length > 0) {
         const themeData = data[0];
-        if (themeData.background_urls) setMissionBackgrounds(themeData.background_urls);
-        if (themeData.background_url) setThemeBg(themeData.background_url);
+        if (themeData.background_url) {
+          setThemeBg(themeData.background_url);
+        }
+        if (themeData.background_urls && themeData.background_urls.length > 0) {
+          setMissionBackgrounds(themeData.background_urls);
+        }
       }
     }
     fetchBackgrounds();
@@ -88,12 +94,25 @@ export function App() {
   };
 
   if (isInitializing) return <div className="min-h-screen w-full bg-black flex items-center justify-center"><Sparkles className="size-8 text-[#bef264] animate-spin" /></div>;
-  if (clientPanelId) return <ClientDashboard partyId={clientPanelId} onLogout={() => { window.location.href = "/"; }} />;
+  
+  // TELA SEGURA DE ENCERRAMENTO DO PAINEL DO CLIENTE (Não volta para o jogo)
+  if (panelClosed) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center p-4 text-center">
+         <div className="w-16 h-16 bg-[#bef264]/20 rounded-full flex items-center justify-center mb-6">
+            <Check className="size-8 text-[#bef264]" />
+         </div>
+         <h1 className="text-3xl font-black mb-2 text-[#bef264]">Painel Encerrado</h1>
+         <p className="text-white/60 text-sm max-w-sm">Você saiu do painel de administração da sua festa com segurança. Pode fechar esta aba.</p>
+      </div>
+    );
+  }
+
+  if (clientPanelId) return <ClientDashboard partyId={clientPanelId} onLogout={() => setPanelClosed(true)} />;
   if (isAdminOpen) return <AdminDashboard onBackToApp={() => { window.history.replaceState({}, document.title, window.location.pathname); setIsAdminOpen(false); }} />;
 
   const isMissionScreen = !hasUnlockedMagic || isReplayingMagic;
   
-  // Agora respeita o fundo real do tema para a tela de jogos
   const activeBg = isMissionScreen && missionBackgrounds.length > 0
     ? missionBackgrounds[missionIndex % missionBackgrounds.length]
     : themeBg || "https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1920&auto=format&fit=crop";
@@ -114,7 +133,7 @@ export function App() {
         ) : isMissionScreen ? (
           <div className="p-4 w-full h-full flex flex-col justify-center">
             <MagicalMission partyData={partyData} onUnlock={handleMagicUnlocked} isReplay={isReplayingMagic} />
-            {!isReplayingMagic && <button onClick={handleLogout} className="mt-8 text-xs text-white/50 underline mx-auto block z-50">Sair da Sessão</button>}
+            {!isReplayingMagic && <button onClick={handleLogout} className="mt-8 text-xs text-white/50 underline mx-auto block z-50 hover:text-white">Sair da Sessão</button>}
           </div>
         ) : (
           <div className="w-full h-full flex flex-col">
