@@ -15,6 +15,8 @@ export function App() {
   
   const [hasUnlockedMagic, setHasUnlockedMagic] = useState(false);
   const [isReplayingMagic, setIsReplayingMagic] = useState(false);
+  
+  const [themeBg, setThemeBg] = useState<string>("");
   const [missionBackgrounds, setMissionBackgrounds] = useState<string[]>([]);
   const [missionIndex, setMissionIndex] = useState(0);
 
@@ -48,15 +50,15 @@ export function App() {
     setIsInitializing(false);
   }, []);
 
+  // Busca os fundos rotativos e o fundo principal de forma independente do Avatar
   useEffect(() => {
     async function fetchBackgrounds() {
       if (!partyData?.theme) return;
-      const { data } = await supabase.from("themes").select("background_urls").eq('theme_name', partyData.theme);
+      const { data } = await supabase.from("themes").select("background_urls, background_url").eq('theme_name', partyData.theme);
       if (data && data.length > 0) {
         const themeData = data[0];
-        if (themeData.background_urls && themeData.background_urls.length > 0) {
-          setMissionBackgrounds(themeData.background_urls);
-        }
+        if (themeData.background_urls) setMissionBackgrounds(themeData.background_urls);
+        if (themeData.background_url) setThemeBg(themeData.background_url);
       }
     }
     fetchBackgrounds();
@@ -90,9 +92,11 @@ export function App() {
   if (isAdminOpen) return <AdminDashboard onBackToApp={() => { window.history.replaceState({}, document.title, window.location.pathname); setIsAdminOpen(false); }} />;
 
   const isMissionScreen = !hasUnlockedMagic || isReplayingMagic;
+  
+  // Agora respeita o fundo real do tema para a tela de jogos
   const activeBg = isMissionScreen && missionBackgrounds.length > 0
     ? missionBackgrounds[missionIndex % missionBackgrounds.length]
-    : partyData?.photoUrl || "https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1920&auto=format&fit=crop";
+    : themeBg || "https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1920&auto=format&fit=crop";
 
   return (
     <main className="relative min-h-[100dvh] w-full flex flex-col items-center justify-center text-white bg-black overflow-hidden">
