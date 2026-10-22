@@ -75,11 +75,10 @@ export function AdminDashboard({ onBackToApp }: { onBackToApp: () => void }) {
     e.preventDefault();
     const selectedTheme = data.themes.find((t: any) => t.id === partyForm.themeId);
     
-    // CORREÇÃO: Enviando as colunas antigas (birthday_child_name e child_age) para satisfazer as restrições NOT NULL do Supabase
     const payload = {
       party_name: partyForm.name,
       birthday_child_name: partyForm.hostName, 
-      child_age: partyForm.hostAge,
+      child_age: parseInt(partyForm.hostAge, 10) || 5, // CORREÇÃO: Transforma "4-5" no número inteiro 4
       client_id: partyForm.clientId || null,
       theme_id: partyForm.themeId || null,
       package_id: partyForm.packageId || null,
